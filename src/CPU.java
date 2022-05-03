@@ -1,4 +1,3 @@
-import javax.swing.*;
 import java.util.Arrays;
 
 public class CPU {
@@ -51,7 +50,7 @@ public class CPU {
 
     private void dumpRegisters() {
         for(int i = 0; i < 8; i++)
-            System.out.print(i + ":" + Integer.toHexString((char)(registers[i]) & 0xff) + " ");
+            System.out.print(i + ":" + Integer.toHexString((registers[i]) & 0xff) + " ");
     }
 
     private void dumpFlags() {
@@ -129,7 +128,7 @@ public class CPU {
         operationCode = (char) (memory.getCartridgeMemory(programCounter) & 0xff);
     }
 
-    private void decodeOperationCodes() throws InterruptedException {
+    private void decodeOperationCodes() {
         int tempProgramCounter, carry;
 
         if(DEBUGMODE) {
@@ -224,7 +223,7 @@ public class CPU {
 
             case 0x08: //LD (u16),SP
                 counter += 3;
-                if(DEBUGMODE) System.out.println("");
+                if(DEBUGMODE) System.out.println("LD " + ((memory.getCartridgeMemory(programCounter + 2) + (memory.getCartridgeMemory(programCounter + 1) << 4)) + ", SP"));
 
                 stackPointer = (char) (memory.getCartridgeMemory(programCounter + 2));
                 stackPointer += (char) (memory.getCartridgeMemory(programCounter + 1) << 4);
@@ -553,6 +552,7 @@ public class CPU {
 
             case 0x3E: //LD A,u8   IMPLEMENTED AND WORKING
                 counter += 2;
+                if(DEBUGMODE) System.out.println("LD A," + memory.getCartridgeMemory(programCounter + 1));
 
                 registers[0] = (char) memory.getCartridgeMemory(programCounter + 1);
                 programCounter += 2;
@@ -560,12 +560,14 @@ public class CPU {
 
             case 0x40: //LD B,B  IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD B, B");
 
                 programCounter++;
                 break;
 
             case 0x41: //LD B,C IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD B, C");
 
                 registers[1] = registers[2];
                 programCounter++;
@@ -573,6 +575,7 @@ public class CPU {
 
             case 0x42: //LD B,D IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD B, D");
 
                 registers[1] = registers[3];
                 programCounter++;
@@ -580,6 +583,7 @@ public class CPU {
 
             case 0x43: //LD B,E IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD B, E");
 
                 registers[1] = registers[4];
                 programCounter++;
@@ -587,6 +591,7 @@ public class CPU {
 
             case 0x44: //LD B,H IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD B, H");
 
                 registers[1] = registers[6];
                 programCounter++;
@@ -594,6 +599,7 @@ public class CPU {
 
             case 0x45: //LD B,L IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD B, L");
 
                 registers[1] = registers[7];
                 programCounter++;
@@ -601,6 +607,7 @@ public class CPU {
 
             case 0x46: //LD B,(HL) IMPLEMENTED AND WORKING
                 counter += 2;
+                if(DEBUGMODE) System.out.println("LD B, (HL)");
 
                 registers[1] = registers[7];
                 programCounter++;
@@ -608,6 +615,7 @@ public class CPU {
 
             case 0x47: //LD B,A IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD B, A");
 
                 registers[1] = registers[0];
                 programCounter++;
@@ -615,6 +623,7 @@ public class CPU {
 
             case 0x48: //LD C,B IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD C, B");
 
                 registers[2] = registers[1];
                 programCounter++;
@@ -622,36 +631,42 @@ public class CPU {
 
             case 0x49: //LD C,C IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD C, B");
 
                 programCounter++;
                 break;
 
             case 0x4A: //LD C,D IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD C, C");
 
                 registers[2] = registers[3];
                 break;
 
             case 0x4B: //LD C,E IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD C, E");
 
                 registers[2] = registers[4];
                 break;
 
             case 0x4C: //LD C,H IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD C, H");
 
                 registers[2] = registers[6];
                 break;
 
             case 0x4D: //LD C,L IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD C, L");
 
                 registers[2] = registers[7];
                 break;
 
             case 0x4E: //LD C,(HL) IMPLEMENTED AND WORKING
                 counter += 2;
+                if(DEBUGMODE) System.out.println("LD C, (HL)");
 
                 registers[2] = registers[7];
                 programCounter++;
@@ -659,6 +674,7 @@ public class CPU {
 
             case 0x4F: //LD C,A IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD C, A");
 
                 registers[2] = registers[0];
                 programCounter++;
@@ -666,6 +682,7 @@ public class CPU {
 
             case 0x50: //LD D,B IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD D, B");
 
                 registers[3] = registers[1];
                 programCounter++;
@@ -673,6 +690,7 @@ public class CPU {
 
             case 0x51: //LD D,C IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD D, C");
 
                 registers[3] = registers[2];
                 programCounter++;
@@ -680,12 +698,14 @@ public class CPU {
 
             case 0x52: //LD D,D IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD D, D");
 
                 programCounter++;
                 break;
 
             case 0x53: //LD D,E IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD D, E");
 
                 registers[3] = registers[4];
                 programCounter++;
@@ -693,6 +713,7 @@ public class CPU {
 
             case 0x54: //LD D,H IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD D, H");
 
                 registers[3] = registers[6];
                 programCounter++;
@@ -700,6 +721,7 @@ public class CPU {
 
             case 0x55: //LD D,L IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD D, L");
 
                 registers[3] = registers[7];
                 programCounter++;
@@ -707,6 +729,7 @@ public class CPU {
 
             case 0x56: //LD D,(HL) IMPLEMENTED AND WORKING
                 counter += 2;
+                if(DEBUGMODE) System.out.println("LD D, (HL)");
 
                 registers[3] = registers[7];
                 programCounter++;
@@ -714,6 +737,7 @@ public class CPU {
 
             case 0x57: //LD D,A IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD D, A");
 
                 registers[3] = registers[0];
                 programCounter++;
@@ -721,6 +745,7 @@ public class CPU {
 
             case 0x58: //LD E,B IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD E, B");
 
                 registers[4] = registers[1];
                 programCounter++;
@@ -728,6 +753,7 @@ public class CPU {
 
             case 0x59: //LD E,C IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD E, C");
 
                 registers[4] = registers[2];
                 programCounter++;
@@ -735,6 +761,7 @@ public class CPU {
 
             case 0x5A: //LD E,D IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD E, D");
 
                 registers[4] = registers[3];
                 programCounter++;
@@ -742,12 +769,14 @@ public class CPU {
 
             case 0x5B: //LD E,E IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD E, E");
 
                 programCounter++;
                 break;
 
             case 0x5C: //LD E,H IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD E, H");
 
                 registers[4] = registers[6];
                 programCounter++;
@@ -755,6 +784,7 @@ public class CPU {
 
             case 0x5D: //LD E,L IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD E, L");
 
                 registers[4] = registers[7];
                 programCounter++;
@@ -762,6 +792,7 @@ public class CPU {
 
             case 0x5E: //LD E,(HL) IMPLEMENTED AND WORKING
                 counter += 2;
+                if(DEBUGMODE) System.out.println("LD E, (HL)");
 
                 registers[4] = registers[7];
                 programCounter++;
@@ -769,6 +800,7 @@ public class CPU {
 
             case 0x5F: //LD E,A IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD E, A");
 
                 registers[4] = registers[0];
                 programCounter++;
@@ -776,6 +808,7 @@ public class CPU {
 
             case 0x60: //LD H,B IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD H, B");
 
                 registers[6] = registers[1];
                 programCounter++;
@@ -783,6 +816,7 @@ public class CPU {
 
             case 0x61: //LD H,C IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD H, C");
 
                 registers[6] = registers[2];
                 programCounter++;
@@ -790,6 +824,7 @@ public class CPU {
 
             case 0x62: //LD H,D IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD H, D");
 
                 registers[6] = registers[3];
                 programCounter++;
@@ -797,6 +832,7 @@ public class CPU {
 
             case 0x63: //LD H,E IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD H, E");
 
                 registers[6] = registers[4];
                 programCounter++;
@@ -804,12 +840,14 @@ public class CPU {
 
             case 0x64: //LD H,H IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD H, H");
 
                 programCounter++;
                 break;
 
             case 0x65: //LD H,L IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD H, L");
 
                 registers[6] = registers[7];
                 programCounter++;
@@ -817,6 +855,7 @@ public class CPU {
 
             case 0x66: //LD H,(HL) IMPLEMENTED AND WORKING
                 counter += 2;
+                if(DEBUGMODE) System.out.println("LD H, (HL)");
 
                 registers[6] = registers[7];
                 programCounter++;
@@ -824,6 +863,7 @@ public class CPU {
 
             case 0x67: //LD H,A IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD H, A");
 
                 registers[6] = registers[0];
                 programCounter++;
@@ -831,6 +871,7 @@ public class CPU {
 
             case 0x68: //LD L,B IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD L, B");
 
                 registers[7] = registers[1];
                 programCounter++;
@@ -838,6 +879,7 @@ public class CPU {
 
             case 0x69: //LD L,C IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD L, C");
 
                 registers[7] = registers[2];
                 programCounter++;
@@ -845,6 +887,7 @@ public class CPU {
 
             case 0x6A: //LD L,D IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD L, D");
 
                 registers[7] = registers[3];
                 programCounter++;
@@ -852,6 +895,7 @@ public class CPU {
 
             case 0x6B: //LD L,E IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD L, E");
 
                 registers[7] = registers[4];
                 programCounter++;
@@ -859,6 +903,7 @@ public class CPU {
 
             case 0x6C: //LD L,H IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD L, H");
 
                 registers[7] = registers[6];
                 programCounter++;
@@ -866,45 +911,77 @@ public class CPU {
 
             case 0x6D: //LD L,L IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD L, L");
 
                 programCounter++;
                 break;
 
             case 0x6E: //LD L,(HL) IMPLEMENTED AND WORKING
                 counter += 2;
+                if(DEBUGMODE) System.out.println("LD L, (HL)");
 
                 programCounter++;
                 break;
 
             case 0x6F: //LD L,A IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD L, A");
 
                 registers[7] = registers[0];
                 programCounter++;
                 break;
 
             case 0x70: //LD (HL),B
-                System.exit(0);
+                counter += 2;
+                if(DEBUGMODE) System.out.println("LD (HL), B");
+
+                registers[6] = 0x00;
+                registers[7] = registers[1];
+                programCounter++;
                 break;
 
             case 0x71: //LD (HL),C
-                System.exit(0);
+                counter += 2;
+                if(DEBUGMODE) System.out.println("LD (HL), C");
+
+                registers[6] = 0x00;
+                registers[7] = registers[2];
+                programCounter++;
                 break;
 
             case 0x72: //LD (HL),D
-                System.exit(0);
+                counter += 2;
+                if(DEBUGMODE) System.out.println("LD (HL), D");
+
+                registers[6] = 0x00;
+                registers[7] = registers[3];
+                programCounter++;
                 break;
 
             case 0x73: //LD (HL),E
-                System.exit(0);
+                counter += 2;
+                if(DEBUGMODE) System.out.println("LD (HL), E");
+
+                registers[6] = 0x00;
+                registers[7] = registers[4];
+                programCounter++;
                 break;
 
             case 0x74: //LD (HL),H
-                System.exit(0);
+                counter += 2;
+                if(DEBUGMODE) System.out.println("LD (HL), H");
+
+                registers[7] = registers[6];
+                registers[6] = 0x00;
+                programCounter++;
                 break;
 
             case 0x75: //LD (HL),L
-                System.exit(0);
+                counter += 2;
+                if(DEBUGMODE) System.out.println("LD (HL), L");
+
+                registers[6] = 0x00;
+                programCounter++;
                 break;
 
             case 0x76: //HALT
@@ -912,11 +989,17 @@ public class CPU {
                 break;
 
             case 0x77: //LD (HL),A
-                System.exit(0);
+                counter += 2;
+                if(DEBUGMODE) System.out.println("LD (HL), A");
+
+                registers[6] = 0x00;
+                registers[7] = registers[0];
+                programCounter++;
                 break;
 
             case 0x78: //LD A,B  IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD A, B");
 
                 registers[0] = registers[1];
                 programCounter++;
@@ -924,6 +1007,7 @@ public class CPU {
 
             case 0x79: //LD A,C  IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD A, C");
 
                 registers[0] = registers[2];
                 programCounter++;
@@ -931,6 +1015,7 @@ public class CPU {
 
             case 0x7A: //LD A,D  IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD A, D");
 
                 registers[0] = registers[3];
                 programCounter++;
@@ -938,6 +1023,7 @@ public class CPU {
 
             case 0x7B: //LD A,E  IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD A, E");
 
                 registers[0] = registers[4];
                 programCounter++;
@@ -945,6 +1031,7 @@ public class CPU {
 
             case 0x7C: //LD A,H  IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD A, H");
 
                 registers[0] = registers[6];
                 programCounter++;
@@ -952,6 +1039,7 @@ public class CPU {
 
             case 0x7D: //LD A,L  IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD A, L");
 
                 registers[0] = registers[7];
                 programCounter++;
@@ -959,6 +1047,7 @@ public class CPU {
 
             case 0x7E: //LD A,(HL)  IMPLEMENTED AND WORKING
                 counter += 2;
+                if(DEBUGMODE) System.out.println("LD A, (HL)");
 
                 registers[0] = registers[7];
                 programCounter++;
@@ -966,12 +1055,113 @@ public class CPU {
 
             case 0x7F: //LD A,A  IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("LD A, A");
 
                 programCounter++;
                 break;
 
+            case 0x80: //ADD A,B NOT SURE
+                counter++;
+                if(DEBUGMODE) System.out.println("ADD A, B");
+
+                zeroFlag = (registers[0] & 0xff + registers[1] & 0xff) == 0x00;
+                halfCarryFlag = (registers[0] >> 4 & 0xf) != ((registers[0] + registers[1]) >> 4 & 0xf);
+                if(registers[0] + registers[1] > 255) registers[0] = (char) (registers[0] + registers[1] - 255);
+                else registers[0] += registers[1];
+                subtractFlag = false;
+                computeFRegister();
+                programCounter += 1;
+                break;
+
+            case 0x81: //ADD A,C
+                counter++;
+                if(DEBUGMODE) System.out.println("ADD A, C");
+
+                zeroFlag = (registers[0] & 0xff + registers[2] & 0xff) == 0x00;
+                halfCarryFlag = (registers[0] >> 4 & 0xf) != ((registers[0] + registers[2]) >> 4 & 0xf);
+                if(registers[0] + registers[2] > 255) registers[0] = (char) (registers[0] + registers[2] - 255);
+                else registers[0] += registers[2];
+                subtractFlag = false;
+                computeFRegister();
+                programCounter += 1;
+                break;
+
+            case 0x82: //ADD A,D
+                counter++;
+                if(DEBUGMODE) System.out.println("ADD A, D");
+
+                zeroFlag = (registers[0] & 0xff + registers[3] & 0xff) == 0x00;
+                halfCarryFlag = (registers[0] >> 4 & 0xf) != ((registers[0] + registers[3]) >> 4 & 0xf);
+                if(registers[0] + registers[3] > 255) registers[0] = (char) (registers[0] + registers[3] - 255);
+                else registers[0] += registers[3];
+                subtractFlag = false;
+                computeFRegister();
+                programCounter += 1;
+                break;
+
+            case 0x83: //ADD A,E
+                counter++;
+                if(DEBUGMODE) System.out.println("ADD A, D");
+
+                zeroFlag = (registers[0] & 0xff + registers[4] & 0xff) == 0x00;
+                halfCarryFlag = (registers[0] >> 4 & 0xf) != ((registers[0] + registers[4]) >> 4 & 0xf);
+                if(registers[0] + registers[4] > 255) registers[0] = (char) (registers[0] + registers[4] - 255);
+                else registers[0] += registers[4];
+                subtractFlag = false;
+                computeFRegister();
+                programCounter += 1;
+                break;
+
+            case 0x84: //ADD A, H
+                counter++;
+                if(DEBUGMODE) System.out.println("ADD A, H");
+
+                zeroFlag = (registers[0] & 0xff + registers[6] & 0xff) == 0x00;
+                halfCarryFlag = (registers[0] >> 4 & 0xf) != ((registers[0] + registers[6]) >> 4 & 0xf);
+                if(registers[0] + registers[6] > 255) registers[0] = (char) (registers[0] + registers[6] - 255);
+                else registers[0] += registers[6];
+                subtractFlag = false;
+                computeFRegister();
+                programCounter += 1;
+                break;
+
+            case 0x85: //ADD A,L
+                counter++;
+                if(DEBUGMODE) System.out.println("ADD A, L");
+
+                zeroFlag = (registers[0] & 0xff + registers[7] & 0xff) == 0x00;
+                halfCarryFlag = (registers[0] >> 4 & 0xf) != ((registers[0] + registers[7]) >> 4 & 0xf);
+                if(registers[0] + registers[7] > 255) registers[0] = (char) (registers[0] + registers[7] - 255);
+                else registers[0] += registers[7];
+                subtractFlag = false;
+                computeFRegister();
+                programCounter += 1;
+                break;
+
+            case 0x86: //ADD A,(HL)
+                counter++;
+                if(DEBUGMODE) System.out.println("ADD A, (HL)");
+
+                //LACKS IMPLEMENTATION
+
+                break;
+
+            case 0x87: //ADD A,A
+                counter++;
+                if(DEBUGMODE) System.out.println("ADD A, A");
+
+                zeroFlag = (registers[0] & 0xff + registers[0] & 0xff) == 0x00;
+                halfCarryFlag = (registers[0] >> 4 & 0xf) != ((registers[0] + registers[0]) >> 4 & 0xf);
+                if(registers[0] + registers[0] > 255) registers[0] = (char) (registers[0] + registers[0] - 255);
+                else registers[0] += registers[0];
+                subtractFlag = false;
+                computeFRegister();
+                programCounter += 1;
+                break;
+
             case 0xA0: //AND A,B IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("AND A, B");
 
                 registers[0] &= registers[1];
                 zeroFlag = registers[0] == 0;
@@ -984,6 +1174,7 @@ public class CPU {
 
             case 0xA1: //AND A,C
                 counter++;
+                if(DEBUGMODE) System.out.println("AND A, C");
 
                 registers[0] &= registers[2];
                 zeroFlag = registers[0] == 0;
@@ -996,6 +1187,7 @@ public class CPU {
 
             case 0xA2: //AND A,D
                 counter++;
+                if(DEBUGMODE) System.out.println("AND A, D");
 
                 registers[0] &= registers[3];
                 zeroFlag = registers[0] == 0;
@@ -1008,6 +1200,7 @@ public class CPU {
 
             case 0xA3: //AND A,E
                 counter++;
+                if(DEBUGMODE) System.out.println("AND A, E");
 
                 registers[0] &= registers[4];
                 zeroFlag = registers[0] == 0;
@@ -1020,6 +1213,7 @@ public class CPU {
 
             case 0xA4: //AND A,H
                 counter++;
+                if(DEBUGMODE) System.out.println("AND A, H");
 
                 registers[0] &= registers[6];
                 zeroFlag = registers[0] == 0;
@@ -1032,6 +1226,7 @@ public class CPU {
 
             case 0xA5: //AND A,L
                 counter++;
+                if(DEBUGMODE) System.out.println("AND A, L");
 
                 registers[0] &= registers[7];
                 zeroFlag = registers[0] == 0;
@@ -1043,11 +1238,15 @@ public class CPU {
                 break;
 
             case 0xA6: //AND A,(HL)
-                System.exit(0);
+                counter++;
+                if(DEBUGMODE) System.out.println("AND A, (HL)");
+
+                programCounter++;
                 break;
 
             case 0xA7: //AND A,A
                 counter++;
+                if(DEBUGMODE) System.out.println("AND A, A");
 
                 registers[0] &= registers[0];
                 zeroFlag = registers[0] == 0;
@@ -1060,6 +1259,7 @@ public class CPU {
 
             case 0xA8: //XOR A,B
                 counter++;
+                if(DEBUGMODE) System.out.println("XOR A, B");
 
                 registers[0] ^= registers[1];
                 zeroFlag = registers[0] == 0;
@@ -1072,6 +1272,7 @@ public class CPU {
 
             case 0xA9: //XOR A,C
                 counter++;
+                if(DEBUGMODE) System.out.println("XOR A, C");
 
                 registers[0] ^= registers[2];
                 zeroFlag = registers[0] == 0;
@@ -1084,6 +1285,7 @@ public class CPU {
 
             case 0xAA: //XOR A,D
                 counter++;
+                if(DEBUGMODE) System.out.println("XOR A, D");
 
                 registers[0] ^= registers[3];
                 zeroFlag = registers[0] == 0;
@@ -1096,6 +1298,7 @@ public class CPU {
 
             case 0xAB: //XOR A,E
                 counter++;
+                if(DEBUGMODE) System.out.println("XOR A, E");
 
                 registers[0] ^= registers[4];
                 zeroFlag = registers[0] == 0;
@@ -1108,6 +1311,7 @@ public class CPU {
 
             case 0xAC: //XOR A,H
                 counter++;
+                if(DEBUGMODE) System.out.println("XOR A, H");
 
                 registers[0] ^= registers[5];
                 zeroFlag = registers[0] == 0;
@@ -1120,6 +1324,7 @@ public class CPU {
 
             case 0xAD: //XOR A,L
                 counter++;
+                if(DEBUGMODE) System.out.println("XOR A, L");
 
                 registers[0] ^= registers[6];
                 zeroFlag = registers[0] == 0;
@@ -1132,11 +1337,15 @@ public class CPU {
 
             case 0xAE: //XOR A,(HL) POR FAZER
                 counter++;
+                if(DEBUGMODE) System.out.println("XOR A, (HL)");
+
+                //LACKS IMPLEMENTATION
 
                 break;
 
             case 0xAF: //XOR A,A    IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("XOR A, A");
 
                 registers[0] ^= registers[0];
                 zeroFlag = registers[0] == 0;
@@ -1149,6 +1358,7 @@ public class CPU {
 
             case 0xB0: //OR A,B IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("OR A, B");
 
                 registers[0] |= registers[1];
                 zeroFlag = registers[0] == 0;
@@ -1161,6 +1371,7 @@ public class CPU {
 
             case 0xB1: //OR A,C IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("OR A, C");
 
                 registers[0] |= registers[2];
                 zeroFlag = registers[0] == 0;
@@ -1173,6 +1384,7 @@ public class CPU {
 
             case 0xB2: //OR A,D IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("OR A, D");
 
                 registers[0] |= registers[3];
                 zeroFlag = registers[0] == 0;
@@ -1185,6 +1397,7 @@ public class CPU {
 
             case 0xB3: //OR A,E IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("OR A, E");
 
                 registers[0] |= registers[4];
                 zeroFlag = registers[0] == 0;
@@ -1197,6 +1410,7 @@ public class CPU {
 
             case 0xB4: //OR A,H IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("OR A, H");
 
                 registers[0] |= registers[6];
                 zeroFlag = registers[0] == 0;
@@ -1209,6 +1423,7 @@ public class CPU {
 
             case 0xB5: //OR A,L IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("OR A, L");
 
                 registers[0] |= registers[7];
                 zeroFlag = registers[0] == 0;
@@ -1220,11 +1435,16 @@ public class CPU {
                 break;
 
             case 0xB6: //OR A,(HL)
-                System.exit(0);
+                counter += 2;
+                if(DEBUGMODE) System.out.println("OR A, B");
+
+                //LACKS IMPLEMENTATION
+
                 break;
 
             case 0xB7: //OR A,A IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("OR A, A");
 
                 registers[0] |= registers[0];
                 zeroFlag = registers[0] == 0;
@@ -1237,6 +1457,7 @@ public class CPU {
 
             case 0xB8: //CP A,B IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("CP A, B");
 
                 zeroFlag = (registers[0] - registers[1]) == 0;
                 subtractFlag = true;
@@ -1248,6 +1469,7 @@ public class CPU {
 
             case 0xB9: //CP A,C IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("CP A, C");
 
                 zeroFlag = (registers[0] - registers[2]) == 0;
                 subtractFlag = true;
@@ -1259,6 +1481,7 @@ public class CPU {
 
             case 0xBA: //CP A,D IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("CP A, D");
 
                 zeroFlag = (registers[0] - registers[3]) == 0;
                 subtractFlag = true;
@@ -1270,6 +1493,7 @@ public class CPU {
 
             case 0xBB: //CP A,E IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("CP A, E");
 
                 zeroFlag = (registers[0] - registers[4]) == 0;
                 subtractFlag = true;
@@ -1281,6 +1505,7 @@ public class CPU {
 
             case 0xBC: //CP A,H IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("CP A, H");
 
                 zeroFlag = (registers[0] - registers[6]) == 0;
                 subtractFlag = true;
@@ -1292,6 +1517,7 @@ public class CPU {
 
             case 0xBD: //CP A,L IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("CP A, L");
 
                 zeroFlag = (registers[0] - registers[7]) == 0;
                 subtractFlag = true;
@@ -1302,11 +1528,16 @@ public class CPU {
                 break;
 
             case 0xBE: //CP A,(HL)
-                System.exit(0);
+                counter++;
+                if(DEBUGMODE) System.out.println("CP A, (HL)");
+
+                //LACKS IMPLEMENTATION
+
                 break;
 
             case 0xBF: //CP A,A IMPLEMENTED AND WORKING
                 counter++;
+                if(DEBUGMODE) System.out.println("CP A, A");
 
                 zeroFlag = true;
                 subtractFlag = true;
@@ -1314,6 +1545,13 @@ public class CPU {
                 carryFlag = false;
                 computeFRegister();
                 programCounter++;
+                break;
+
+            case 0xC0: //RET NZ
+                counter += 2;
+                if(DEBUGMODE) System.out.println("RET NZ");
+
+                //if(!zeroFlag)
                 break;
 
             case 0xC3: //JP u16   IMPLEMENTED AND WORKING
@@ -1335,6 +1573,27 @@ public class CPU {
                 } else {
                     programCounter += 3;
                 }
+                break;
+
+            case 0xC6: //ADD A,#
+                counter += 2;
+                if(DEBUGMODE) System.out.println("ADD A, " + (memory.getCartridgeMemory(programCounter + 1) & 0xff));
+
+                //LACKS IMPLEMENTATION
+
+                break;
+
+            case 0xC8: //RET Z
+                counter += 2;
+                if(DEBUGMODE) System.out.println("RET Z");
+
+                //if(zeroFlag)
+                break;
+
+            case 0xC9: //RET
+                counter += 2;
+                if(DEBUGMODE) System.out.println("RET");
+
                 break;
 
             case 0xCB:
@@ -2175,28 +2434,103 @@ public class CPU {
                     case 0xBF:
                         break;
 
-                    case 0xC0:
+                    case 0xC0: //SWAP B
+                        counter += 2;
+                        if(DEBUGMODE) System.out.println("SWAP B");
+
+                        //LACKS IMPLEMENTATION
+                        zeroFlag = registers[1] == 0;
+                        subtractFlag = false;
+                        halfCarryFlag = false;
+                        carryFlag = false;
+                        computeFRegister();
+
                         break;
 
-                    case 0xC1:
+                    case 0xC1: //SWAP C
+                        counter += 2;
+                        if(DEBUGMODE) System.out.println("SWAP C");
+
+                        //LACKS IMPLEMENTATION
+                        zeroFlag = registers[2] == 0;
+                        subtractFlag = false;
+                        halfCarryFlag = false;
+                        carryFlag = false;
+                        computeFRegister();
                         break;
 
-                    case 0xC2:
+                    case 0xC2: //SWAP D
+                        counter += 2;
+                        if(DEBUGMODE) System.out.println("SWAP D");
+
+                        //LACKS IMPLEMENTATION
+                        zeroFlag = registers[3] == 0;
+                        subtractFlag = false;
+                        halfCarryFlag = false;
+                        carryFlag = false;
+                        computeFRegister();
                         break;
 
-                    case 0xC3:
+                    case 0xC3: //SWAP E
+                        counter += 2;
+                        if(DEBUGMODE) System.out.println("SWAP E");
+
+                        //LACKS IMPLEMENTATION
+                        zeroFlag = registers[4] == 0;
+                        subtractFlag = false;
+                        halfCarryFlag = false;
+                        carryFlag = false;
+                        computeFRegister();
                         break;
 
-                    case 0xC4:
+                    case 0xC4: //SWAP H
+                        counter += 2;
+                        if(DEBUGMODE) System.out.println("SWAP H");
+
+                        //LACKS IMPLEMENTATION
+                        zeroFlag = registers[6] == 0;
+                        subtractFlag = false;
+                        halfCarryFlag = false;
+                        carryFlag = false;
+                        computeFRegister();
                         break;
 
-                    case 0xC5:
+                    case 0xC5: //SWAP L
+                        counter += 2;
+                        if(DEBUGMODE) System.out.println("SWAP L");
+
+                        //LACKS IMPLEMENTATION
+                        zeroFlag = registers[7] == 0;
+                        subtractFlag = false;
+                        halfCarryFlag = false;
+                        carryFlag = false;
+                        computeFRegister();
                         break;
 
-                    case 0xC6:
+                    case 0xC6: //SWAP (HL)
+                        counter += 4;
+                        if(DEBUGMODE) System.out.println("SWAP C");
+
+                        byte temp = (byte) registers[7];
+                        registers[7] = registers[6];
+                        registers[6] = (char) temp;
+                        zeroFlag = registers[1] == 0;
+                        subtractFlag = false;
+                        halfCarryFlag = false;
+                        carryFlag = false;
+                        computeFRegister();
                         break;
 
-                    case 0xC7:
+                    case 0xC7: //SWAP A
+                        counter += 2;
+                        if(DEBUGMODE) System.out.println("SWAP A");
+
+                        //LACKS IMPLEMENTATION
+                        zeroFlag = registers[0] == 0;
+                        subtractFlag = false;
+                        halfCarryFlag = false;
+                        carryFlag = false;
+                        computeFRegister();
                         break;
 
                     case 0xC8:
