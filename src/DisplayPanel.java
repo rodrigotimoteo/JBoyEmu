@@ -23,12 +23,30 @@ public class DisplayPanel extends JPanel {
         return SCALE;
     }
 
+    //Seters
+
+    public void setSCROLLX(int SCROLLX) {
+        this.SCROLLX = SCROLLX;
+    }
+
+    public void setSCROLLY(int SCROLLY) {
+        this.SCROLLY = SCROLLY;
+    }
+
     public DisplayPanel(Memory memory) {
         this.memory = memory;
     }
 
-    public void paint(Graphics g) { //Draws to the screen based on the contents of the Graphics array in memory
-        //boolean[][] display = memory.getGraphics(); //Gets the content from the graphics array in memory
+    /*
+    0  White
+    1  Light gray
+    2  Dark gray
+    3  Black
+     */
+
+    public void paint(Graphics g) {
+
+
         for(int x = 0; x < WIDTH; x++) {
             for(int y = 0; y < HEIGHT; y++) {
                 if(1 == 1)
