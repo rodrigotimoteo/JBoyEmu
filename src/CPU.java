@@ -50,6 +50,10 @@ public class CPU {
         return operationCode;
     }
 
+    public char getStackPointer() {
+        return stackPointer;
+    }
+
     public boolean getZeroFlag() {
         return zeroFlag;
     }
@@ -87,6 +91,14 @@ public class CPU {
 
     public void setProgramCounter(char amount) {
         programCounter = amount;
+    }
+
+    public void increaseStackPointer(int amount) {
+        stackPointer += amount;
+    }
+
+    public void setStackPointer(char amount) {
+        stackPointer = amount;
     }
 
     public void setZeroFlag(boolean state) {
@@ -223,15 +235,7 @@ public class CPU {
                 break;
 
             case 0x03: //INC BC
-                counter++;
-                //if(DEBUGMODE) System.out.println("INC BC");
-
-                if(registers[2] == 255) {
-                    registers[2] = 0;
-                    registers[1]++;
-                } else
-                    registers[2]++;
-                programCounter += 1;
+                CPUInstructions.incR(0);
                 break;
 
             case 0x04: //INC B IMPLEMENTED AND WORKING
@@ -247,18 +251,7 @@ public class CPU {
                 break;
 
             case 0x07: //RLCA
-                counter += 1;
-                //if(DEBUGMODE) System.out.println("RLCA");
-
-                subtractFlag = false;
-                halfCarryFlag = false;
-                carry = (registers[4] & 0xff) >> 7;
-                carryFlag = carry != 0;
-                registers[0] = (char) (registers[0] << 1);
-                zeroFlag = registers[0] == 0;
-                computeFRegister();
-
-                programCounter++;
+                CPUInstructions.rlca();
                 break;
 
             case 0x08: //LD (u16),SP
@@ -292,15 +285,7 @@ public class CPU {
                 break;
 
             case 0x0B: //DEC BC
-                counter++;
-                //if(DEBUGMODE) System.out.println("DEC BC");
-
-                if(registers[2] == 0) {
-                    registers[2] = 255;
-                    registers[1]--;
-                } else
-                    registers[2]--;
-                programCounter += 1;
+                CPUInstructions.decR(0);
                 break;
 
             case 0x0C: //INC C IMPLEMENTED AND WORKING
@@ -316,21 +301,11 @@ public class CPU {
                 break;
 
             case 0x0F: //RRCA
-                counter++;
-                //if(DEBUGMODE) System.out.println("RRCA");
-
-                registers[0] = (char) (registers[0] >> 1);
-                subtractFlag = false;
-                halfCarryFlag = false;
-                programCounter += 1;
+                CPUInstructions.rrca();
                 break;
 
-
             case 0x10: //STOP WAITING IMPLEMENTATION
-                counter += 1;
-                //if(DEBUGMODE) System.out.println("WAIT");
-
-                continueFlag = false;
+                CPUInstructions.stop();
                 break;
 
             case 0x11: //LD DE,u16 IMPLEMENTED AND WORKING
@@ -343,19 +318,11 @@ public class CPU {
                 break;
 
             case 0x12: //LD (DE),A
-                CPUInstructions.ldTwoRegisters(0, 1);
+                CPUInstructions.ldTwoRegisters(1, 1);
                 break;
 
             case 0x13: //INC DE
-                counter++;
-                //if(DEBUGMODE) System.out.println("INC DE");
-
-                if(registers[4] == 255) {
-                    registers[4] = 0;
-                    registers[3]++;
-                } else
-                    registers[4]++;
-                programCounter += 1;
+                CPUInstructions.incR(1);
                 break;
 
             case 0x14: //INC D IMPLEMENTED AND WORKING
@@ -371,16 +338,11 @@ public class CPU {
                 break;
 
             case 0x17: //RLA NAO ENTENDI A IMPLEMENTACAO
-                counter += 1;
-                //if(DEBUGMODE) System.out.println("RLA");
-
+                CPUInstructions.rla();
                 break;
 
             case 0x18: //JR i8
-                counter += 2;
-                //if(DEBUGMODE) System.out.println("JR " + Integer.toHexString(memory.getCartridgeMemory(programCounter + 1) & 0xff));
-
-                programCounter += memory.getCartridgeMemory(programCounter + 1);
+                CPUInstructions.jr(0, 4);
                 break;
 
             case 0x19: //ADD HL,DE
@@ -405,15 +367,7 @@ public class CPU {
                 break;
 
             case 0x1B: //DEC DE
-                counter++;
-                //if(DEBUGMODE) System.out.println("DEC DE");
-
-                if(registers[4] == 0) {
-                    registers[4] = 255;
-                    registers[3]--;
-                } else
-                    registers[4]--;
-                programCounter += 1;
+                CPUInstructions.decR(1);
                 break;
 
             case 0x1C: //INC E
@@ -429,18 +383,11 @@ public class CPU {
                 break;
 
             case 0x1F: //RRA
-                counter += 1;
-                //if(DEBUGMODE) System.out.println("RRA");
-
+                CPUInstructions.rra();
                 break;
 
             case 0x20: //JR NZ,i8
-                counter += 2;
-                //if(DEBUGMODE) System.out.println("JR NZ, " + Integer.toHexString(memory.getCartridgeMemory(programCounter + 1) & 0xff));
-
-                if(!zeroFlag)
-                    programCounter += (char) (memory.getCartridgeMemory(programCounter + 1));
-                programCounter += 2;
+                CPUInstructions.jr(1, 0);
                 break;
 
             case 0x21: //LD HL,u16   IMPLEMENTED AND WORKING
@@ -456,6 +403,10 @@ public class CPU {
                 CPUInstructions.ldi(1);
                 break;
 
+            case 0x23: //INC HL
+                CPUInstructions.incR(2);
+                break;
+
             case 0x24: //INC H IMPLEMENTED AND WORKING
                 CPUInstructions.inc(6);
                 break;
@@ -468,8 +419,16 @@ public class CPU {
                 CPUInstructions.ld(6, 9);
                 break;
 
+            case 0x28: //JR Z,u8
+                CPUInstructions.jr(1, 1);
+                break;
+
             case 0x2A: //LDI A,(HL)
                 CPUInstructions.ldi(0);
+                break;
+
+            case 0x2B: //DEC HL
+                CPUInstructions.decR(2);
                 break;
 
             case 0x2C: //INC L IMPLEMENTED AND WORKING
@@ -488,8 +447,16 @@ public class CPU {
                 CPUInstructions.cpl();
                 break;
 
+            case 0x30: //JR NC,u8
+                CPUInstructions.jr(1, 2);
+                break;
+
             case 0x32: //LDD (HL),A   IMPLEMENTED AND WORKING
                 CPUInstructions.ldd(1);
+                break;
+
+            case 0x33: //INC SP
+                CPUInstructions.incR(3);
                 break;
 
             case 0x34: //INC (HL)
@@ -508,8 +475,16 @@ public class CPU {
                 CPUInstructions.scf();
                 break;
 
+            case 0x38: //JR C,u8
+                CPUInstructions.jr(1, 3);
+                break;
+
             case 0x3A: //LDD A,(HL)
                 CPUInstructions.ldd(0);
+                break;
+
+            case 0x3B: //DEC SP
+                CPUInstructions.decR(3);
                 break;
 
             case 0x3C: //INC A
@@ -983,27 +958,16 @@ public class CPU {
                 //if(!zeroFlag)
                 break;
 
-            case 0xC3: //JP u16   IMPLEMENTED AND WORKING
-                counter += 3;
-                //if(DEBUGMODE) System.out.println("JP " + Integer.toHexString(((memory.getCartridgeMemory(programCounter + 1) & 0xff) + (memory.getCartridgeMemory(programCounter + 2) << 8)) & 0xffff));
+            case 0xC2: //JP NZ,u16
+                CPUInstructions.jpCond(0);
+                break;
 
-                programCounter = (char) ((memory.getCartridgeMemory(programCounter + 1) & 0xff) + (memory.getCartridgeMemory(programCounter + 2) << 8));
+            case 0xC3: //JP u16   IMPLEMENTED AND WORKING
+                CPUInstructions.jp();
                 break;
 
             case 0xC4: //CALL NZ, nn
-                counter += 3;
-                //if(DEBUGMODE) System.out.println("CALL NZ, " + ((memory.getCartridgeMemory(programCounter + 1) & 0xff) + (memory.getCartridgeMemory(programCounter + 2) & 0xff) * 256));
-
-                if(!zeroFlag) {
-                    tempProgramCounter = programCounter + 3;
-
-                    programCounter = (char) ((memory.getCartridgeMemory(programCounter + 1) & 0xff) + (memory.getCartridgeMemory(programCounter + 2) & 0xff) * 256);
-                    memory.setMemory(stackPointer - 1, (char) (((tempProgramCounter) & 0xff00) / 256));
-                    memory.setMemory(stackPointer - 2, (char) ((tempProgramCounter) & 0xff));
-                    stackPointer -= 2;
-                } else {
-                    programCounter += 3;
-                }
+                CPUInstructions.callCond(0);
                 break;
 
             case 0xC6: //ADD A,#
@@ -1023,685 +987,209 @@ public class CPU {
 
                 break;
 
+            case 0xCA: //JP Z,u16
+                CPUInstructions.jpCond(1);
+                break;
+
             case 0xCB:
                 int carry1, bit;
-                counter += 1;
-                //(DEBUGMODE) System.out.println("CB PREFIX");
+
+                CPUInstructions.cb();
 
                 programCounter++;
                 operationCode = (char) (memory.getCartridgeMemory(programCounter) & 0xff);
 
-                /*switch(operationCode) {
+                switch(operationCode) {
                     case 0x00: //RLC B
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("RLC B");
-
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-                        carry = (registers[1] & 0xff) >> 7;
-                        carryFlag = carry != 0;
-                        registers[1] = (char) (registers[1] << 1);
-                        zeroFlag = registers[1] == 0;
-                        computeFRegister();
-
-                        programCounter++;
+                        CPUInstructions.rlc(1);
                         break;
 
                     case 0x01: //RLC C
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("RLC C");
-
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-                        carry = (registers[2] & 0xff) >> 7;
-                        carryFlag = carry != 0;
-                        registers[2] = (char) (registers[2] << 1);
-                        zeroFlag = registers[2] == 0;
-                        computeFRegister();
-
-                        programCounter++;
+                        CPUInstructions.rlc(2);
                         break;
 
                     case 0x02: //RLC D
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("RLC D");
-
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-                        carry = (registers[3] & 0xff) >> 7;
-                        carryFlag = carry != 0;
-                        registers[3] = (char) (registers[3] << 1);
-                        zeroFlag = registers[3] == 0;
-                        computeFRegister();
-
-                        programCounter++;
+                        CPUInstructions.rlc(3);
                         break;
 
                     case 0x03: //RLC E
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("RLC E");
-
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-                        carry = (registers[4] & 0xff) >> 7;
-                        carryFlag = carry != 0;
-                        registers[4] = (char) (registers[4] << 1);
-                        zeroFlag = registers[4] == 0;
-                        computeFRegister();
-
-                        programCounter++;
+                        CPUInstructions.rlc(4);
                         break;
 
                     case 0x04: //RLC H
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("RLC H");
-
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-                        carry = (registers[6] & 0xff) >> 7;
-                        carryFlag = carry != 0;
-                        registers[6] = (char) (registers[6] << 1);
-                        zeroFlag = registers[6] == 0;
-                        computeFRegister();
-
-                        programCounter++;
+                        CPUInstructions.rlc(6);
                         break;
 
                     case 0x05: //RLC L
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("RLC L");
-
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-                        carry = (registers[7] & 0xff) >> 7;
-                        carryFlag = carry != 0;
-                        registers[7] = (char) (registers[7] << 1);
-                        zeroFlag = registers[7] == 0;
-                        computeFRegister();
-
-                        programCounter++;
+                        CPUInstructions.rlc(7);
                         break;
 
                     case 0x06: //RLC HL
-                        counter += 3;
-                        if(DEBUGMODE) System.out.println("RLC (HL)");
-
-                        //LACKS IMPLEMENTATION
-
+                        CPUInstructions.rlc(8);
                         break;
 
                     case 0x07: //RLC A
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("RLC A");
-
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-                        carry = (registers[0] & 0xff) >> 7;
-                        carryFlag = carry != 0;
-                        registers[0] = (char) (registers[0] << 1);
-                        zeroFlag = registers[0] == 0;
-                        computeFRegister();
-
-                        programCounter++;
+                        CPUInstructions.rlc(0);
                         break;
 
                     case 0x08: //RRC B
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("RRC B");
-
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-                        carry = (registers[1] & 0x01);
-                        carryFlag = carry != 0;
-                        registers[1] = (char) (registers[1] >> 1);
-                        zeroFlag = registers[1] == 0;
-                        computeFRegister();
-
-                        programCounter++;
+                        CPUInstructions.rrc(1);
                         break;
 
                     case 0x09: //RRC C
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("RRC C");
-
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-                        carry = (registers[2] & 0x01);
-                        carryFlag = carry != 0;
-                        registers[2] = (char) (registers[2] >> 1);
-                        zeroFlag = registers[2] == 0;
-                        computeFRegister();
-
-                        programCounter++;
+                        CPUInstructions.rrc(2);
                         break;
 
                     case 0x0A: //RRC D
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("RRC D");
-
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-                        carry = (registers[3] & 0x01);
-                        carryFlag = carry != 0;
-                        registers[3] = (char) (registers[3] >> 1);
-                        zeroFlag = registers[3] == 0;
-                        computeFRegister();
-
-                        programCounter++;
+                        CPUInstructions.rrc(3);
                         break;
 
                     case 0x0B: //RRC E
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("RRC E");
-
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-                        carry = (registers[4] & 0x01);
-                        carryFlag = carry != 0;
-                        registers[4] = (char) (registers[4] >> 1);
-                        zeroFlag = registers[4] == 0;
-                        computeFRegister();
-
-                        programCounter++;
+                        CPUInstructions.rrc(4);
                         break;
 
                     case 0x0C: //RRC H
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("RRC H");
-
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-                        carry = (registers[6] & 0x01);
-                        carryFlag = carry != 0;
-                        registers[6] = (char) (registers[6] >> 1);
-                        zeroFlag = registers[6] == 0;
-                        computeFRegister();
-
-                        programCounter++;
+                        CPUInstructions.rrc(6);
                         break;
 
                     case 0x0D: //RRC L
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("RRC L");
-
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-                        carry = (registers[7] & 0x01);
-                        carryFlag = carry != 0;
-                        registers[7] = (char) (registers[7] >> 1);
-                        zeroFlag = registers[7] == 0;
-                        computeFRegister();
-
-                        programCounter++;
+                        CPUInstructions.rrc(7);
                         break;
 
                     case 0x0E: //RRC (HL)
-                        counter += 3;
-                        if(DEBUGMODE) System.out.println("RRC (HL)");
+                        CPUInstructions.rrc(8);
                         break;
 
                     case 0x0F: //RRC A
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("RRC A");
-
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-                        carry = (registers[0] & 0x01);
-                        carryFlag = carry != 0;
-                        registers[0] = (char) (registers[0] >> 1);
-                        zeroFlag = registers[0] == 0;
-                        computeFRegister();
-
-                        programCounter++;
+                        CPUInstructions.rrc(0);
                         break;
 
                     case 0x10: //RL B
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("RL B");
-
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-                        carry = (registers[1] & 0xff) >> 7;
-                        carry1 = carryFlag ? 1 : 0;
-                        carryFlag = carry != 0;
-                        registers[1] = (char) (registers[1] << 1);
-                        registers[1] += carry1;
-                        zeroFlag = registers[1] == 0;
-                        computeFRegister();
-
-                        programCounter++;
+                        CPUInstructions.rl(1);
                         break;
 
                     case 0x11: //RL C
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("RL C");
-
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-                        carry = (registers[2] & 0xff) >> 7;
-                        carry1 = carryFlag ? 1 : 0;
-                        carryFlag = carry != 0;
-                        registers[2] = (char) (registers[2] << 1);
-                        registers[2] += carry1;
-                        zeroFlag = registers[2] == 0;
-                        computeFRegister();
-
-                        programCounter++;
+                        CPUInstructions.rl(2);
                         break;
 
                     case 0x12: //RL D
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("RL D");
-
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-                        carry = (registers[3] & 0xff) >> 7;
-                        carry1 = carryFlag ? 1 : 0;
-                        carryFlag = carry != 0;
-                        registers[3] = (char) (registers[3] << 1);
-                        registers[3] += carry1;
-                        zeroFlag = registers[3] == 0;
-                        computeFRegister();
-
-                        programCounter++;
+                        CPUInstructions.rl(3);
                         break;
 
                     case 0x13: //RL E
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("RL E");
-
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-                        carry = (registers[4] & 0xff) >> 7;
-                        carry1 = carryFlag ? 1 : 0;
-                        carryFlag = carry != 0;
-                        registers[4] = (char) (registers[4] << 1);
-                        registers[4] += carry1;
-                        zeroFlag = registers[4] == 0;
-                        computeFRegister();
-
-                        programCounter++;
+                        CPUInstructions.rl(4);
                         break;
 
                     case 0x14: //RL H
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("RL H");
-
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-                        carry = (registers[6] & 0xff) >> 7;
-                        carry1 = carryFlag ? 1 : 0;
-                        carryFlag = carry != 0;
-                        registers[6] = (char) (registers[6] << 1);
-                        registers[6] += carry1;
-                        zeroFlag = registers[6] == 0;
-                        computeFRegister();
-
-                        programCounter++;
+                        CPUInstructions.rl(6);
                         break;
 
                     case 0x15: //RL L
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("RL L");
-
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-                        carry = (registers[7] & 0xff) >> 7;
-                        carry1 = carryFlag ? 1 : 0;
-                        carryFlag = carry != 0;
-                        registers[7] = (char) (registers[7] << 1);
-                        registers[7] += carry1;
-                        zeroFlag = registers[7] == 0;
-                        computeFRegister();
-
-                        programCounter++;
+                        CPUInstructions.rl(7);
                         break;
 
                     case 0x16: //RL (HL)
-                        counter += 3;
-                        if(DEBUGMODE) System.out.println("RL (HL)");
-
-                        //LACKS IMPLEMENTATION
-
+                        CPUInstructions.rl(8);
                         break;
 
                     case 0x17: //RL A
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("RL A");
-
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-                        carry = (registers[0] & 0xff) >> 7;
-                        carry1 = carryFlag ? 1 : 0;
-                        carryFlag = carry != 0;
-                        registers[0] = (char) (registers[0] << 1);
-                        registers[0] += carry1;
-                        zeroFlag = registers[0] == 0;
-                        computeFRegister();
-
-                        programCounter++;
+                        CPUInstructions.rl(0);
                         break;
 
                     case 0x18: //RR B
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("RR B");
-
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-                        carry = registers[1] & 0x01;
-                        carry1 = carryFlag ? 1 : 0;
-                        carryFlag = carry != 0;
-                        registers[1] = (char) (registers[1] >> 1);
-                        registers[1] += carry1 << 7;
-                        zeroFlag = registers[1] == 0;
-                        computeFRegister();
-
-                        programCounter++;
-
+                        CPUInstructions.rr(1);
                         break;
 
                     case 0x19: //RR C
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("RR C");
-
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-                        carry = registers[2] & 0x01;
-                        carry1 = carryFlag ? 1 : 0;
-                        carryFlag = carry != 0;
-                        registers[2] = (char) (registers[2] >> 1);
-                        registers[2] += carry1 << 7;
-                        zeroFlag = registers[2] == 0;
-                        computeFRegister();
-
-                        programCounter++;
-
+                        CPUInstructions.rr(2);
                         break;
 
                     case 0x1A: //RR D
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("RR D");
-
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-                        carry = registers[3] & 0x01;
-                        carry1 = carryFlag ? 1 : 0;
-                        carryFlag = carry != 0;
-                        registers[3] = (char) (registers[3] >> 1);
-                        registers[3] += carry1 << 7;
-                        zeroFlag = registers[3] == 0;
-                        computeFRegister();
-
-                        programCounter++;
-
+                        CPUInstructions.rr(3);
                         break;
 
                     case 0x1B: //RR E
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("RR E");
-
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-                        carry = registers[4] & 0x01;
-                        carry1 = carryFlag ? 1 : 0;
-                        carryFlag = carry != 0;
-                        registers[4] = (char) (registers[4] >> 1);
-                        registers[4] += carry1 << 7;
-                        zeroFlag = registers[4] == 0;
-                        computeFRegister();
-
-                        programCounter++;
-
+                        CPUInstructions.rr(4);
                         break;
 
                     case 0x1C: //RR H
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("RR H");
-
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-                        carry = registers[6] & 0x01;
-                        carry1 = carryFlag ? 1 : 0;
-                        carryFlag = carry != 0;
-                        registers[6] = (char) (registers[6] >> 1);
-                        registers[6] += carry1 << 7;
-                        zeroFlag = registers[6] == 0;
-                        computeFRegister();
-
-                        programCounter++;
-
+                        CPUInstructions.rr(6);
                         break;
 
                     case 0x1D: //RR L
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("RR L");
-
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-                        carry = registers[7] & 0x01;
-                        carry1 = carryFlag ? 1 : 0;
-                        carryFlag = carry != 0;
-                        registers[7] = (char) (registers[7] >> 1);
-                        registers[7] += carry1 << 7;
-                        zeroFlag = registers[7] == 0;
-                        computeFRegister();
-
-                        programCounter++;
-
+                        CPUInstructions.rr(7);
                         break;
 
                     case 0x1E: //RR (HL)
-                        counter += 3;
-                        if(DEBUGMODE) System.out.println("RR (HL)");
-
-                        //LACKS IMPLEMENTATION
-
+                        CPUInstructions.rr(8);
                         break;
 
                     case 0x1F: //RR A
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("RR A");
-
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-                        carry = registers[0] & 0x01;
-                        carry1 = carryFlag ? 1 : 0;
-                        carryFlag = carry != 0;
-                        registers[0] = (char) (registers[0] >> 1);
-                        registers[0] += carry1 << 7;
-                        zeroFlag = registers[0] == 0;
-                        computeFRegister();
-
-                        programCounter++;
-
+                        CPUInstructions.rr(0);
                         break;
 
                     case 0x20: //SLA B
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("SLA B");
-
-                        zeroFlag = registers[1] == 0;
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-
-                        computeFRegister();
-
+                        CPUInstructions.sla(1);
                         break;
 
                     case 0x21: //SLA C
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("SLA C");
-
-                        zeroFlag = registers[2] == 0;
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-
-                        computeFRegister();
-
+                        CPUInstructions.sla(2);
                         break;
 
                     case 0x22: //SLA D
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("SLA D");
-
-                        zeroFlag = registers[3] == 0;
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-
-                        computeFRegister();
-
+                        CPUInstructions.sla(3);
                         break;
 
                     case 0x23: //SLA E
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("SLA E");
-
-                        zeroFlag = registers[4] == 0;
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-
-                        computeFRegister();
-
+                        CPUInstructions.sla(4);
                         break;
 
                     case 0x24: //SLA H
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("SLA H");
-
-                        zeroFlag = registers[6] == 0;
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-
-                        computeFRegister();
-
+                        CPUInstructions.sla(6);
                         break;
 
                     case 0x25: //SLA L
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("SLA L");
-
-                        zeroFlag = registers[7] == 0;
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-
-                        computeFRegister();
-
+                        CPUInstructions.sla(7);
                         break;
 
                     case 0x26: //SLA (HL)
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("SLA (HL)");
-
-                        //LACKS IMPLEMENTATION
-
+                        CPUInstructions.sla(8);
                         break;
 
                     case 0x27: //SLA A
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("SLA A");
-
-                        zeroFlag = registers[0] == 0;
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-
-                        computeFRegister();
-
+                        CPUInstructions.sla(0);
                         break;
 
                     case 0x28: //SRA B
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("SRA B");
-
-                        zeroFlag = registers[1] == 0;
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-
-                        computeFRegister();
-
+                        CPUInstructions.sra(1);
                         break;
 
                     case 0x29: //SRA C
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("SRA C");
-
-                        zeroFlag = registers[2] == 0;
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-
-                        computeFRegister();
-
+                        CPUInstructions.sra(2);
                         break;
 
                     case 0x2A: //SRA D
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("SRA D");
-
-                        zeroFlag = registers[3] == 0;
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-
-                        computeFRegister();
-
+                        CPUInstructions.sra(3);
                         break;
 
                     case 0x2B: //SRA E
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("SRA E");
-
-                        zeroFlag = registers[4] == 0;
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-
-                        computeFRegister();
-
+                        CPUInstructions.sra(4);
                         break;
 
                     case 0x2C: //SRA H
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("SRA H");
-
-                        zeroFlag = registers[6] == 0;
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-
-                        computeFRegister();
-
+                        CPUInstructions.sra(6);
                         break;
 
                     case 0x2D: //SRA L
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("SRA L");
-
-                        zeroFlag = registers[7] == 0;
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-
-                        computeFRegister();
-
+                        CPUInstructions.sra(7);
                         break;
 
                     case 0x2E: //SRA (HL)
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("SRA (HL)");
-
-                        //LACKS IMPLEMENTATION
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-
-                        computeFRegister();
-
+                        CPUInstructions.sra(8);
                         break;
 
                     case 0x2F: //SRA A
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("SRA A");
-
-                        zeroFlag = registers[0] == 0;
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-
-                        computeFRegister();
-
+                        CPUInstructions.sra(0);
                         break;
 
                     case 0x30: //SWAP B
@@ -1737,100 +1225,35 @@ public class CPU {
                         break;
 
                     case 0x38: //SRL B
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("SRL B");
-
-                        zeroFlag = registers[1] == 0;
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-
-                        computeFRegister();
-
+                        CPUInstructions.srl(1);
                         break;
 
                     case 0x39: //SRL C
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("SRL C");
-
-                        zeroFlag = registers[2] == 0;
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-
-                        computeFRegister();
-
+                        CPUInstructions.srl(2);
                         break;
 
                     case 0x3A: //SRL D
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("SRL D");
-
-                        zeroFlag = registers[3] == 0;
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-
-                        computeFRegister();
-
+                        CPUInstructions.srl(3);
                         break;
 
                     case 0x3B: //SRL E
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("SRL E");
-
-                        zeroFlag = registers[4] == 0;
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-
-                        computeFRegister();
-
+                        CPUInstructions.srl(4);
                         break;
 
                     case 0x3C: //SRL H
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("SRL H");
-
-                        zeroFlag = registers[6] == 0;
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-
-                        computeFRegister();
-
+                        CPUInstructions.srl(6);
                         break;
 
                     case 0x3D: //SRL L
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("SRL L");
-
-                        zeroFlag = registers[7] == 0;
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-
-                        computeFRegister();
-
+                        CPUInstructions.srl(7);
                         break;
 
                     case 0x3E: //SRL (HL)
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("SRL B");
-
-                        //LACKS IMPLEMENTATION
-
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-
-                        computeFRegister();
-
+                        CPUInstructions.srl(8);
                         break;
 
                     case 0x3F: //SRL A
-                        counter += 1;
-                        if(DEBUGMODE) System.out.println("SRL A");
-
-                        zeroFlag = registers[0] == 0;
-                        subtractFlag = false;
-                        halfCarryFlag = false;
-
-                        computeFRegister();
-
+                        CPUInstructions.srl(0);
                         break;
 
                     case 0x40: //BIT 0,B
@@ -2602,68 +2025,35 @@ public class CPU {
                         break;
 
                 }
-                 */
+
                 break;
 
             case 0xCC: //CALL Z,nn
-                counter += 3;
-                //if(DEBUGMODE) System.out.println("CALL Z, " + ((memory.getCartridgeMemory(programCounter + 1) & 0xff) + (memory.getCartridgeMemory(programCounter + 2) & 0xff) * 256));
-
-                if(zeroFlag) {
-                    tempProgramCounter = programCounter + 3;
-
-                    programCounter = (char) ((memory.getCartridgeMemory(programCounter + 1) & 0xff) + (memory.getCartridgeMemory(programCounter + 2) & 0xff) * 256);
-                    memory.setMemory(stackPointer - 1, (char) (((tempProgramCounter) & 0xff00) / 256));
-                    memory.setMemory(stackPointer - 2, (char) ((tempProgramCounter) & 0xff));
-                    stackPointer -= 2;
-                } else {
-                    programCounter += 3;
-                }
+                CPUInstructions.callCond(1);
                 break;
 
             case 0xCD: //CALL u16
-                counter += 3;
-                //if(DEBUGMODE) System.out.println("CALL " + (memory.getCartridgeMemory(programCounter + 1) & 0xff) + (memory.getCartridgeMemory(programCounter + 2) & 0xff) * 256);
-                tempProgramCounter = programCounter + 3;
-
-                programCounter = (char) ((memory.getCartridgeMemory(programCounter + 1) & 0xff) + (memory.getCartridgeMemory(programCounter + 2) & 0xff) * 256);
-                memory.setMemory(stackPointer - 1, (char) (((tempProgramCounter) & 0xff00) / 256));
-                memory.setMemory(stackPointer - 2, (char) ((tempProgramCounter) & 0xff));
-                stackPointer -= 2;
+                CPUInstructions.call();
                 break;
 
             case 0xCE: //ADC A,#
                 CPUInstructions.adc(9);
                 break;
 
+            case 0xD2: //JP NC,u16
+                CPUInstructions.jpCond(2);
+                break;
+
             case 0xD4: //CALL NC,nn
-                counter += 3;
+                CPUInstructions.callCond(2);
+                break;
 
-                if(!carryFlag) {
-                    tempProgramCounter = programCounter + 3;
-
-                    programCounter = (char) ((memory.getCartridgeMemory(programCounter + 1) & 0xff) + (memory.getCartridgeMemory(programCounter + 2) & 0xff) * 256);
-                    memory.setMemory(stackPointer - 1, (char) (((tempProgramCounter) & 0xff00) / 256));
-                    memory.setMemory(stackPointer - 2, (char) ((tempProgramCounter) & 0xff));
-                    stackPointer -= 2;
-                } else {
-                    programCounter += 3;
-                }
+            case 0xDA: //JP C,u16
+                CPUInstructions.jpCond(3);
                 break;
 
             case 0xDC: //CALL C,nn
-                counter += 3;
-
-                if(carryFlag) {
-                    tempProgramCounter = programCounter + 3;
-
-                    programCounter = (char) ((memory.getCartridgeMemory(programCounter + 1) & 0xff) + (memory.getCartridgeMemory(programCounter + 2) & 0xff) * 256);
-                    memory.setMemory(stackPointer - 1, (char) (((tempProgramCounter) & 0xff00) / 256));
-                    memory.setMemory(stackPointer - 2, (char) ((tempProgramCounter) & 0xff));
-                    stackPointer -= 2;
-                } else {
-                    programCounter += 3;
-                }
+                CPUInstructions.callCond(3);
                 break;
 
             case 0xE0: //LD (FF00+u8),A    IMPLEMENTED AND WORKING I THINK
@@ -2683,6 +2073,14 @@ public class CPU {
 
             case 0xE6: //AND #
                 CPUInstructions.and(9);
+                break;
+
+            case 0xE8: //ADD SP,n
+                CPUInstructions.addSP();
+                break;
+
+            case 0xE9: //JP (HL)
+                CPUInstructions.jpHL();
                 break;
 
             case 0xEA: //LD (nn),A

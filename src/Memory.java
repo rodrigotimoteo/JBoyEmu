@@ -2,7 +2,7 @@ import java.util.Arrays;
 
 public class Memory {
 
-    private char[] memory = new char[0xFFFF];
+    private char[] memory = new char[0x10000];
 
     private byte[] cartridge;
 

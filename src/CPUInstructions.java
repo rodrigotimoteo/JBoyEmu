@@ -1,9 +1,11 @@
+import javax.swing.*;
+
 public class CPUInstructions {
 
     private static CPU cpu;
     private static Memory memory;
 
-    private static final boolean DEBUGMODE = true;
+    private static boolean DEBUGMODE = true;
 
     public static void setCpu(CPU cpuIn) {
         cpu = cpuIn;
@@ -153,6 +155,7 @@ public class CPUInstructions {
         }
 
         if(DEBUGMODE) System.out.println("LD " + registerInChar + ", " + registerOutChar);
+        else DEBUGMODE = true;
 
         if(registerIn < 8 && registerOut < 8) {
             cpu.setRegister(registerIn, (char) (cpu.getRegister(registerOut) & 0xff));
@@ -202,6 +205,8 @@ public class CPUInstructions {
         if(DEBUGMODE && type == 0) System.out.println("LDD A, (HL)");
         if(DEBUGMODE && type == 1) System.out.println("LDD (HL), A");
 
+        DEBUGMODE = false;
+
         if(type == 0) {
             ld(0, 8);
             cpu.setRegister(7, (char) (cpu.getRegister(7) - 1));
@@ -212,8 +217,6 @@ public class CPUInstructions {
             cpu.setRegister(7, (char) (cpu.getRegister(7) - 1));
             //LACKS HL--
         }
-
-        cpu.increaseProgramCounter(1);
     }
 
     /*Type
@@ -225,6 +228,8 @@ public class CPUInstructions {
 
         if(DEBUGMODE && type == 0) System.out.println("LDI A, (HL)");
         if(DEBUGMODE && type == 1) System.out.println("LDI (HL), A");
+
+        DEBUGMODE = false;
 
         if(type == 0) {
             ld(0, 8);
@@ -249,6 +254,8 @@ public class CPUInstructions {
 
         if(DEBUGMODE && type == 0) System.out.println("LDH (n), A");
         if(DEBUGMODE && type == 1) System.out.println("LDH A, (n)");
+
+        DEBUGMODE = false;
 
         if(type == 0) {
             memory.setMemory(0xFF00 + memory.getCartridgeMemory(cpu.getProgramCounter() + 1), (char) (cpu.getRegister(0) & 0xff));
@@ -666,7 +673,22 @@ public class CPUInstructions {
 
     //Lacks Implementation
     public static void addSP() {
+        cpu.increaseCounter(4);
 
+        if(DEBUGMODE) System.out.println("ADD SP, " + Integer.toHexString(memory.getCartridgeMemory(cpu.getProgramCounter() + 1)));
+
+        cpu.setHalfCarryFlag((((cpu.getStackPointer() & 0xf) + (memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xf) & 0x10) == 0x10));
+        cpu.setCarryFlag((((cpu.getStackPointer() & 0xffff) + memory.getCartridgeMemory(cpu.getProgramCounter() + 1)) & 0x10000) == 0x10000);
+        if((cpu.getStackPointer() & 0xffff) + memory.getCartridgeMemory(cpu.getProgramCounter() + 1) >= 0x10000) {
+            cpu.setStackPointer((char) (0x1ffff - ((cpu.getStackPointer() & 0xffff) + memory.getCartridgeMemory(cpu.getProgramCounter() + 1))));
+        } else {
+            cpu.setStackPointer((char) ((cpu.getStackPointer() & 0xffff) + memory.getCartridgeMemory(cpu.getProgramCounter() + 1)));
+        }
+        cpu.setZeroFlag(false);
+        cpu.setSubtractFlag(false);
+        cpu.computeFRegister();
+
+        cpu.increaseProgramCounter(2);
     }
 
     /*Registers
@@ -675,9 +697,36 @@ public class CPUInstructions {
     2 - HL
     3 - SP
      */
-    //Lacks Implementation
     public static void incR(int register) {
+        String registerChar;
+        int register1 = 0, register2 = 0;
 
+        cpu.increaseCounter(2);
+
+        switch(register) {
+            case 0: registerChar = "BC"; register1 = 1; register2 = 2;break;
+            case 1: registerChar = "DE"; register1 = 3; register2 = 4;break;
+            case 2: registerChar = "HL"; register1 = 6; register2 = 7;break;
+            case 3: registerChar = "SP"; break;
+            default: return;
+        }
+
+        if(DEBUGMODE) System.out.println("INC " + registerChar);
+
+        if(register < 3) {
+            int temp = (cpu.getRegister(register1) & 0xff << 8) + (cpu.getRegister(register2) & 0xff);
+
+            if((temp & 0xffff) == 0xffff) temp = 0;
+            else temp = (temp & 0xffff) + 1;
+
+            cpu.setRegister(register1, (char) (temp & 0xff00 >> 8));
+            cpu.setRegister(register2, (char) (temp & 0x00ff));
+        } else {
+            if((cpu.getStackPointer() & 0xffff) == 0xffff) cpu.setStackPointer((char) 0);
+            else cpu.setStackPointer((char) ((cpu.getStackPointer() & 0xffff) + 1));
+        }
+
+        cpu.increaseProgramCounter(1);
     }
 
     /*Registers
@@ -686,9 +735,36 @@ public class CPUInstructions {
     2 - HL
     3 - SP
      */
-    //Lacks Implementation
     public static void decR(int register) {
+        String registerChar;
+        int register1 = 0, register2 = 0;
 
+        cpu.increaseCounter(2);
+
+        switch(register) {
+            case 0: registerChar = "BC"; register1 = 1; register2 = 2; break;
+            case 1: registerChar = "DE"; register1 = 3; register2 = 4; break;
+            case 2: registerChar = "HL"; register1 = 6; register2 = 7; break;
+            case 3: registerChar = "SP"; break;
+            default: return;
+        }
+
+        if(DEBUGMODE) System.out.println("DEC " + registerChar);
+
+        if(register < 3) {
+            int temp = (cpu.getRegister(register1) & 0xff << 8) + (cpu.getRegister(register2) & 0xff);
+
+            if((temp & 0xffff) == 0) temp = 0xffff;
+            else temp = (temp & 0xffff) - 1;
+
+            cpu.setRegister(register1, (char) (temp & 0xff00 >> 8));
+            cpu.setRegister(register2, (char) (temp & 0x00ff));
+        } else {
+            if((cpu.getStackPointer() & 0xffff) == 0) cpu.setStackPointer((char) 0xffff);
+            else cpu.setStackPointer((char) ((cpu.getStackPointer() & 0xffff) - 1));
+        }
+
+        cpu.increaseProgramCounter(1);
     }
 
     //Miscellaneous
@@ -821,7 +897,281 @@ public class CPUInstructions {
 
     //Rotates and Shifts
 
+    public static void rlca() {
+        int carry;
 
+        cpu.increaseCounter(1);
+
+        if(DEBUGMODE) System.out.println("RLCA");
+
+        cpu.setSubtractFlag(false);
+        cpu.setHalfCarryFlag(false);
+        carry = (cpu.getRegister(0) & 0xff) >> 7;
+        cpu.setCarryFlag(carry != 0);
+        cpu.setRegister(0, (char) ((cpu.getRegister(0) & 0xff) << 1));;
+        cpu.setZeroFlag(cpu.getRegister(0) == 0);
+        cpu.computeFRegister();
+
+        cpu.increaseProgramCounter(1);
+    }
+
+    public static void rla() {
+        int carry, carry1;
+
+        cpu.increaseCounter(1);
+
+        if(DEBUGMODE) System.out.println("RLA");
+
+        cpu.setSubtractFlag(false);
+        cpu.setHalfCarryFlag(false);
+        carry = (cpu.getRegister(0) & 0xff) >> 7;
+        carry1 = cpu.getCarryFlag() ? 1 : 0;
+        cpu.setCarryFlag(carry != 0);
+        cpu.setRegister(0, (char) ((cpu.getRegister(0) & 0xff) << 1));
+        cpu.setRegister(0, (char) ((cpu.getRegister(0) & 0xff) + carry1));
+        cpu.setZeroFlag(cpu.getRegister(0) == 0);
+        cpu.computeFRegister();
+
+        cpu.increaseProgramCounter(1);
+    }
+
+    public static void rrca() {
+        int carry;
+
+        cpu.increaseCounter(1);
+
+        if(DEBUGMODE) System.out.println("RRCA");
+
+        cpu.setSubtractFlag(false);
+        cpu.setHalfCarryFlag(false);
+        carry = (cpu.getRegister(0) & 0x01);
+        cpu.setCarryFlag(carry != 0);
+        cpu.setRegister(0, (char) ((cpu.getRegister(0) & 0xff) >> 1));
+        cpu.setZeroFlag(cpu.getRegister(0) == 0);
+        cpu.computeFRegister();
+
+        cpu.increaseProgramCounter(1);
+    }
+
+    public static void rra() {
+        int carry, carry1;
+
+        cpu.increaseCounter(1);
+
+        if(DEBUGMODE) System.out.println("RRA");
+
+        cpu.setSubtractFlag(false);
+        cpu.setHalfCarryFlag(false);
+        carry = cpu.getRegister(0) & 0x01;
+        carry1 = cpu.getCarryFlag() ? 1 : 0;
+        cpu.setCarryFlag(carry != 0);
+        cpu.setRegister(0, (char) ((cpu.getRegister(0) & 0xff) >> 1));
+        cpu.setRegister(0, (char) (cpu.getRegister(0) + (carry1 << 7)));
+        cpu.setZeroFlag(cpu.getRegister(0) == 0);
+        cpu.computeFRegister();
+
+        cpu.increaseCounter(1);
+    }
+
+    public static void rlc(int register) {
+        String registerChar;
+        int carry;
+
+        if(register < 8) cpu.increaseCounter(1);
+        else cpu.increaseCounter(3);
+
+        switch(register) {
+            case 0: registerChar = "A"; break;
+            case 1: registerChar = "B"; break;
+            case 2: registerChar = "C"; break;
+            case 3: registerChar = "D"; break;
+            case 4: registerChar = "E"; break;
+            case 6: registerChar = "H"; break;
+            case 7: registerChar = "L"; break;
+            case 8: registerChar = "(HL)"; break;
+            default: return;
+        }
+
+        if(DEBUGMODE) System.out.println("RLC " + registerChar);
+
+        cpu.setSubtractFlag(false);
+        cpu.setHalfCarryFlag(false);
+
+        if(register < 8) {
+            carry = (cpu.getRegister(register) & 0xff) >> 7;
+            cpu.setCarryFlag(carry != 0);
+            cpu.setRegister(register, (char) ((cpu.getRegister(register) & 0xff) << 1));
+            cpu.setZeroFlag(cpu.getRegister(register) == 0);
+        } else {
+            int temp = (cpu.getRegister(6) & 0xff << 8) + (cpu.getRegister(7) & 0xff);
+            carry = (memory.getMemory(temp) & 0xff) >> 7;
+            cpu.setCarryFlag(carry != 0);
+            memory.setMemory(temp, (char) ((memory.getMemory(temp) & 0xff) << 1));
+            cpu.setZeroFlag(memory.getMemory(temp) == 0);
+        }
+
+        cpu.computeFRegister();
+
+        cpu.increaseProgramCounter(1);
+    }
+
+    public static void rl(int register) {
+        String registerChar;
+        int carry, carry1;
+
+        if(register < 8) cpu.increaseCounter(1);
+        else cpu.increaseCounter(3);
+
+        switch(register) {
+            case 0: registerChar = "A"; break;
+            case 1: registerChar = "B"; break;
+            case 2: registerChar = "C"; break;
+            case 3: registerChar = "D"; break;
+            case 4: registerChar = "E"; break;
+            case 6: registerChar = "H"; break;
+            case 7: registerChar = "L"; break;
+            case 8: registerChar = "(HL)"; break;
+            default: return;
+        }
+
+        if(DEBUGMODE) System.out.println("RL " + registerChar);
+
+        cpu.setSubtractFlag(false);
+        cpu.setHalfCarryFlag(false);
+
+        if(register < 8) {
+            carry = (cpu.getRegister(register) & 0xff) >> 7;
+            carry1 = cpu.getCarryFlag() ? 1 : 0;
+            cpu.setCarryFlag(carry != 0);
+            cpu.setRegister(register, (char) ((cpu.getRegister(register) & 0xff) << 1));
+            cpu.setRegister(register, (char) ((cpu.getRegister(register) & 0xff) + carry1));
+            cpu.setZeroFlag(cpu.getRegister(register) == 0);
+        } else {
+            int temp = (cpu.getRegister(6) & 0xff << 8) + (cpu.getRegister(7) & 0xff);
+            carry = (memory.getMemory(temp) & 0xff) >> 7;
+            carry1 = cpu.getCarryFlag() ? 1 : 0;
+            cpu.setCarryFlag(carry != 0);
+            memory.setMemory(temp, (char) ((memory.getMemory(temp) & 0xff) << 1));
+            memory.setMemory(temp, (char) ((memory.getMemory(temp) & 0xff) + carry1));
+            cpu.setZeroFlag(memory.getMemory(temp) == 0);
+        }
+
+        cpu.computeFRegister();
+
+        cpu.increaseProgramCounter(1);
+    }
+
+    public static void rrc(int register) {
+        String registerChar;
+        int carry;
+
+        if(register < 8) cpu.increaseCounter(1);
+        else cpu.increaseCounter(3);
+
+        switch(register) {
+            case 0: registerChar = "A"; break;
+            case 1: registerChar = "B"; break;
+            case 2: registerChar = "C"; break;
+            case 3: registerChar = "D"; break;
+            case 4: registerChar = "E"; break;
+            case 6: registerChar = "H"; break;
+            case 7: registerChar = "L"; break;
+            case 8: registerChar = "(HL)"; break;
+            default: return;
+        }
+
+        if(DEBUGMODE) System.out.println("RRC " + registerChar);
+
+        cpu.setSubtractFlag(false);
+        cpu.setHalfCarryFlag(false);
+
+        if (register < 8) {
+            carry = (cpu.getRegister(register) & 0x01);
+            cpu.setCarryFlag(carry != 0);
+            cpu.setRegister(register, (char) ((cpu.getRegister(register) & 0xff) >> 1));
+            cpu.setZeroFlag(cpu.getRegister(register) == 0);
+        } else {
+            int temp = (cpu.getRegister(6) & 0xff << 8) + (cpu.getRegister(7) & 0xff);
+            carry = (memory.getMemory(temp) & 0x01);
+            cpu.setCarryFlag(carry != 0);
+            memory.setMemory(temp, (char) ((memory.getMemory(temp) & 0xff) >> 1));
+            cpu.setZeroFlag(memory.getMemory(temp) == 0);
+        }
+
+        cpu.computeFRegister();
+
+        cpu.increaseProgramCounter(1);
+    }
+
+    public static void rr(int register) {
+        String registerChar;
+        int carry, carry1;
+
+        if(register < 8) cpu.increaseCounter(1);
+        else cpu.increaseCounter(3);
+
+        switch(register) {
+            case 0: registerChar = "A"; break;
+            case 1: registerChar = "B"; break;
+            case 2: registerChar = "C"; break;
+            case 3: registerChar = "D"; break;
+            case 4: registerChar = "E"; break;
+            case 6: registerChar = "H"; break;
+            case 7: registerChar = "L"; break;
+            case 8: registerChar = "(HL)"; break;
+            default: return;
+        }
+
+        if(DEBUGMODE) System.out.println("RR " + registerChar);
+
+        cpu.setSubtractFlag(false);
+        cpu.setHalfCarryFlag(false);
+
+        if(register < 8) {
+            carry = cpu.getRegister(register) & 0x01;
+            carry1 = cpu.getCarryFlag() ? 1 : 0;
+            cpu.setCarryFlag(carry != 0);
+            cpu.setRegister(register, (char) ((cpu.getRegister(register) & 0xff) >> 1));
+            cpu.setRegister(register, (char) (cpu.getRegister(register) + (carry1 << 7)));
+            cpu.setZeroFlag(cpu.getRegister(register) == 0);
+        } else {
+            int temp = (cpu.getRegister(6) & 0xff << 8) + (cpu.getRegister(7) & 0xff);
+            carry = memory.getMemory(temp) & 0x01;
+            carry1 = cpu.getCarryFlag() ? 1 : 0;
+            cpu.setCarryFlag(carry != 0);
+            memory.setMemory(temp, (char) ((memory.getMemory(temp) & 0xff) >> 1));
+            memory.setMemory(temp, (char) ((memory.getMemory(temp) & 0xff) + (carry1 << 7)));
+            cpu.setZeroFlag(memory.getMemory(temp) == 0);
+        }
+
+        cpu.computeFRegister();
+
+        cpu.increaseProgramCounter(1);
+    }
+
+    //Lacks Implementation
+    public static void sla(int register) {
+
+        if(DEBUGMODE) System.out.println("SLA B");
+
+
+    }
+
+    //Lacks Implementation
+    public static void sra(int register) {
+
+        if(DEBUGMODE) System.out.println("SRA B");
+
+
+    }
+
+    //Lacks Implementation
+    public static void srl(int register) {
+
+        if(DEBUGMODE) System.out.println("SRL B");
+
+
+    }
 
     //Bit Opcodes
 
@@ -944,17 +1294,188 @@ public class CPUInstructions {
 
     //Jumps
 
+    public static void jp() {
+        String jumpString;
+
+        cpu.increaseCounter(3);
+
+        jumpString = Integer.toHexString((memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xff) + ((memory.getCartridgeMemory(cpu.getProgramCounter() + 2) & 0xff) << 8));
+
+        if(DEBUGMODE) System.out.println("JP " + jumpString);
+
+        cpu.setProgramCounter((char) ((memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xff) + ((memory.getCartridgeMemory(cpu.getProgramCounter() + 2) & 0xff) << 8)));
+    }
+
+    /* Type
+   0 - RET NotZero
+   1 - RET Zero
+   2 - RET NoCarry
+   3 - RET Carry
+    */
+    public static void jpCond(int type) {
+        boolean booleanTemp;
+        String condition;
+        String jumpAddress;
+
+        cpu.increaseCounter(2);
+
+        switch(type) {
+            case 0: booleanTemp = !cpu.getZeroFlag(); condition = "NZ"; break;
+            case 1: booleanTemp = cpu.getZeroFlag(); condition = "Z"; break;
+            case 2: booleanTemp = !cpu.getCarryFlag(); condition = "NC"; break;
+            case 3: booleanTemp = cpu.getCarryFlag(); condition = "C"; break;
+            default: return;
+        }
+
+        if(type == 1) jumpAddress = Integer.toHexString(((memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xff) + (memory.getCartridgeMemory(cpu.getProgramCounter() + 2) & 0xff << 8)));
+        else jumpAddress = Integer.toHexString(memory.getCartridgeMemory(cpu.getProgramCounter()) + 1);
+
+        if(DEBUGMODE && type == 1) System.out.println("JP " + condition + ", " +  jumpAddress);
+        else if(DEBUGMODE) System.out.println("JP" + jumpAddress);
+
+        if(booleanTemp) cpu.setProgramCounter((char) ((memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xff) + ((memory.getCartridgeMemory(cpu.getProgramCounter() + 2) & 0xff) << 8)));
+    }
+
+    public static void jpHL() {
+        cpu.increaseCounter(1);
+        if(DEBUGMODE) System.out.println("JP (HL)");
+
+        int temp = (cpu.getRegister(6) & 0xff << 8) + (cpu.getRegister(7) & 0xff);
+        cpu.setProgramCounter((char) (memory.getMemory(temp) & 0xff));
+    }
+
+    /* Type
+ 0 - RET NotZero
+ 1 - RET Zero
+ 2 - RET NoCarry
+ 3 - RET Carry
+  */
+    public static void jr(int type, int type1) {
+        boolean booleanTemp;
+        String condition;
+        String callAddress;
+
+        cpu.increaseCounter(2);
+
+        switch(type1) {
+            case 0: booleanTemp = !cpu.getZeroFlag(); condition = "NZ"; break;
+            case 1: booleanTemp = cpu.getZeroFlag(); condition = "Z"; break;
+            case 2: booleanTemp = !cpu.getCarryFlag(); condition = "NC"; break;
+            case 3: booleanTemp = cpu.getCarryFlag(); condition = "C"; break;
+            default: return;
+        }
+
+        if(type == 1) callAddress = Integer.toHexString(((memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xff) + (memory.getCartridgeMemory(cpu.getProgramCounter() + 2) & 0xff << 8)));
+        else callAddress = Integer.toHexString(memory.getCartridgeMemory(cpu.getProgramCounter() + 1));
+
+        if(DEBUGMODE && type == 1) System.out.println("JR " + condition + ", " +  callAddress);
+        else if(DEBUGMODE) System.out.println("JR" + callAddress);
+
+        if(type == 0) {
+            cpu.increaseProgramCounter((char) (memory.getCartridgeMemory(cpu.getProgramCounter() + 1)));
+            cpu.increaseProgramCounter(2);
+        } else {
+            if(booleanTemp) cpu.increaseProgramCounter((char) (memory.getCartridgeMemory(cpu.getProgramCounter() + 1)));
+            else cpu.increaseProgramCounter(2);
+        }
+
+    }
+
 
 
     //Calls
 
+    public static void call() {
+        cpu.increaseCounter(3);
 
+        String calledString = Integer.toHexString(memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xff) + ((memory.getCartridgeMemory(cpu.getProgramCounter() + 2) & 0xff) << 8);
+        if(DEBUGMODE) System.out.println("CALL " + calledString);
+
+        int tempProgramCounter = cpu.getProgramCounter() + 3;
+
+        cpu.setProgramCounter((char) ((memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xff) + (memory.getCartridgeMemory(cpu.getProgramCounter() + 2) & 0xff << 8)));
+        memory.setMemory(cpu.getStackPointer() - 1, (char) (((tempProgramCounter) & 0xff00) >> 8));
+        memory.setMemory(cpu.getStackPointer() - 2, (char) ((tempProgramCounter) & 0xff));
+        cpu.increaseStackPointer(-2);
+    }
+
+    /* Type
+    0 - RET NotZero
+    1 - RET Zero
+    2 - RET NoCarry
+    3 - RET Carry
+     */
+    public static void callCond(int type) {
+        boolean booleanTemp = false;
+        String condition;
+        String callAddress;
+
+        cpu.increaseCounter(3);
+
+        switch(type) {
+            case 0: booleanTemp = !cpu.getZeroFlag(); condition = "NZ"; break;
+            case 1: booleanTemp = cpu.getZeroFlag(); condition = "Z"; break;
+            case 2: booleanTemp = !cpu.getCarryFlag(); condition = "NC"; break;
+            case 3: booleanTemp = cpu.getCarryFlag(); condition = "C"; break;
+            default: return;
+        }
+
+        callAddress = Integer.toHexString(((memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xff) + (memory.getCartridgeMemory(cpu.getProgramCounter() + 2) & 0xff << 8)));
+
+        if(DEBUGMODE) System.out.println("CALL " + condition + ", " + callAddress);
+
+
+        if(booleanTemp) {
+            int tempProgramCounter = cpu.getProgramCounter() + 3;
+
+            cpu.setProgramCounter((char) ((memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xff) + (memory.getCartridgeMemory(cpu.getProgramCounter() + 2) & 0xff << 8)));
+            memory.setMemory(cpu.getStackPointer() - 1, (char) (((tempProgramCounter) & 0xff00) >> 8));
+            memory.setMemory(cpu.getStackPointer() - 2, (char) ((tempProgramCounter) & 0xff));
+            cpu.increaseStackPointer(-2);
+        } else {
+            cpu.increaseProgramCounter(3);
+        }
+    }
 
     //Restarts
 
-
+    //Lacks Implementation
+    public static void rst() {
+        cpu.increaseCounter(8);
+    }
 
     //Returns
 
+    //Lacks Implementation
+    public static void ret() {
+        cpu.increaseCounter(2);
+
+
+    }
+
+    /* Type
+    RET NotZero
+    RET Zero
+    RET NoCarry
+    RET Carry
+     */
+    //Lacks Implementation
+    public static void retCond(int type) {
+        cpu.increaseCounter(2);
+
+
+    }
+
+    //Lacks Implementation
+    public static void reti() {
+        cpu.increaseCounter(2);
+    }
+
+    //Extras
+
+    public static void cb() {
+        cpu.increaseCounter(1);
+        if(DEBUGMODE) System.out.println("CB PREFIX");
+    }
 
 }
