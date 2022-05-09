@@ -1,7 +1,7 @@
 public class GBEmulator extends Thread {
 
-    private CPU cpu;
-    private PPU ppu;
+    private final CPU cpu;
+    private final PPU ppu;
     private int cpuCounter;
     private int ppuCounter;
     private int completedCyles;
@@ -11,21 +11,22 @@ public class GBEmulator extends Thread {
         ppu = cpu.getPPU();
     }
 
-    public void run() { //Chip 8 runs at 60FPS
+    public void run() {
         while(true) {
             try {
+                //Thread.sleep(0, 952);
                 cpuCounter = cpu.getCounter();
                 ppuCounter = ppu.getCounter();
                 completedCyles = ppu.getCompletedCycles();
                 cpu.cycle();
-                //if(cpuCounter == (ppuCounter + (completedCyles * 456))) {
-                 //   cpu.cycle();
-                //    ppu.cycle();
-                //} else if (cpuCounter < (ppuCounter + (completedCyles * 456))) {
-                //    cpu.cycle();
-                //} else {
-                //    ppu.cycle();
-                //}
+                if(cpuCounter == (ppuCounter + (completedCyles * 456))) {
+                    cpu.cycle();
+                    ppu.cycle();
+                } else if (cpuCounter < (ppuCounter + (completedCyles * 456))) {
+                    cpu.cycle();
+                } else {
+                    ppu.cycle();
+                }
 
             } catch (InterruptedException e) {
                 e.printStackTrace();

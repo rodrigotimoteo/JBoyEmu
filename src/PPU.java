@@ -8,6 +8,10 @@ public class PPU {
     private int completedCycles;
     private int mode;
     private int currentLine;
+    private int currentX;
+
+    private char currentTileLine;
+    private char currentTileMapRow;
 
     private boolean lcdOn;
     private boolean windowDisplay;
@@ -59,6 +63,12 @@ public class PPU {
     public int getCompletedCycles() {
         return completedCycles;
     }
+
+    //Static Geters
+
+    public static int getCurrentX() { return getCurrentX(); }
+
+    public static int getCurrentY() { return getCurrentY(); }
 
     public PPU(CPU cpu, Memory memory, DisplayFrame displayFrame) {
         this.cpu = cpu;
@@ -118,6 +128,14 @@ public class PPU {
         mode += bit;
     }
 
+    private char readScrollY() {
+        return (char) (memory.getMemory(0xFF42) & 0xff);
+    }
+
+    private char readScrollX() {
+        return (char) (memory.getMemory(0xFF43) & 0xff);
+    }
+
     private char readLY() {
         return (char) (memory.getMemory(0xFF44) & 0xFF);
     }
@@ -126,42 +144,52 @@ public class PPU {
         if(lcdOn) counter++;
         else return;
 
-        if(counter >= 456) { //Completed line
-            completedCycles++;
-            counter = 0;
-
-            //memory.setMemory(0xFF44, (char) (memory.getMemory(0xFF44) + 1));
-            char currentLine = readLY();
-
-            //if (currentLine == 144) RequestInterupt(0) ;
-
-            //else if (currentline > 153)
-            //    m_Rom[0xFF44] = 0;
-
-            //else if (currentline < 144)
-            //    DrawScanLine();
-
+        char currentLine = readLY();
+        int scrollY = readScrollY();
+        int scrollX = readScrollX();
 
         switch(mode) {
             case 0: //H-BLANK
-
+                if(counter == 456) {
+                    counter = 0;
+                    memory.setMemory(0xff42, (char) ((memory.getMemory(0xff42) & 0xff) + 1));
+                    currentLine = readLY();
+                if(currentLine == 144) memory.setMemory(0xff41, (char) ((memory.getMemory(0xff41) & 0xff) + 1));
+                else memory.setMemory(0xff41, (char) ((memory.getMemory(0xff41) & 0xff) + 2));
+            }
                 break;
 
             case 1: //V-BLANK
-
+                if(counter == 456) {
+                    counter = 0;
+                    memory.setMemory(0xff42, (char) ((memory.getMemory(0xff42) & 0xff) + 1));
+                    currentLine = readLY();
+                if(currentLine == 153) {
+                    memory.setMemory(0xff42, (char) 0);
+                    memory.setMemory(0xff41, (char) ((memory.getMemory(0xff41) & 0xff) + 1));
+                }
+            }
                 break;
 
             case 2: //OAM Search
+                if(counter == 40) {
+                    memory.setMemory(0xff41, (char) ((memory.getMemory(0xff41) & 0xff) + 1));
 
+                    currentX++;
+                    currentTileLine = (char) (currentLine % 8);
+                    currentTileMapRow = (char) (0x9800 + ((currentLine / 8) * 32));
+
+                    displayFrame.repaint();
+                }
                 break;
 
             case 3: //Pixel Transfer
-
+                currentX++;
+                if(counter == 140) memory.setMemory(0xff41, (char) ((memory.getMemory(0xff41) & 0xff) - 3));
                 break;
         }
 
-        displayFrame.repaint();
-    }
 
     }
+
 }

@@ -7,11 +7,17 @@ public class CPU {
     private boolean subtractFlag;
     private boolean halfCarryFlag;
     private boolean carryFlag;
+
+    private boolean isHalted;
+    private boolean isStopped;
+
     private char operationCode;
     private char programCounter = 0x0100;
     private char stackPointer = 0xFFFE;
 
     int counter = 0;
+    int divClockCounter = 0;
+    int timerClockCounter = 0;
 
     private boolean continueFlag = true;
     private boolean interruptMasterEnable = false;
@@ -24,137 +30,149 @@ public class CPU {
 
     //Resets
 
+    //Clears all register filling them with 0's
     private void clearRegisters() {
         Arrays.fill(registers, (char) 0);
     }
 
     //Geters
 
+    //Return the Rom Name
     public String getRomName() {
         return romName;
     }
 
+    //Return the CPU Cycle counter
     public int getCounter() {
         return counter;
     }
 
+    //Return Register[index]
     public char getRegister(int index) {
         return registers[index];
     }
 
+    //Return the Program Counter
     public char getProgramCounter() {
         return programCounter;
     }
 
+    //Return the Operation Code
     public char getOperationCode() {
         return operationCode;
     }
 
+    //Return the Stack Pointer address
     public char getStackPointer() {
         return stackPointer;
     }
 
+    //Return the Status of the Zero Flag
     public boolean getZeroFlag() {
         return zeroFlag;
     }
 
+    //Return the Status of the Subtract Flag
     public boolean getSubtractFlag() {
         return subtractFlag;
     }
 
+    //Return the Status of the Half Carry Flag
     public boolean getHalfCarryFlag() {
         return halfCarryFlag;
     }
 
+    //Return the Status of the Carry Flag
     public boolean getCarryFlag() {
         return carryFlag;
     }
 
+    //Return the Halted Status
+    public boolean getIsHalted() {
+        return isHalted;
+    }
+
+    //Return the Stopped Status
+    public boolean getIsStopped() {
+        return isStopped;
+    }
+
+    //Return the PPU
+    public PPU getPPU() {
+        return ppu;
+    }
+
     //Setters (for registers mainly)
 
+    //Sets Register[index] with a Value
     public void setRegister(int index, char value) {
         registers[index] = value;
     }
 
+    //Sets Multiple Registers with Values
     public void setRegisters(int index1, int index2, char value1, char value2) {
         registers[index1] = value1;
         registers[index2] = value2;
     }
 
+    //Increments a value to the CPU Cycle Counter
     public void increaseCounter(int amount) {
         counter += amount;
     }
 
+    //Increments a value to the Program Counter
     public void increaseProgramCounter(int amount) {
         programCounter += amount;
     }
 
+    //Sets the Program Counter to a Value
     public void setProgramCounter(char amount) {
         programCounter = amount;
     }
 
+    //Increments a value to the Stack Pointer
     public void increaseStackPointer(int amount) {
         stackPointer += amount;
     }
 
+    //Sets the Stack Pointer to a Value
     public void setStackPointer(char amount) {
         stackPointer = amount;
     }
 
+    //Sets the Zero Flag to a State
     public void setZeroFlag(boolean state) {
         zeroFlag = state;
     }
 
+    //Sets the Subtract Flag to a State
     public void setSubtractFlag(boolean state) {
         subtractFlag = state;
     }
 
+    //Sets the Half Carry Flag to a State
     public void setHalfCarryFlag(boolean state) {
         halfCarryFlag = state;
     }
 
+    //Sets the Carry Flag to a State
     public void setCarryFlag(boolean state) {
         carryFlag = state;
     }
 
+    //Set the isHalted Flag
+    public void setIsHalted(boolean state) {
+        isHalted = state;
+    }
+
+    //Set the isStopped Flag
+    public void setIsStopped(boolean state) {
+        isStopped = state;
+    }
+
+    //Sets the Interrupt Master Enable to a State
     public void setInterruptMasterEnable(boolean state) {
         interruptMasterEnable = state;
-    }
-
-    //Debug
-
-    private void dumpRegisters() {
-        for(int i = 0; i < 8; i++)
-            System.out.print(i + ":" + Integer.toHexString((registers[i]) & 0xff) + " ");
-    }
-
-    private void dumpFlags() {
-        int zeroFlagINT;
-        int subtractFlagINT;
-        int halfCarryFlagINT;
-        int carryFlagINT;
-
-        if(zeroFlag)
-            zeroFlagINT = 1;
-        else
-            zeroFlagINT = 0;
-
-        if(subtractFlag)
-            subtractFlagINT = 1;
-        else
-            subtractFlagINT = 0;
-
-        if(halfCarryFlag)
-            halfCarryFlagINT = 1;
-        else
-            halfCarryFlagINT = 0;
-
-        if(carryFlag)
-            carryFlagINT = 1;
-        else
-            carryFlagINT = 0;
-
-        System.out.print(" Flags Z:" + zeroFlagINT + " N:" + subtractFlagINT + " H:" + halfCarryFlagINT + " C:" + carryFlagINT + "  ");
     }
 
     //Constructor
@@ -193,18 +211,100 @@ public class CPU {
     }
 
     public void cycle() throws InterruptedException {
-        fetchOperationCodes();
-        decodeOperationCodes();
-        //if(DEBUGMODE) {
-            //dumpRegisters();
-            //dumpFlags();
-            //Thread.sleep(1000);
-        //}
-        //ppu.cycle();
+        int tempCycleCount = counter;
+
+        if (!getIsStopped()) {
+            if(!getIsHalted()) {
+                fetchOperationCodes();
+                decodeOperationCodes();
+            } else {
+                increaseCounter(1);
+            }
+            handleTimer(counter - tempCycleCount);
+
+            handleInterrupts();
+        }
     }
 
-    public PPU getPPU() {
-        return ppu;
+    private void handleInterrupts() {
+        if(interruptMasterEnable) {
+            char interrupt = (char) (memory.getMemory(0xff0f) & memory.getMemory(0xffff));
+            if(interrupt > 0) {
+                int vBlank = ((memory.getMemory(0xff0f) & 0x1) & (memory.getMemory(0xffff) & 0x1));
+                if(vBlank == 1) {
+                    System.out.println("Treat V-Blank");
+
+                    memory.setMemory(--stackPointer, (char) ((programCounter & 0xff00) >> 8));
+                    memory.setMemory(--stackPointer, (char) (programCounter & 0xff));
+                    setProgramCounter((char) 0x40);
+                    memory.setMemory(0xff0f, (char) ((memory.getMemory(0xff0f) & 0xff) - 0x1));
+                    return;
+                }
+
+                int LCDCStatus = (((memory.getMemory(0xff0f) & 0x2) >> 1) & ((memory.getMemory(0xffff) & 0x2) >> 1));
+                if(LCDCStatus == 1) {
+                    System.out.println("Treat LCDCStatus");
+
+                    memory.setMemory(0xff0f, (char) ((memory.getMemory(0xff0f) & 0xff) - 0x2));
+                    return;
+                }
+
+                int timerOverflow = (((memory.getMemory(0xff0f) & 0x4) >> 2) & ((memory.getMemory(0xffff) & 0x4) >> 2));
+                if(timerOverflow == 1) {
+                    System.out.println("Treat timerOverflow");
+
+                    memory.setMemory(0xff0f, (char) ((memory.getMemory(0xff0f) & 0xff) - 0x4));
+                    return;
+                }
+
+                int serialTransfer = (((memory.getMemory(0xff0f) & 0x8) >> 3) & ((memory.getMemory(0xffff) & 0x8) >> 3));
+                if(serialTransfer == 1) {
+                    System.out.println("Treat serialTransfer");
+
+                    memory.setMemory(0xff0f, (char) ((memory.getMemory(0xff0f) & 0xff) - 0x8));
+                    return;
+                }
+
+                int hiLo = (((memory.getMemory(0xff0f) & 0x10) >> 4) & ((memory.getMemory(0xffff) & 0x10) >> 4));
+                if(hiLo == 1) {
+                    System.out.println("Treat hiLo");
+
+                    memory.setMemory(0xff0f, (char) ((memory.getMemory(0xff0f) & 0xff) - 0x10));
+                }
+            }
+        }
+    }
+
+    private void handleTimer(int cycles) {
+        divClockCounter += cycles;
+        if (divClockCounter >= 256) {
+            divClockCounter -= 256;
+            memory.setMemory(0xff04, (char) ((memory.getMemory(0xff04) & 0xff) + 1));
+        }
+
+        int[] tacStatus = CPUInstructions.readTAC();
+        if (tacStatus[0] == 1) {
+            timerClockCounter += cycles * 4;
+
+            //Sets the timer's frequency
+            int frequency = 4096;
+            if (tacStatus[1] == 3)
+                frequency = 262144;
+            else if (tacStatus[1] == 2)
+                frequency = 65536;
+            else if (tacStatus[1] == 1)
+                frequency = 16384;
+
+            while (timerClockCounter >= (4194304 / frequency)) {
+                memory.setMemory(0xff05, (char) ((memory.getMemory(0xff05) & 0xff) + 1));
+                if (memory.getMemory(0xff05) == 0x100) {
+                    memory.setMemory(0xff0f, (char) (memory.getMemory(0xff0f) | 0x4));
+                    memory.setMemory(0xff05, (char) (memory.getMemory(0xff06) & 0xff));
+                }
+                timerClockCounter -= (4194304 / frequency);
+            }
+        }
+
     }
 
     private void fetchOperationCodes() {
@@ -212,9 +312,10 @@ public class CPU {
     }
 
     private void decodeOperationCodes() {
-        int tempProgramCounter, carry;
 
-        CPUInstructions.show();
+        //CPUInstructions.dumpRegisters();
+        //CPUInstructions.dumpFlags();
+        //CPUInstructions.show();
 
         switch(operationCode) {
             case 0x00: //NOP IMPLEMENTED AND WORKING
@@ -223,7 +324,7 @@ public class CPU {
 
             case 0x01: //LD BC,u16 IMPLEMENTED AND WORKING
                 counter += 3;
-                //if(DEBUGMODE) System.out.println("LD BC, " + Integer.toHexString(memory.getCartridgeMemory(programCounter + 1) & 0xff) + Integer.toHexString(memory.getCartridgeMemory(programCounter + 2) & 0xff));
+                System.out.println("LD BC, " + Integer.toHexString(memory.getCartridgeMemory(programCounter + 1) & 0xff) + Integer.toHexString(memory.getCartridgeMemory(programCounter + 2) & 0xff));
 
                 registers[1] = (char) memory.getCartridgeMemory(programCounter + 1);
                 registers[2] = (char) memory.getCartridgeMemory(programCounter + 2);
@@ -256,7 +357,7 @@ public class CPU {
 
             case 0x08: //LD (u16),SP
                 counter += 3;
-                //if(DEBUGMODE) System.out.println("LD " + Integer.toHexString((memory.getCartridgeMemory(programCounter + 2) + (memory.getCartridgeMemory(programCounter + 1) << 4)) & 0xff) + ", SP");
+                System.out.println("LD " + Integer.toHexString((memory.getCartridgeMemory(programCounter + 2) + (memory.getCartridgeMemory(programCounter + 1) << 4)) & 0xff) + ", SP");
 
                 stackPointer = (char) (memory.getCartridgeMemory(programCounter + 2));
                 stackPointer += (char) (memory.getCartridgeMemory(programCounter + 1) << 4);
@@ -265,7 +366,7 @@ public class CPU {
 
             case 0x09: //ADD HL,BC
                 counter++;
-                //if(DEBUGMODE) System.out.println("ADD HL, BC");
+                System.out.println("ADD HL, BC");
 
                 if(registers[6] + registers[2] > 255) {
                     registers[6] = (char) (registers[6] + registers[2] - 255);
@@ -310,7 +411,7 @@ public class CPU {
 
             case 0x11: //LD DE,u16 IMPLEMENTED AND WORKING
                 counter += 3;
-                //if(DEBUGMODE) System.out.println("LD DE, " + Integer.toHexString(((memory.getCartridgeMemory(programCounter + 1) << 8) + memory.getCartridgeMemory(programCounter + 2) & 0xff)));
+                System.out.println("LD DE, " + Integer.toHexString(((memory.getCartridgeMemory(programCounter + 1) << 8) + memory.getCartridgeMemory(programCounter + 2) & 0xff)));
 
                 registers[3] = (char) memory.getCartridgeMemory(programCounter + 1);
                 registers[4] = (char) memory.getCartridgeMemory(programCounter + 2);
@@ -347,7 +448,7 @@ public class CPU {
 
             case 0x19: //ADD HL,DE
                 counter++;
-                //if(DEBUGMODE) System.out.println("ADD HL, DE");
+                System.out.println("ADD HL, DE");
 
                 if(registers[6] + registers[4] > 255) {
                     registers[6] = (char) (registers[6] + registers[4] - 255);
@@ -392,7 +493,7 @@ public class CPU {
 
             case 0x21: //LD HL,u16   IMPLEMENTED AND WORKING
                 counter += 3;
-                //if(DEBUGMODE) System.out.println("LD HL, " + Integer.toHexString(((memory.getCartridgeMemory(programCounter + 1) << 8) + memory.getCartridgeMemory(programCounter + 2) & 0xff)));
+                System.out.println("LD HL, " + Integer.toHexString(((memory.getCartridgeMemory(programCounter + 1) << 8) + memory.getCartridgeMemory(programCounter + 2) & 0xff)));
 
                 registers[7] = (char) memory.getCartridgeMemory(programCounter + 1);
                 registers[6] = (char) memory.getCartridgeMemory(programCounter + 2);
@@ -719,8 +820,7 @@ public class CPU {
                 break;
 
             case 0x76: //HALT
-                System.out.println("Oi");
-                System.exit(0);
+                CPUInstructions.halt();
                 break;
 
             case 0x77: //LD (HL),A
@@ -974,16 +1074,20 @@ public class CPU {
                 CPUInstructions.add(9);
                 break;
 
+            case 0xC7: //RST 00H
+                CPUInstructions.rst(0);
+                break;
+
             case 0xC8: //RET Z
                 counter += 2;
-                //if(DEBUGMODE) System.out.println("RET Z");
+                 System.out.println("RET Z");
 
                 //if(zeroFlag)
                 break;
 
             case 0xC9: //RET
                 counter += 2;
-                //if(DEBUGMODE) System.out.println("RET");
+                 System.out.println("RET");
 
                 break;
 
@@ -2040,12 +2144,20 @@ public class CPU {
                 CPUInstructions.adc(9);
                 break;
 
+            case 0xCF: //RST 08H
+                CPUInstructions.rst(1);
+                break;
+
             case 0xD2: //JP NC,u16
                 CPUInstructions.jpCond(2);
                 break;
 
             case 0xD4: //CALL NC,nn
                 CPUInstructions.callCond(2);
+                break;
+
+            case 0xD7: //RST 10H
+                CPUInstructions.rst(2);
                 break;
 
             case 0xDA: //JP C,u16
@@ -2056,13 +2168,17 @@ public class CPU {
                 CPUInstructions.callCond(3);
                 break;
 
+            case 0xDF: //RST 18H
+                CPUInstructions.rst(3);
+                break;
+
             case 0xE0: //LD (FF00+u8),A    IMPLEMENTED AND WORKING I THINK
                 CPUInstructions.ldh(0);
                 break;
 
             case 0xE1: //POP nn
                 counter += 3;
-                //if(DEBUGMODE) System.out.println("POP");
+                System.out.println("POP");
 
 
                 break;
@@ -2073,6 +2189,10 @@ public class CPU {
 
             case 0xE6: //AND #
                 CPUInstructions.and(9);
+                break;
+
+            case 0xE7: //RST 20H
+                CPUInstructions.rst(4);
                 break;
 
             case 0xE8: //ADD SP,n
@@ -2091,6 +2211,10 @@ public class CPU {
                 CPUInstructions.xor(9);
                 break;
 
+            case 0xEF: //RST 28H
+                CPUInstructions.rst(5);
+                break;
+
             case 0xF0: //LD A,(FF00+u8)    IMPLEMENTED AND WORKING I THINK
                 CPUInstructions.ldh(1);
                 break;
@@ -2107,6 +2231,10 @@ public class CPU {
                 CPUInstructions.or(9);
                 break;
 
+            case 0xF7: //RST 30H
+                CPUInstructions.rst(6);
+                break;
+
             case 0xFA: //LD A,(nn)
                 CPUInstructions.ldTwoRegisters(0, 2);
                 break;
@@ -2117,6 +2245,10 @@ public class CPU {
 
             case 0xFE: //CP A,u8   IMPLEMENTED AND WORKING I THINK
                 CPUInstructions.cp(9);
+                break;
+
+            case 0xFF: //RST 38H
+                CPUInstructions.rst(7);
                 break;
 
             default:

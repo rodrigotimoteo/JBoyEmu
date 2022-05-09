@@ -8,8 +8,8 @@ public class DisplayPanel extends JPanel {
     private final int SCALE = 4;
 
     private final Memory memory;
-    private int SCROLLX;
-    private int SCROLLY;
+    private int currentX;
+    private int currentY;
 
     public int getWIDTH() {
         return WIDTH;
@@ -25,13 +25,15 @@ public class DisplayPanel extends JPanel {
 
     //Seters
 
-    public void setSCROLLX(int SCROLLX) {
-        this.SCROLLX = SCROLLX;
+    public void setCurrentX(int currentX) {
+        this.currentX = currentX;
     }
 
-    public void setSCROLLY(int SCROLLY) {
-        this.SCROLLY = SCROLLY;
+    public void setCurrentY(int currentY) {
+        this.currentY = currentY;
     }
+
+    //Constructor
 
     public DisplayPanel(Memory memory) {
         this.memory = memory;
@@ -45,17 +47,12 @@ public class DisplayPanel extends JPanel {
      */
 
     public void paint(Graphics g) {
+        setCurrentY(PPU.getCurrentY());
+        setCurrentX(PPU.getCurrentX());
 
-
-        for(int x = 0; x < WIDTH; x++) {
-            for(int y = 0; y < HEIGHT; y++) {
-                if(1 == 1)
-                    g.setColor(Color.WHITE);
-                else
-                    g.setColor(Color.BLACK);
-                g.fillRect(x * SCALE, y * SCALE, SCALE, SCALE);
-            }
-        }
+        if(currentY % 2 == 1) g.setColor(Color.WHITE);
+        else g.setColor(Color.BLACK);
+        g.fillRect(currentX * SCALE, currentY * SCALE, SCALE, SCALE);
     }
 }
 
