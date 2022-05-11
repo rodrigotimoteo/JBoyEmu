@@ -30,12 +30,21 @@ public class Memory {
         return cartridge[index];
     }
 
+    //Debug
+
+    public void dumpMemory() {
+        System.out.print("0 ");
+        for(int i = 0; i < 0x10000; i++) {
+            if(i % 16 == 0 && i != 0) { System.out.println(" "); System.out.print(Integer.toHexString(i ) + " "); System.out.print(Integer.toHexString(getMemory(i) & 0xff) + " ");  }
+            else System.out.print(Integer.toHexString(getMemory(i) & 0xff) + " ");
+        }
+    }
+
     //Init
 
     private void init() {
        cartridge = ROM.loadProgram(gbCPU.getRomName(), this);
        gbCPU.setRegisters(0, 7, (char) 0, (char) 1);
-
        gbCPU.setRegister(7, (char) 0xB0);
     }
 
@@ -54,22 +63,7 @@ public class Memory {
      * 0058 - serial transfer completion interrupt
      * 0060 - high-to-low of p10-p13 interrupt
      *
-     * Internal Information Area in 0100 to 014F in each cartridge containing
-     * 0100/0103 - begin code execution point in cart
-     * 0104/0133 - scrolling Nintendo Graphic
-     * 0134/0142 - Title of the game in Upper Case ASCII
-     * 0143 - $80 = Color Gameboy
-     * 0144 - High nibble license code
-     * 0145 - Low nibble license code
-     * 0146 - GB Indicator 00
-     * 0147 - Cartridge Type
-     * 0148 - ROM Size
-     * 0149 - RAM Size
-     * 014A - Region Code
-     * 014B - Licensee Code old
-     * 014C - Mask Rom Version normally $00
-     * 014D - Complement Check !!CRUCIAL!!
-     */
+    */
 
     public Memory(CPU gbCPU) {
         this.gbCPU = gbCPU;

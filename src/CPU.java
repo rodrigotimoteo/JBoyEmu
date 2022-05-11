@@ -22,11 +22,11 @@ public class CPU {
     private boolean continueFlag = true;
     private boolean interruptMasterEnable = false;
 
-    String romName = "./src/tetris.gb";
+    String romName = "./src/testRom/tetris.gb";
 
     Memory memory;
-    DisplayFrame display;
     PPU ppu;
+    Display display;
 
     //Resets
 
@@ -97,9 +97,18 @@ public class CPU {
         return isStopped;
     }
 
+    public Memory getMemory() {
+        return memory;
+    }
+
     //Return the PPU
     public PPU getPPU() {
         return ppu;
+    }
+
+    //Return the Display
+    public Display getDisplay() {
+        return display;
     }
 
     //Setters (for registers mainly)
@@ -180,8 +189,8 @@ public class CPU {
     public CPU() {
         clearRegisters();
         memory = new Memory(this);
-        display = new DisplayFrame(memory);
-        ppu = new PPU(this, memory, display);
+        ppu = new PPU(this, memory);
+        display = new Display(this, memory, ppu);
         CPUInstructions.setCpu(this);
         CPUInstructions.setMem(memory);
 
@@ -232,7 +241,7 @@ public class CPU {
             if(interrupt > 0) {
                 int vBlank = ((memory.getMemory(0xff0f) & 0x1) & (memory.getMemory(0xffff) & 0x1));
                 if(vBlank == 1) {
-                    System.out.println("Treat V-Blank");
+                    //System.out.println("Treat V-Blank");
 
                     memory.setMemory(--stackPointer, (char) ((programCounter & 0xff00) >> 8));
                     memory.setMemory(--stackPointer, (char) (programCounter & 0xff));
@@ -243,32 +252,44 @@ public class CPU {
 
                 int LCDCStatus = (((memory.getMemory(0xff0f) & 0x2) >> 1) & ((memory.getMemory(0xffff) & 0x2) >> 1));
                 if(LCDCStatus == 1) {
-                    System.out.println("Treat LCDCStatus");
+                    //System.out.println("Treat LCDCStatus");
 
+                    memory.setMemory(--stackPointer, (char) ((programCounter & 0xff00) >> 8));
+                    memory.setMemory(--stackPointer, (char) (programCounter & 0xff));
+                    setProgramCounter((char) 0x48);
                     memory.setMemory(0xff0f, (char) ((memory.getMemory(0xff0f) & 0xff) - 0x2));
                     return;
                 }
 
                 int timerOverflow = (((memory.getMemory(0xff0f) & 0x4) >> 2) & ((memory.getMemory(0xffff) & 0x4) >> 2));
                 if(timerOverflow == 1) {
-                    System.out.println("Treat timerOverflow");
+                    //System.out.println("Treat timerOverflow");
 
+                    memory.setMemory(--stackPointer, (char) ((programCounter & 0xff00) >> 8));
+                    memory.setMemory(--stackPointer, (char) (programCounter & 0xff));
+                    setProgramCounter((char) 0x50);
                     memory.setMemory(0xff0f, (char) ((memory.getMemory(0xff0f) & 0xff) - 0x4));
                     return;
                 }
 
                 int serialTransfer = (((memory.getMemory(0xff0f) & 0x8) >> 3) & ((memory.getMemory(0xffff) & 0x8) >> 3));
                 if(serialTransfer == 1) {
-                    System.out.println("Treat serialTransfer");
+                    //System.out.println("Treat serialTransfer");
 
+                    memory.setMemory(--stackPointer, (char) ((programCounter & 0xff00) >> 8));
+                    memory.setMemory(--stackPointer, (char) (programCounter & 0xff));
+                    setProgramCounter((char) 0x50);
                     memory.setMemory(0xff0f, (char) ((memory.getMemory(0xff0f) & 0xff) - 0x8));
                     return;
                 }
 
                 int hiLo = (((memory.getMemory(0xff0f) & 0x10) >> 4) & ((memory.getMemory(0xffff) & 0x10) >> 4));
                 if(hiLo == 1) {
-                    System.out.println("Treat hiLo");
+                    //System.out.println("Treat hiLo");
 
+                    memory.setMemory(--stackPointer, (char) ((programCounter & 0xff00) >> 8));
+                    memory.setMemory(--stackPointer, (char) (programCounter & 0xff));
+                    setProgramCounter((char) 0x60);
                     memory.setMemory(0xff0f, (char) ((memory.getMemory(0xff0f) & 0xff) - 0x10));
                 }
             }
@@ -308,7 +329,7 @@ public class CPU {
     }
 
     private void fetchOperationCodes() {
-        operationCode = (char) (memory.getCartridgeMemory(programCounter) & 0xff);
+        operationCode = (char) (memory.getMemory(programCounter) & 0xff);
     }
 
     private void decodeOperationCodes() {
@@ -317,18 +338,15 @@ public class CPU {
         //CPUInstructions.dumpFlags();
         //CPUInstructions.show();
 
+        //memory.dumpMemory();
+
         switch(operationCode) {
-            case 0x00: //NOP IMPLEMENTED AND WORKING
+            case 0x00: //NOP
                 CPUInstructions.nop();
                 break;
 
-            case 0x01: //LD BC,u16 IMPLEMENTED AND WORKING
-                counter += 3;
-                System.out.println("LD BC, " + Integer.toHexString(memory.getCartridgeMemory(programCounter + 1) & 0xff) + Integer.toHexString(memory.getCartridgeMemory(programCounter + 2) & 0xff));
-
-                registers[1] = (char) memory.getCartridgeMemory(programCounter + 1);
-                registers[2] = (char) memory.getCartridgeMemory(programCounter + 2);
-                programCounter += 3;
+            case 0x01: //LD BC,u16
+                CPUInstructions.ld16bit(0);
                 break;
 
             case 0x02: //LD (BC),A
@@ -339,15 +357,15 @@ public class CPU {
                 CPUInstructions.incR(0);
                 break;
 
-            case 0x04: //INC B IMPLEMENTED AND WORKING
+            case 0x04: //INC B
                 CPUInstructions.inc(1);
                 break;
 
-            case 0x05: //DEC B   IMPLEMENTED AND WORKING
+            case 0x05: //DEC B
                 CPUInstructions.dec(1);
                 break;
 
-            case 0x06: //LD B,u8    IMPLEMENTED AND WORKING
+            case 0x06: //LD B,u8
                 CPUInstructions.ld(1, 9);
                 break;
 
@@ -410,12 +428,7 @@ public class CPU {
                 break;
 
             case 0x11: //LD DE,u16 IMPLEMENTED AND WORKING
-                counter += 3;
-                System.out.println("LD DE, " + Integer.toHexString(((memory.getCartridgeMemory(programCounter + 1) << 8) + memory.getCartridgeMemory(programCounter + 2) & 0xff)));
-
-                registers[3] = (char) memory.getCartridgeMemory(programCounter + 1);
-                registers[4] = (char) memory.getCartridgeMemory(programCounter + 2);
-                programCounter += 3;
+                CPUInstructions.ld16bit(1);
                 break;
 
             case 0x12: //LD (DE),A
@@ -492,12 +505,7 @@ public class CPU {
                 break;
 
             case 0x21: //LD HL,u16   IMPLEMENTED AND WORKING
-                counter += 3;
-                System.out.println("LD HL, " + Integer.toHexString(((memory.getCartridgeMemory(programCounter + 1) << 8) + memory.getCartridgeMemory(programCounter + 2) & 0xff)));
-
-                registers[7] = (char) memory.getCartridgeMemory(programCounter + 1);
-                registers[6] = (char) memory.getCartridgeMemory(programCounter + 2);
-                programCounter += 3;
+                CPUInstructions.ld16bit(2);
                 break;
 
             case 0x22: //LDI (HL),A IMPLEMENTED AND WORKING
@@ -550,6 +558,10 @@ public class CPU {
 
             case 0x30: //JR NC,u8
                 CPUInstructions.jr(1, 2);
+                break;
+
+            case 0x31: //LD SP,u16
+                CPUInstructions.ld16bit(3);
                 break;
 
             case 0x32: //LDD (HL),A   IMPLEMENTED AND WORKING
@@ -2233,6 +2245,14 @@ public class CPU {
 
             case 0xF7: //RST 30H
                 CPUInstructions.rst(6);
+                break;
+
+            case 0xF8: //LDHL SP,n
+                CPUInstructions.LDHL();
+                break;
+
+            case 0xF9: //LD SP,HL
+                CPUInstructions.ldSPHL();
                 break;
 
             case 0xFA: //LD A,(nn)

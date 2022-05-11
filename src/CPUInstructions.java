@@ -58,10 +58,6 @@ public class CPUInstructions {
         if(DEBUGMODE) System.out.print(" Flags Z:" + zeroFlagINT + " N:" + subtractFlagINT + " H:" + halfCarryFlagINT + " C:" + carryFlagINT + "  ");
     }
 
-
-
-
-
     //8-Bit Loads
 
     /* register special types
@@ -84,24 +80,25 @@ public class CPUInstructions {
         if(operation == 0)  {
             registerInChar = "A";
             switch(register) {
-                case 0: registerOutChar = "(BC)"; break;
-                case 1: registerOutChar = "(DE)"; break;
-                case 2: registerOutChar = "(nn)"; break;
-                case 3: registerOutChar = Integer.toHexString(memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xff); break;
+                case 0: registerOutChar = Integer.toHexString(((cpu.getRegister(1) & 0xff) << 8) + (cpu.getRegister(2) & 0xff)); break;
+                case 1: registerOutChar = Integer.toHexString(((cpu.getRegister(3) & 0xff) << 8) + (cpu.getRegister(4) & 0xff)); break;
+                case 2: registerOutChar = Integer.toHexString(((memory.getMemory(cpu.getProgramCounter() + 2) & 0xff) << 8) + (memory.getMemory(cpu.getProgramCounter() + 1) & 0xff)); break;
+                case 3: registerOutChar = Integer.toHexString(memory.getMemory(cpu.getProgramCounter() + 1) & 0xff); break;
                 default: return;
             }
         } else {
             registerOutChar = "A";
             switch(register) {
-                case 0: registerInChar = "(BC)"; break;
-                case 1: registerInChar = "(DE)"; break;
-                case 2: registerInChar = "(nn)"; break;
-                case 3: registerInChar = Integer.toHexString(memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xff); break;
+                case 0: registerInChar = Integer.toHexString(((cpu.getRegister(1) & 0xff) << 8) + (cpu.getRegister(2) & 0xff)); break;
+                case 1: registerInChar = Integer.toHexString(((cpu.getRegister(3) & 0xff) << 8) + (cpu.getRegister(4) & 0xff)); break;
+                case 2: registerInChar = Integer.toHexString(((memory.getMemory(cpu.getProgramCounter() + 2) & 0xff) << 8) + (memory.getMemory(cpu.getProgramCounter() + 1) & 0xff)); break;
+                case 3: registerInChar = Integer.toHexString(memory.getMemory(cpu.getProgramCounter() + 1) & 0xff); break;
                 default: return;
             }
         }
 
         if(DEBUGMODE) System.out.println("LD " + registerInChar + ", " + registerOutChar);
+        //else DEBUGMODE = true;
 
         if(operation == 0) {
             switch(register) {
@@ -114,12 +111,12 @@ public class CPUInstructions {
                     cpu.setRegister(0, (char) (memory.getMemory(register) & 0xff));
                     break;
                 case 2:
-                    register =  (memory.getCartridgeMemory(cpu.getProgramCounter() + 1) << 8 + memory.getCartridgeMemory(cpu.getProgramCounter()) + 2);
+                    register = ((memory.getMemory(cpu.getProgramCounter() + 2) & 0xff) << 8) + (memory.getMemory(cpu.getProgramCounter() + 1) & 0xff);
                     cpu.setRegister(0, (char) (memory.getMemory(register) & 0xff));
                     status = 2;
                     break;
                 case 3:
-                    register =  memory.getCartridgeMemory(cpu.getProgramCounter()) + 1;
+                    register = (memory.getMemory(cpu.getProgramCounter() + 1) & 0xff);
                     cpu.setRegister(0, (char) (register));
                     status = 1;
                     break;
@@ -127,22 +124,58 @@ public class CPUInstructions {
         } else {
             switch(register) {
                 case 0:
-                    register = (cpu.getRegister(1) & 0xff << 8) + (cpu.getRegister(2) & 0xff);
+                    register = ((cpu.getRegister(1) & 0xff) << 8) + (cpu.getRegister(2) & 0xff);
 
-                    if(register == 0xff44 || register == 0xff04) memory.setMemory(register, (char) 0);
-                    else memory.setMemory(register, cpu.getRegister(0));
+                    if(register == 0xff44 || register == 0xff04) {
+                        memory.setMemory(register, (char) 0);
+                    }
+                    else if(register >= 0xc000 && register <= 0xde00) {
+                        memory.setMemory(register, (char) (cpu.getRegister(0) & 0xff));
+                        memory.setMemory(register + 0x2000, (char) (cpu.getRegister(0) & 0xff));
+                    }
+                    else if(register >= 0xe000 && register <= 0xfe00) {
+                        memory.setMemory(register, (char) (cpu.getRegister(0) & 0xff));
+                        memory.setMemory(register - 0x2000, (char) (cpu.getRegister(0) & 0xff));
+                    }
+                    else {
+                        memory.setMemory(register, (char) (cpu.getRegister(0) & 0xff));
+                    }
                     break;
                 case 1:
-                    register = (cpu.getRegister(3) & 0xff << 8) + (cpu.getRegister(4) & 0xff);
+                    register = ((cpu.getRegister(3) & 0xff) << 8) + (cpu.getRegister(4) & 0xff);
 
-                    if(register == 0xff44 || register == 0xff04) memory.setMemory(register, (char) 0);
-                    else memory.setMemory(register, cpu.getRegister(0));
+                    if(register == 0xff44 || register == 0xff04) {
+                        memory.setMemory(register, (char) 0);
+                    }
+                    else if(register >= 0xc000 && register <= 0xde00) {
+                        memory.setMemory(register, (char) (cpu.getRegister(0) & 0xff));
+                        memory.setMemory(register + 0x2000, (char) (cpu.getRegister(0) & 0xff));
+                    }
+                    else if(register >= 0xe000 && register <= 0xfe00) {
+                        memory.setMemory(register, (char) (cpu.getRegister(0) & 0xff));
+                        memory.setMemory(register - 0x2000, (char) (cpu.getRegister(0) & 0xff));
+                    }
+                    else {
+                        memory.setMemory(register, (char) (cpu.getRegister(0) & 0xff));
+                    }
                     break;
                 case 2:
-                    register =  ((memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xff) << 8 + memory.getCartridgeMemory(cpu.getProgramCounter() & 0xff) + 2);
+                    register =  ((memory.getMemory(cpu.getProgramCounter() + 1) & 0xff) << 8 + memory.getMemory(cpu.getProgramCounter() & 0xff) + 2);
 
-                    if(register == 0xff44 || register == 0xff04) memory.setMemory(register, (char) 0);
-                    else memory.setMemory(register, cpu.getRegister(0));
+                    if(register == 0xff44 || register == 0xff04) {
+                        memory.setMemory(register, (char) 0);
+                    }
+                    else if(register >= 0xc000 && register <= 0xde00) {
+                        memory.setMemory(register, (char) (cpu.getRegister(0) & 0xff));
+                        memory.setMemory(register + 0x2000, (char) (cpu.getRegister(0) & 0xff));
+                    }
+                    else if(register >= 0xe000 && register <= 0xfe00) {
+                        memory.setMemory(register, (char) (cpu.getRegister(0) & 0xff));
+                        memory.setMemory(register - 0x2000, (char) (cpu.getRegister(0) & 0xff));
+                    }
+                    else {
+                        memory.setMemory(register, (char) (cpu.getRegister(0) & 0xff));
+                    }
                     status = 2;
                     break;
             }
@@ -177,7 +210,7 @@ public class CPUInstructions {
             case 4: registerInChar = "E"; break;
             case 6: registerInChar = "H"; break;
             case 7: registerInChar = "L"; break;
-            case 8: registerInChar = "(HL)"; break;
+            case 8: registerInChar = Integer.toHexString(((cpu.getRegister(6) & 0xff) << 8) + (cpu.getRegister(7) & 0xff)); break;
             default: return;
         }
 
@@ -189,33 +222,44 @@ public class CPUInstructions {
             case 4: registerOutChar = "E"; break;
             case 6: registerOutChar = "H"; break;
             case 7: registerOutChar = "L"; break;
-            case 8: registerOutChar = "(HL)"; break;
-            case 9: registerOutChar = Integer.toHexString(memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xff); break;
+            case 8: registerOutChar = Integer.toHexString(((cpu.getRegister(6) & 0xff) << 8) + (cpu.getRegister(7) & 0xff)); break;
+            case 9: registerOutChar = Integer.toHexString(memory.getMemory(cpu.getProgramCounter() + 1) & 0xff); break;
             default: return;
         }
 
         if(DEBUGMODE) System.out.println("LD " + registerInChar + ", " + registerOutChar);
-        else DEBUGMODE = true;
+        //else DEBUGMODE = true;
 
         if(registerIn < 8 && registerOut < 8) {
             cpu.setRegister(registerIn, (char) (cpu.getRegister(registerOut) & 0xff));
         } else if(registerIn < 8 && registerOut == 8) {
-            registerOut = (cpu.getRegister(6) & 0xff << 8) + (cpu.getRegister(7) & 0xff);
+            registerOut = ((cpu.getRegister(6) & 0xff) << 8) + (cpu.getRegister(7) & 0xff);
             cpu.setRegister(registerIn, (char) (memory.getMemory(registerOut) & 0xff));
         } else if(registerIn == 8 && registerOut < 8) {
             registerIn = registerOut;
-            registerOut =  (cpu.getRegister(6) & 0xff << 8) + (cpu.getRegister(7) & 0xff);
+            registerOut =  ((cpu.getRegister(6) & 0xff) << 8) + (cpu.getRegister(7) & 0xff);
 
-            if(registerOut == 0xff44 || registerOut == 0xff04) memory.setMemory(registerOut, (char) 0);
-            else memory.setMemory(registerOut, (char) (cpu.getRegister(registerIn) & 0xff));
+            if(registerOut == 0xff44 || registerOut == 0xff04) {
+                memory.setMemory(registerOut, (char) 0);
+            }
+            else if(registerOut >= 0xc000 && registerOut <= 0xde00) {
+                memory.setMemory(registerOut, (char) (cpu.getRegister(registerIn) & 0xff));
+                memory.setMemory(registerOut + 0x2000, (char) (cpu.getRegister(registerIn) & 0xff));
+            }
+            else if(registerOut >= 0xe000 && registerOut <= 0xfe00) {
+                memory.setMemory(registerOut, (char) (cpu.getRegister(registerIn) & 0xff));
+                memory.setMemory(registerOut - 0x2000, (char) (cpu.getRegister(registerIn) & 0xff));
+            }
+            else {
+                memory.setMemory(registerOut, (char) (cpu.getRegister(registerIn) & 0xff));
+            }
         } else if(registerIn < 8){
-            cpu.setRegister(registerIn, (char) memory.getCartridgeMemory(cpu.getProgramCounter() + 1));
+            cpu.setRegister(registerIn, (char) memory.getMemory(cpu.getProgramCounter() + 1));
             status = 1;
         } else if(registerOut == 9) {
-            registerOut =  (cpu.getRegister(6) & 0xff << 8) + (cpu.getRegister(7) & 0xff);
-
+            registerOut = ((cpu.getRegister(6) & 0xff) << 8) + (cpu.getRegister(7) & 0xff);
             if(registerOut == 0xff44 || registerOut == 0xff04) memory.setMemory(registerOut, (char) 0);
-            else memory.setMemory(registerOut, (char) memory.getCartridgeMemory(cpu.getProgramCounter() + 1));
+            else memory.setMemory(registerOut, memory.getMemory(cpu.getProgramCounter() + 1));
             status = 1;
         }
 
@@ -230,11 +274,13 @@ public class CPUInstructions {
     public static void ldAC(int type) {
         cpu.increaseCounter(2);
 
-        if(DEBUGMODE && type == 0) System.out.println("LD A, (C)");
-        if(DEBUGMODE && type == 1) System.out.println("LD (C), A");
+        int address = memory.getMemory(0xff00 + (cpu.getRegister(2) & 0xff));
 
-        if(type == 0) cpu.setRegister(0, memory.getMemory(0xFF00 + (cpu.getRegister(2) & 0xff)));
-        else memory.setMemory(0xFF00 + (cpu.getRegister(2) & 0xff), (char) (cpu.getRegister(0) & 0xff));
+        if(DEBUGMODE && type == 0) System.out.println("LD A, " + Integer.toHexString(address));
+        if(DEBUGMODE && type == 1) System.out.println("LD " + Integer.toHexString(address) + ", A");
+
+        if(type == 0) cpu.setRegister(0, (char) address);
+        else memory.setMemory(address, (char) (cpu.getRegister(0) & 0xff));
 
         cpu.increaseProgramCounter(1);
     }
@@ -246,20 +292,19 @@ public class CPUInstructions {
     public static void ldd(int type) {
         cpu.increaseCounter(2);
 
-        if(DEBUGMODE && type == 0) System.out.println("LDD A, (HL)");
-        if(DEBUGMODE && type == 1) System.out.println("LDD (HL), A");
+        int temp = ((cpu.getRegister(6) & 0xff) << 8) + (cpu.getRegister(7) & 0xff);
+
+        if(DEBUGMODE && type == 0) System.out.println("LDD A, " + Integer.toHexString(temp));
+        if(DEBUGMODE && type == 1) System.out.println("LDD " + Integer.toHexString(temp) + ", A");
 
         DEBUGMODE = false;
 
         if(type == 0) ld(0, 8);
         else ld(8, 0);
 
-        int temp = (cpu.getRegister(6) & 0xff << 8) + (cpu.getRegister(7) & 0xff);
-
         if((temp & 0xffff) == 0) temp = 0xffff;
         else temp = (temp & 0xffff) - 1;
-
-        cpu.setRegister(6, (char) (temp & 0xff00 >> 8));
+        cpu.setRegister(6, (char) ((temp & 0xff00) >> 8));
         cpu.setRegister(7, (char) (temp & 0x00ff));
     }
 
@@ -270,20 +315,20 @@ public class CPUInstructions {
     public static void ldi(int type) {
         cpu.increaseCounter(2);
 
-        if(DEBUGMODE && type == 0) System.out.println("LDI A, (HL)");
-        if(DEBUGMODE && type == 1) System.out.println("LDI (HL), A");
+        int temp = ((cpu.getRegister(6) & 0xff) << 8) + (cpu.getRegister(7) & 0xff);
+
+        if(DEBUGMODE && type == 0) System.out.println("LDI A, " + Integer.toHexString(temp));
+        if(DEBUGMODE && type == 1) System.out.println("LDI " + Integer.toHexString(temp) + ", A");
 
         DEBUGMODE = false;
 
         if(type == 0) ld(0, 8);
         else ld(8, 0);
 
-        int temp = (cpu.getRegister(6) & 0xff << 8) + (cpu.getRegister(7) & 0xff);
-
         if((temp & 0xffff) == 0xffff) temp = 0x0;
-        else temp = (temp & 0xffff) + 1;
+        else temp++;
 
-        cpu.setRegister(6, (char) (temp & 0xff00 >> 8));
+        cpu.setRegister(6, (char) ((temp & 0xff00) >> 8));
         cpu.setRegister(7, (char) (temp & 0x00ff));
     }
 
@@ -294,23 +339,90 @@ public class CPUInstructions {
     public static void ldh(int type) {
         cpu.increaseCounter(3);
 
-        if(DEBUGMODE && type == 0) System.out.println("LDH (n), A");
-        if(DEBUGMODE && type == 1) System.out.println("LDH A, (n)");
+        int address = (0xff00 + (memory.getMemory(cpu.getProgramCounter() + 1) & 0xff));
 
-        if(type == 0) {
-            memory.setMemory(0xFF00 + memory.getCartridgeMemory(cpu.getProgramCounter() + 1), (char) (cpu.getRegister(0) & 0xff));
-        }
-        else {
-            cpu.setRegister(0, (char) (memory.getMemory(0xFF00 + memory.getCartridgeMemory(cpu.getProgramCounter()) + 1) & 0xff));
-        }
+        if(DEBUGMODE && type == 0) System.out.println("LDH " + Integer.toHexString(address) + ", A");
+        if(DEBUGMODE && type == 1) System.out.println("LDH A, " + Integer.toHexString(address));
+
+        if(type == 0) memory.setMemory(address, (char) (cpu.getRegister(0) & 0xff));
+        else cpu.setRegister(0, (char) (memory.getMemory(address) & 0xff));
 
         cpu.increaseProgramCounter(2);
     }
 
     //16-Bit Loads
 
+    /*Types
+    0 - BC
+    1 - DE
+    2 - HL
+    3 - SP
+     */
+    public static void ld16bit(int type) {
+        String registers;
+        int in1, in2;
+
+        cpu.increaseCounter(3);
+
+        switch(type) {
+            case 0: registers = "BC"; in1 = 1; in2 = 2; break;
+            case 1: registers = "DE"; in1 = 3; in2 = 4; break;
+            case 2: registers = "HL"; in1 = 6; in2 = 7; break;
+            case 3: registers = "SP"; in1 = 1; in2 = 2; break;
+            default: return;
+        }
+        if(DEBUGMODE) System.out.println("LD " + registers + ", " + Integer.toHexString(((memory.getMemory(cpu.getProgramCounter() + 2) & 0xff) << 8) + (memory.getMemory(cpu.getProgramCounter() + 1) & 0xff)));
+
+        if(type < 3) {
+            cpu.setRegister(in2,  memory.getMemory(cpu.getProgramCounter() + 1));
+            cpu.setRegister(in1, memory.getMemory(cpu.getProgramCounter() + 2));
+        } else {
+            int temp = (memory.getMemory(cpu.getProgramCounter() + 1) & 0xff) + ((memory.getMemory(cpu.getProgramCounter() + 2) & 0xff) << 8);
+            cpu.setStackPointer((char) temp);
+        }
+
+        cpu.increaseProgramCounter(3);
+    }
+
+    public static void ldSPHL() {
+        cpu.increaseCounter(2);
+
+        if(DEBUGMODE) System.out.println("LD SP, HL");
+
+        cpu.setStackPointer((char) (((cpu.getRegister(6) & 0xff) << 8) + (cpu.getRegister(7) & 0xff)));
+
+        cpu.increaseProgramCounter(1);
+    }
+
+    //Dont understand the flags
+    public static void LDHL() {
+        cpu.increaseCounter(3);
+
+        if(DEBUGMODE) System.out.println("LDHL SP, " + Integer.toHexString(memory.getMemory(cpu.getProgramCounter() + 1) & 0xff));
+
+        int address = (cpu.getStackPointer() & 0xff) + (memory.getMemory(cpu.getProgramCounter() + 1) & 0xff);
+        cpu.setRegister(6, (char) ((address & 0xff00) << 8));
+        cpu.setRegister(7, (char) (address & 0x00ff));
+
+        cpu.setZeroFlag(false);
+        cpu.setSubtractFlag(false);
+        //cpu.setHalfCarryFlag();
+        //cpu.setCarryFlag();
+        cpu.computeFRegister();
+
+        cpu.increaseProgramCounter(2);
+    }
+
+    public static void LDnnSP() {
+        cpu.increaseCounter(5);
+
+        if(DEBUGMODE) System.out.println("LD " + Integer.toHexString(((memory.getMemory(cpu.getProgramCounter() + 2) & 0xff) << 8) + (memory.getMemory(cpu.getProgramCounter() + 1))) + ", SP");
+
+        int address = ((memory.getMemory(cpu.getProgramCounter() + 2) & 0xff) << 8) + (memory.getMemory(cpu.getProgramCounter() + 1));
 
 
+        cpu.increaseProgramCounter(3);
+    }
 
     //8-Bit ALU
 
@@ -333,7 +445,7 @@ public class CPUInstructions {
             case 6: registerChar = "H"; break;
             case 7: registerChar = "L"; break;
             case 8: registerChar = "(HL)"; break;
-            case 9: registerChar = Integer.toHexString(memory.getCartridgeMemory(cpu.getProgramCounter() + 1)); break;
+            case 9: registerChar = Integer.toHexString(memory.getMemory(cpu.getProgramCounter() + 1)); break;
             default: return;
         }
 
@@ -346,16 +458,16 @@ public class CPUInstructions {
             else cpu.setRegister(0, (char) ((cpu.getRegister(0) & 0xff) + (cpu.getRegister(register) & 0xff)));
             cpu.setZeroFlag(cpu.getRegister(0) == 0);
         } else if(register == 8) {
-            int temp = (cpu.getRegister(6) & 0xff << 8) + (cpu.getRegister(7) & 0xff);
+            int temp = ((cpu.getRegister(6) & 0xff) << 8) + (cpu.getRegister(7) & 0xff);
             cpu.setHalfCarryFlag((((memory.getMemory(temp) & 0xf) + 0x01) & 0x10) == 0x10);
             cpu.setCarryFlag((cpu.getRegister(0) & 0xff) + (memory.getMemory(temp) & 0xff) > 255);
             if((cpu.getRegister(0) & 0xff) + (memory.getMemory(temp) & 0xff) >= 255) cpu.setRegister(0, (char) (0x1FF - (cpu.getRegister(0) & 0xff) - (memory.getMemory(temp) & 0xff)));
             else cpu.setRegister(0, (char) ((cpu.getRegister(0) & 0xff) + (memory.getMemory(temp) & 0xff)));
             cpu.setZeroFlag(cpu.getRegister(0) == 0);
         } else {
-            cpu.setHalfCarryFlag((((cpu.getRegister(0) & 0xf) + (memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xf)) & 0x10) == 0x10);
-            cpu.setCarryFlag((cpu.getRegister(0) & 0xff) + memory.getCartridgeMemory(cpu.getProgramCounter() + 1) > 255);
-            if((memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xff) + (cpu.getRegister(register) & 0xff) >= 255) cpu.setRegister(0, (char) (0x1FE - (memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xff) - (cpu.getRegister(register) & 0xff)));
+            cpu.setHalfCarryFlag((((cpu.getRegister(0) & 0xf) + (memory.getMemory(cpu.getProgramCounter() + 1) & 0xf)) & 0x10) == 0x10);
+            cpu.setCarryFlag((cpu.getRegister(0) & 0xff) + memory.getMemory(cpu.getProgramCounter() + 1) > 255);
+            if((memory.getMemory(cpu.getProgramCounter() + 1) & 0xff) + (cpu.getRegister(register) & 0xff) >= 255) cpu.setRegister(0, (char) (0x1FE - (memory.getMemory(cpu.getProgramCounter() + 1) & 0xff) - (cpu.getRegister(register) & 0xff)));
             else cpu.setRegister(0, (char) ((cpu.getRegister(0) & 0xff) + (cpu.getRegister(register) & 0xff)));
             cpu.setZeroFlag(cpu.getRegister(0) == 0);
         }
@@ -386,7 +498,7 @@ public class CPUInstructions {
             case 6: registerChar = "H"; break;
             case 7: registerChar = "L"; break;
             case 8: registerChar = "(HL)"; break;
-            case 9: registerChar = Integer.toHexString(memory.getCartridgeMemory(cpu.getProgramCounter() + 1)); break;
+            case 9: registerChar = Integer.toHexString(memory.getMemory(cpu.getProgramCounter() + 1)); break;
             default: return;
         }
 
@@ -401,16 +513,16 @@ public class CPUInstructions {
             else cpu.setRegister(0, (char) ((cpu.getRegister(0) & 0xff) + (cpu.getRegister(register) & 0xff) + carry));
             cpu.setZeroFlag(cpu.getRegister(0) == 0);
         } else if(register == 8) {
-            int temp = (cpu.getRegister(6) & 0xff << 8) + (cpu.getRegister(7) & 0xff);
+            int temp = ((cpu.getRegister(6) & 0xff) << 8) + (cpu.getRegister(7) & 0xff);
             cpu.setHalfCarryFlag(((((memory.getMemory(temp) + carry) & 0xf) + 0x01) & 0x10) == 0x10);
             cpu.setCarryFlag((cpu.getRegister(0) & 0xff) + (memory.getMemory(temp) & 0xff) + carry > 255);
             if((cpu.getRegister(0) & 0xff) + (memory.getMemory(temp) & 0xff) + carry >= 255) cpu.setRegister(0, (char) (0x1FF - (cpu.getRegister(0) & 0xff) - (memory.getMemory(temp) & 0xff) - carry));
             else cpu.setRegister(0, (char) ((cpu.getRegister(0) & 0xff) + (memory.getMemory(temp) & 0xff) + carry));
             cpu.setZeroFlag(cpu.getRegister(0) == 0);
         } else {
-            cpu.setHalfCarryFlag(((((cpu.getRegister(0) + carry) & 0xf) + (memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xf)) & 0x10) == 0x10);
-            cpu.setCarryFlag((cpu.getRegister(0) & 0xff) + memory.getCartridgeMemory(cpu.getProgramCounter() + 1) + carry > 255);
-            if((memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xff) + (cpu.getRegister(register) & 0xff) >= 255) cpu.setRegister(0, (char) (0x1FF - (memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xff) - (cpu.getRegister(register) & 0xff) - carry));
+            cpu.setHalfCarryFlag(((((cpu.getRegister(0) + carry) & 0xf) + (memory.getMemory(cpu.getProgramCounter() + 1) & 0xf)) & 0x10) == 0x10);
+            cpu.setCarryFlag((cpu.getRegister(0) & 0xff) + memory.getMemory(cpu.getProgramCounter() + 1) + carry > 255);
+            if((memory.getMemory(cpu.getProgramCounter() + 1) & 0xff) + (cpu.getRegister(register) & 0xff) >= 255) cpu.setRegister(0, (char) (0x1FF - (memory.getMemory(cpu.getProgramCounter() + 1) & 0xff) - (cpu.getRegister(register) & 0xff) - carry));
             else cpu.setRegister(0, (char) ((cpu.getRegister(0) & 0xff) + (cpu.getRegister(register) & 0xff) + carry));
             cpu.setZeroFlag(cpu.getRegister(0) == 0);
         }
@@ -459,7 +571,7 @@ public class CPUInstructions {
             case 6: registerChar = "H"; break;
             case 7: registerChar = "L"; break;
             case 8: registerChar = "(HL)"; break;
-            case 9: registerChar = Integer.toHexString(memory.getCartridgeMemory(cpu.getProgramCounter() + 1)); break;
+            case 9: registerChar = Integer.toHexString(memory.getMemory(cpu.getProgramCounter() + 1)); break;
             default: return;
         }
 
@@ -467,9 +579,9 @@ public class CPUInstructions {
 
         if(register < 8) cpu.setRegister(0, (char) (cpu.getRegister(0) & cpu.getRegister(1) & 0xff));
         else if(register == 8) {
-            int temp = (cpu.getRegister(6) & 0xff << 8) + (cpu.getRegister(7) & 0xff);
+            int temp = ((cpu.getRegister(6) & 0xff) << 8) + (cpu.getRegister(7) & 0xff);
             cpu.setRegister(0, (char) (cpu.getRegister(0) & memory.getMemory(temp) & 0xff));
-        } else cpu.setRegister(0, (char) (cpu.getRegister(0) & memory.getCartridgeMemory(cpu.getProgramCounter() + 1)));
+        } else cpu.setRegister(0, (char) (cpu.getRegister(0) & memory.getMemory(cpu.getProgramCounter() + 1)));
 
         cpu.setZeroFlag(cpu.getRegister(0) == 0);
         cpu.setSubtractFlag(false);
@@ -500,7 +612,7 @@ public class CPUInstructions {
             case 6: registerChar = "H"; break;
             case 7: registerChar = "L"; break;
             case 8: registerChar = "(HL)"; break;
-            case 9: registerChar = Integer.toHexString(memory.getCartridgeMemory(cpu.getProgramCounter() + 1)); break;
+            case 9: registerChar = Integer.toHexString(memory.getMemory(cpu.getProgramCounter() + 1)); break;
             default: return;
         }
 
@@ -508,9 +620,9 @@ public class CPUInstructions {
 
         if(register < 8) cpu.setRegister(0, (char) (cpu.getRegister(0) | cpu.getRegister(1) & 0xff));
         else if(register == 8) {
-            int temp = (cpu.getRegister(6) & 0xff << 8) + (cpu.getRegister(7) & 0xff);
+            int temp = ((cpu.getRegister(6) & 0xff) << 8) + (cpu.getRegister(7) & 0xff);
             cpu.setRegister(0, (char) (cpu.getRegister(0) | memory.getMemory(temp) & 0xff));
-        } else cpu.setRegister(0, (char) (cpu.getRegister(0) | memory.getCartridgeMemory(cpu.getProgramCounter() + 1)));
+        } else cpu.setRegister(0, (char) (cpu.getRegister(0) | memory.getMemory(cpu.getProgramCounter() + 1)));
 
         cpu.setZeroFlag(cpu.getRegister(0) == 0);
         cpu.setSubtractFlag(false);
@@ -541,17 +653,17 @@ public class CPUInstructions {
             case 6: registerChar = "H"; break;
             case 7: registerChar = "L"; break;
             case 8: registerChar = "(HL)"; break;
-            case 9: registerChar = Integer.toHexString(memory.getCartridgeMemory(cpu.getProgramCounter() + 1)); break;
+            case 9: registerChar = Integer.toHexString(memory.getMemory(cpu.getProgramCounter() + 1)); break;
             default: return;
         }
 
         if(DEBUGMODE) System.out.println("XOR A, " + registerChar);
 
-        if(register < 8) cpu.setRegister(0, (char) (cpu.getRegister(0) ^ cpu.getRegister(1) & 0xff));
+        if(register < 8) cpu.setRegister(0, (char) (cpu.getRegister(0) ^ cpu.getRegister(register) & 0xff));
         else if(register == 8) {
-            int temp = (cpu.getRegister(6) & 0xff << 8) + (cpu.getRegister(7) & 0xff);
+            int temp = ((cpu.getRegister(6) & 0xff) << 8) + (cpu.getRegister(7) & 0xff);
             cpu.setRegister(0, (char) (cpu.getRegister(0) ^ memory.getMemory(temp) & 0xff));
-        } else cpu.setRegister(0, (char) (cpu.getRegister(0) ^ memory.getCartridgeMemory(cpu.getProgramCounter() + 1)));
+        } else cpu.setRegister(0, (char) (cpu.getRegister(0) ^ memory.getMemory(cpu.getProgramCounter() + 1)));
 
         cpu.setZeroFlag(cpu.getRegister(0) == 0);
         cpu.setSubtractFlag(false);
@@ -582,7 +694,7 @@ public class CPUInstructions {
             case 6: registerChar = "H"; break;
             case 7: registerChar = "L"; break;
             case 8: registerChar = "(HL)"; break;
-            case 9: registerChar = Integer.toHexString(memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xff); break;
+            case 9: registerChar = Integer.toHexString(memory.getMemory(cpu.getProgramCounter() + 1) & 0xff); break;
             default: return;
         }
 
@@ -594,15 +706,15 @@ public class CPUInstructions {
             cpu.setCarryFlag((cpu.getRegister(0) & 0xff) < (cpu.getRegister(register) & 0xff));
         }
         else if(register == 8) {
-            int temp = (cpu.getRegister(6) & 0xff << 8) + (cpu.getRegister(7) & 0xff);
+            int temp = ((cpu.getRegister(6) & 0xff) << 8) + (cpu.getRegister(7) & 0xff);
             cpu.setZeroFlag((cpu.getRegister(0) & 0xff) == (memory.getMemory(temp) & 0xff));
             cpu.setHalfCarryFlag((((cpu.getRegister(0) & 0xf) + (memory.getMemory(temp) & 0xf)) & 0x10) == 0x10);
             cpu.setCarryFlag(cpu.getRegister(0) < (memory.getMemory(temp) & 0xff));
         }
         else {
-            cpu.setZeroFlag((cpu.getRegister(0) & 0xff) == memory.getCartridgeMemory(cpu.getProgramCounter() + 1));
-            cpu.setHalfCarryFlag((((cpu.getRegister(0) & 0xf) + (memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xf)) & 0x10) == 0x10);
-            cpu.setCarryFlag(cpu.getRegister(0) < memory.getCartridgeMemory(cpu.getProgramCounter() + 1));
+            cpu.setZeroFlag((cpu.getRegister(0) & 0xff) == memory.getMemory(cpu.getProgramCounter() + 1));
+            cpu.setHalfCarryFlag((((cpu.getRegister(0) & 0xf) + (memory.getMemory(cpu.getProgramCounter() + 1) & 0xf)) & 0x10) == 0x10);
+            cpu.setCarryFlag(cpu.getRegister(0) < memory.getMemory(cpu.getProgramCounter() + 1));
         }
 
         cpu.setSubtractFlag(true);
@@ -638,15 +750,15 @@ public class CPUInstructions {
         if(register < 8) {
             cpu.setHalfCarryFlag((((cpu.getRegister(0) & 0xf) + 0x01) & 0x10) == 0x10);
             if((cpu.getRegister(register) & 0xff) == 0xff) cpu.setRegister(register, (char) 0);
-            else cpu.setRegister(register, (char) (cpu.getRegister(register) & 0xff + 1));
+            else cpu.setRegister(register, (char) ((cpu.getRegister(register) & 0xff) + 1));
             cpu.setZeroFlag(cpu.getRegister(register) == 0);
         }
         else {
-            int temp = (cpu.getRegister(6) & 0xff << 8) + (cpu.getRegister(7) & 0xff);
+            int temp = ((cpu.getRegister(6) & 0xff) << 8) + (cpu.getRegister(7) & 0xff);
             cpu.setHalfCarryFlag((((memory.getMemory(temp) & 0xf) + 0x01) & 0x10) == 0x10);
             if((memory.getMemory(temp) & 0xff) == 0xff) memory.setMemory(temp, (char) 0);
             else memory.setMemory(temp, (char) (memory.getMemory(temp) & 0xff + 1));
-            cpu.setZeroFlag((memory.getCartridgeMemory(temp) & 0xff) == 0);
+            cpu.setZeroFlag((memory.getMemory(temp) & 0xff) == 0);
         }
 
         cpu.setSubtractFlag(false);
@@ -685,11 +797,11 @@ public class CPUInstructions {
             cpu.setZeroFlag(cpu.getRegister(register) == 0);
         }
         else {
-            int temp = (cpu.getRegister(6) & 0xff << 8) + (cpu.getRegister(7) & 0xff);
+            int temp = ((cpu.getRegister(6) & 0xff) << 8) + (cpu.getRegister(7) & 0xff);
             cpu.setHalfCarryFlag((((memory.getMemory(temp) & 0xf) - 0x01) & 0x10) == 0x10);
             if((memory.getMemory(temp) & 0xff) == 0xff) memory.setMemory(temp, (char) 0);
             else memory.setMemory(temp, (char) (memory.getMemory(temp) & 0xff + 1));
-            cpu.setZeroFlag((memory.getCartridgeMemory(temp) & 0xff) == 0);
+            cpu.setZeroFlag((memory.getMemory(temp) & 0xff) == 0);
         }
 
         cpu.setSubtractFlag(true);
@@ -714,14 +826,14 @@ public class CPUInstructions {
     public static void addSP() {
         cpu.increaseCounter(4);
 
-        if(DEBUGMODE) System.out.println("ADD SP, " + Integer.toHexString(memory.getCartridgeMemory(cpu.getProgramCounter() + 1)));
+        if(DEBUGMODE) System.out.println("ADD SP, " + Integer.toHexString(memory.getMemory(cpu.getProgramCounter() + 1)));
 
-        cpu.setHalfCarryFlag((((cpu.getStackPointer() & 0xf) + (memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xf) & 0x10) == 0x10));
-        cpu.setCarryFlag((((cpu.getStackPointer() & 0xffff) + memory.getCartridgeMemory(cpu.getProgramCounter() + 1)) & 0x10000) == 0x10000);
-        if((cpu.getStackPointer() & 0xffff) + memory.getCartridgeMemory(cpu.getProgramCounter() + 1) >= 0x10000) {
-            cpu.setStackPointer((char) (0x1ffff - ((cpu.getStackPointer() & 0xffff) + memory.getCartridgeMemory(cpu.getProgramCounter() + 1))));
+        cpu.setHalfCarryFlag((((cpu.getStackPointer() & 0xf) + (memory.getMemory(cpu.getProgramCounter() + 1) & 0xf) & 0x10) == 0x10));
+        cpu.setCarryFlag((((cpu.getStackPointer() & 0xffff) + memory.getMemory(cpu.getProgramCounter() + 1)) & 0x10000) == 0x10000);
+        if((cpu.getStackPointer() & 0xffff) + memory.getMemory(cpu.getProgramCounter() + 1) >= 0x10000) {
+            cpu.setStackPointer((char) (0x1ffff - ((cpu.getStackPointer() & 0xffff) + memory.getMemory(cpu.getProgramCounter() + 1))));
         } else {
-            cpu.setStackPointer((char) ((cpu.getStackPointer() & 0xffff) + memory.getCartridgeMemory(cpu.getProgramCounter() + 1)));
+            cpu.setStackPointer((char) ((cpu.getStackPointer() & 0xffff) + memory.getMemory(cpu.getProgramCounter() + 1)));
         }
         cpu.setZeroFlag(false);
         cpu.setSubtractFlag(false);
@@ -753,12 +865,12 @@ public class CPUInstructions {
         if(DEBUGMODE) System.out.println("INC " + registerChar);
 
         if(register < 3) {
-            int temp = (cpu.getRegister(register1) & 0xff << 8) + (cpu.getRegister(register2) & 0xff);
+            int temp = ((cpu.getRegister(register1) & 0xff) << 8) + (cpu.getRegister(register2) & 0xff);
 
             if((temp & 0xffff) == 0xffff) temp = 0;
             else temp = (temp & 0xffff) + 1;
 
-            cpu.setRegister(register1, (char) (temp & 0xff00 >> 8));
+            cpu.setRegister(register1, (char) ((temp & 0xff00) >> 8));
             cpu.setRegister(register2, (char) (temp & 0x00ff));
         } else {
             if((cpu.getStackPointer() & 0xffff) == 0xffff) cpu.setStackPointer((char) 0);
@@ -791,12 +903,12 @@ public class CPUInstructions {
         if(DEBUGMODE) System.out.println("DEC " + registerChar);
 
         if(register < 3) {
-            int temp = (cpu.getRegister(register1) & 0xff << 8) + (cpu.getRegister(register2) & 0xff);
+            int temp = ((cpu.getRegister(register1) & 0xff) << 8) + (cpu.getRegister(register2) & 0xff);
 
             if((temp & 0xffff) == 0) temp = 0xffff;
             else temp = (temp & 0xffff) - 1;
 
-            cpu.setRegister(register1, (char) (temp & 0xff00 >> 8));
+            cpu.setRegister(register1, (char) ((temp & 0xff00) >> 8));
             cpu.setRegister(register2, (char) (temp & 0x00ff));
         } else {
             if((cpu.getStackPointer() & 0xffff) == 0) cpu.setStackPointer((char) 0xffff);
@@ -1040,7 +1152,7 @@ public class CPUInstructions {
             cpu.setRegister(register, (char) ((cpu.getRegister(register) & 0xff) << 1));
             cpu.setZeroFlag(cpu.getRegister(register) == 0);
         } else {
-            int temp = (cpu.getRegister(6) & 0xff << 8) + (cpu.getRegister(7) & 0xff);
+            int temp = ((cpu.getRegister(6) & 0xff) << 8) + (cpu.getRegister(7) & 0xff);
             carry = (memory.getMemory(temp) & 0xff) >> 7;
             cpu.setCarryFlag(carry != 0);
             memory.setMemory(temp, (char) ((memory.getMemory(temp) & 0xff) << 1));
@@ -1084,7 +1196,7 @@ public class CPUInstructions {
             cpu.setRegister(register, (char) ((cpu.getRegister(register) & 0xff) + carry1));
             cpu.setZeroFlag(cpu.getRegister(register) == 0);
         } else {
-            int temp = (cpu.getRegister(6) & 0xff << 8) + (cpu.getRegister(7) & 0xff);
+            int temp = ((cpu.getRegister(6) & 0xff) << 8) + (cpu.getRegister(7) & 0xff);
             carry = (memory.getMemory(temp) & 0xff) >> 7;
             carry1 = cpu.getCarryFlag() ? 1 : 0;
             cpu.setCarryFlag(carry != 0);
@@ -1128,7 +1240,7 @@ public class CPUInstructions {
             cpu.setRegister(register, (char) ((cpu.getRegister(register) & 0xff) >> 1));
             cpu.setZeroFlag(cpu.getRegister(register) == 0);
         } else {
-            int temp = (cpu.getRegister(6) & 0xff << 8) + (cpu.getRegister(7) & 0xff);
+            int temp = ((cpu.getRegister(6) & 0xff) << 8) + (cpu.getRegister(7) & 0xff);
             carry = (memory.getMemory(temp) & 0x01);
             cpu.setCarryFlag(carry != 0);
             memory.setMemory(temp, (char) ((memory.getMemory(temp) & 0xff) >> 1));
@@ -1172,7 +1284,7 @@ public class CPUInstructions {
             cpu.setRegister(register, (char) (cpu.getRegister(register) + (carry1 << 7)));
             cpu.setZeroFlag(cpu.getRegister(register) == 0);
         } else {
-            int temp = (cpu.getRegister(6) & 0xff << 8) + (cpu.getRegister(7) & 0xff);
+            int temp = ((cpu.getRegister(6) & 0xff) << 8) + (cpu.getRegister(7) & 0xff);
             carry = memory.getMemory(temp) & 0x01;
             carry1 = cpu.getCarryFlag() ? 1 : 0;
             cpu.setCarryFlag(carry != 0);
@@ -1233,7 +1345,10 @@ public class CPUInstructions {
         if(DEBUGMODE) System.out.println("BIT " + bit + ", " + registerChar);
 
         if(register != 8) register = cpu.getRegister(register);
-        else register = cpu.getRegister(7);
+        else {
+            int temp = ((cpu.getRegister(6) & 0xff) << 8) + (cpu.getRegister(7) & 0xff);
+            register = memory.getMemory(temp) & 0xff;
+        }
 
         switch(bit) {
                 case 0: bit = register & 0x01; break;
@@ -1275,7 +1390,10 @@ public class CPUInstructions {
         if(DEBUGMODE) System.out.println("SET " + bit + ", " + registerChar);
 
         if(register != 8) register = cpu.getRegister(register);
-        else register = cpu.getRegister(7);
+        else {
+            int temp = ((cpu.getRegister(6) & 0xff) << 8) + (cpu.getRegister(7) & 0xff);
+            register = memory.getMemory(temp) & 0xff;
+        }
 
         switch(bit) {
             case 0: if((register & 0x01) == 0) { cpu.setRegister(bit, (char) (register + 1)); } break;
@@ -1312,7 +1430,10 @@ public class CPUInstructions {
         if(DEBUGMODE) System.out.println("RES " + bit + ", " + registerChar);
 
         if(register != 8) register = cpu.getRegister(register);
-        else register = cpu.getRegister(7);
+        else {
+            int temp = ((cpu.getRegister(6) & 0xff) << 8) + (cpu.getRegister(7) & 0xff);
+            register = memory.getMemory(temp) & 0xff;
+        }
 
         switch(bit) {
             case 0: if((register & 0x01) == 1) { cpu.setRegister(bit, (char) (register - 1)); } break;
@@ -1332,15 +1453,15 @@ public class CPUInstructions {
     //Jumps
 
     public static void jp() {
-        String jumpString;
+        int jump;
 
         cpu.increaseCounter(3);
 
-        jumpString = Integer.toHexString((memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xff) + ((memory.getCartridgeMemory(cpu.getProgramCounter() + 2) & 0xff) << 8));
+        if(cpu.getProgramCounter() < 0x8000) jump = (memory.getMemory(cpu.getProgramCounter() + 1) & 0xff) + ((memory.getMemory(cpu.getProgramCounter() + 2) & 0xff) << 8);
+        else jump = (memory.getMemory(cpu.getProgramCounter() + 1) & 0xff) + ((memory.getMemory(cpu.getProgramCounter() + 2) & 0xff) << 8);
+        if(DEBUGMODE) System.out.println("JP " + Integer.toHexString(jump));
 
-        if(DEBUGMODE) System.out.println("JP " + jumpString);
-
-        cpu.setProgramCounter((char) ((memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xff) + ((memory.getCartridgeMemory(cpu.getProgramCounter() + 2) & 0xff) << 8)));
+        cpu.setProgramCounter((char) jump);
     }
 
     /* Type
@@ -1364,20 +1485,20 @@ public class CPUInstructions {
             default: return;
         }
 
-        if(type == 1) jumpAddress = Integer.toHexString(((memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xff) + (memory.getCartridgeMemory(cpu.getProgramCounter() + 2) & 0xff << 8)));
-        else jumpAddress = Integer.toHexString(memory.getCartridgeMemory(cpu.getProgramCounter()) + 1);
+        if(type == 1) jumpAddress = Integer.toHexString(((memory.getMemory(cpu.getProgramCounter() + 1) & 0xff) + (memory.getMemory(cpu.getProgramCounter() + 2) & 0xff << 8)));
+        else jumpAddress = Integer.toHexString(memory.getMemory(cpu.getProgramCounter()) + 1);
 
         if(DEBUGMODE && type == 1) System.out.println("JP " + condition + ", " +  jumpAddress);
         else if(DEBUGMODE) System.out.println("JP" + jumpAddress);
 
-        if(booleanTemp) cpu.setProgramCounter((char) ((memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xff) + ((memory.getCartridgeMemory(cpu.getProgramCounter() + 2) & 0xff) << 8)));
+        if(booleanTemp) cpu.setProgramCounter((char) ((memory.getMemory(cpu.getProgramCounter() + 1) & 0xff) + ((memory.getMemory(cpu.getProgramCounter() + 2) & 0xff) << 8)));
     }
 
     public static void jpHL() {
         cpu.increaseCounter(1);
         if(DEBUGMODE) System.out.println("JP (HL)");
 
-        int temp = (cpu.getRegister(6) & 0xff << 8) + (cpu.getRegister(7) & 0xff);
+        int temp = ((cpu.getRegister(6) & 0xff) << 8) + (cpu.getRegister(7) & 0xff);
         cpu.setProgramCounter((char) (memory.getMemory(temp) & 0xff));
     }
 
@@ -1402,17 +1523,17 @@ public class CPUInstructions {
             default: return;
         }
 
-        if(type == 1) callAddress = Integer.toHexString(((memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xff) + (memory.getCartridgeMemory(cpu.getProgramCounter() + 2) & 0xff << 8)));
-        else callAddress = Integer.toHexString(memory.getCartridgeMemory(cpu.getProgramCounter() + 1));
+        if(type == 1) callAddress = Integer.toHexString(((memory.getMemory(cpu.getProgramCounter() + 1) & 0xff) + (memory.getMemory(cpu.getProgramCounter() + 2) & 0xff << 8)));
+        else callAddress = Integer.toHexString(memory.getMemory(cpu.getProgramCounter() + 1));
 
         if(DEBUGMODE && type == 1) System.out.println("JR " + condition + ", " +  callAddress);
         else if(DEBUGMODE) System.out.println("JR" + callAddress);
 
         if(type == 0) {
-            cpu.increaseProgramCounter((char) (memory.getCartridgeMemory(cpu.getProgramCounter() + 1)));
+            cpu.increaseProgramCounter((char) (memory.getMemory(cpu.getProgramCounter() + 1)));
             cpu.increaseProgramCounter(2);
         } else {
-            if(booleanTemp) cpu.increaseProgramCounter((char) (memory.getCartridgeMemory(cpu.getProgramCounter() + 1)));
+            if(booleanTemp) cpu.increaseProgramCounter((char) (memory.getMemory(cpu.getProgramCounter() + 1)));
             cpu.increaseProgramCounter(2);
         }
 
@@ -1424,12 +1545,12 @@ public class CPUInstructions {
     public static void call() {
         cpu.increaseCounter(3);
 
-        String calledString = Integer.toHexString(memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xff) + ((memory.getCartridgeMemory(cpu.getProgramCounter() + 2) & 0xff) << 8);
+        String calledString = Integer.toHexString(memory.getMemory(cpu.getProgramCounter() + 1) & 0xff) + ((memory.getMemory(cpu.getProgramCounter() + 2) & 0xff) << 8);
         if(DEBUGMODE) System.out.println("CALL " + calledString);
 
         int tempProgramCounter = cpu.getProgramCounter() + 3;
 
-        cpu.setProgramCounter((char) ((memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xff) + (memory.getCartridgeMemory(cpu.getProgramCounter() + 2) & 0xff << 8)));
+        cpu.setProgramCounter((char) ((memory.getMemory(cpu.getProgramCounter() + 1) & 0xff) + (memory.getMemory(cpu.getProgramCounter() + 2) & 0xff << 8)));
         memory.setMemory(cpu.getStackPointer() - 1, (char) (((tempProgramCounter) & 0xff00) >> 8));
         memory.setMemory(cpu.getStackPointer() - 2, (char) ((tempProgramCounter) & 0xff));
         cpu.increaseStackPointer(-2);
@@ -1456,7 +1577,7 @@ public class CPUInstructions {
             default: return;
         }
 
-        callAddress = Integer.toHexString(((memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xff) + (memory.getCartridgeMemory(cpu.getProgramCounter() + 2) & 0xff << 8)));
+        callAddress = Integer.toHexString(((memory.getMemory(cpu.getProgramCounter() + 1) & 0xff) + (memory.getMemory(cpu.getProgramCounter() + 2) & 0xff << 8)));
 
         if(DEBUGMODE) System.out.println("CALL " + condition + ", " + callAddress);
 
@@ -1464,7 +1585,7 @@ public class CPUInstructions {
         if(booleanTemp) {
             int tempProgramCounter = cpu.getProgramCounter() + 3;
 
-            cpu.setProgramCounter((char) ((memory.getCartridgeMemory(cpu.getProgramCounter() + 1) & 0xff) + (memory.getCartridgeMemory(cpu.getProgramCounter() + 2) & 0xff << 8)));
+            cpu.setProgramCounter((char) ((memory.getMemory(cpu.getProgramCounter() + 1) & 0xff) + (memory.getMemory(cpu.getProgramCounter() + 2) & 0xff << 8)));
             memory.setMemory(cpu.getStackPointer() - 1, (char) (((tempProgramCounter) & 0xff00) >> 8));
             memory.setMemory(cpu.getStackPointer() - 2, (char) ((tempProgramCounter) & 0xff));
             cpu.increaseStackPointer(-2);

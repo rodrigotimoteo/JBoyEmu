@@ -53,8 +53,13 @@ public class ROM {
                 else break;
             }
             romTitle = stringB.toString();
+            GBEmulator.setTitle(romTitle);
 
             int cartridgeTypeInt = romContent[0x0147];
+
+            for(int i = 0; i < 0x7fff; i++) {
+                mem.setMemory(i, (char) romContent[i]);
+            }
 
             switch (cartridgeTypeInt) {
                 case 0:
@@ -103,12 +108,6 @@ public class ROM {
 
                     break;
             }
-            //System.out.println(Integer.toHexString(romContent[0x014F] & 0xff));
-            //System.out.println(cartridgeType);
-            //System.out.println(ramSize);
-            //System.out.println(region);
-            //System.out.println(romTitle);
-
         } catch (IOException e) {
             e.printStackTrace();
             System.err.println("Could not read ROM");

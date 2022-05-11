@@ -2,16 +2,17 @@ public class PPU {
 
     private final CPU cpu;
     private final Memory memory;
-    private final DisplayFrame displayFrame;
+    private Display display;
 
     private int counter;
     private int completedCycles;
     private int mode;
     private int currentLine;
-    private int currentX;
 
-    private char currentTileLine;
     private char currentTileMapRow;
+    private char currentTileLine;
+
+    private boolean draw;
 
     private boolean lcdOn;
     private boolean windowDisplay;
@@ -26,6 +27,10 @@ public class PPU {
 
     public int getCounter() {
         return counter;
+    }
+
+    public int getCurrentLine() {
+        return currentLine;
     }
 
     public boolean getLcdOn() {
@@ -64,16 +69,23 @@ public class PPU {
         return completedCycles;
     }
 
-    //Static Geters
+    public boolean getDraw() {
+        return draw;
+    }
 
-    public static int getCurrentX() { return getCurrentX(); }
+    //Seters
 
-    public static int getCurrentY() { return getCurrentY(); }
+    public void setDisplay(Display display) {
+        this.display = display;
+    }
 
-    public PPU(CPU cpu, Memory memory, DisplayFrame displayFrame) {
+    public void setDraw(boolean state) {
+        draw = state;
+    }
+
+    public PPU(CPU cpu, Memory memory) {
         this.cpu = cpu;
         this.memory = memory;
-        this.displayFrame = displayFrame;
 
         counter = 0;
         lcdOn = false;
@@ -86,30 +98,30 @@ public class PPU {
         draw();
     }
 
-    private void readLCDCStatus() {
-        int bit = 0;
+    public void readLCDCStatus() {
+        int bit;
 
         char LCDC = memory.getMemory(0xFF40);
         //Read bit 7
-        bit = LCDC & 0x80 >> 7;
+        bit = (LCDC & 0x80) >> 7;
         lcdOn = bit == 1;
         //Read bit 6
-        bit = LCDC & 0x40 >> 6;
-        windowTileMap = LCDC == 1;
+        bit = (LCDC & 0x40) >> 6;
+        windowTileMap = bit == 1;
         //Read bit 5
-        bit = LCDC & 0x20 >> 5;
+        bit = (LCDC & 0x20) >> 5;
         windowDisplay = bit == 1;
         //Read bit 4
-        bit = LCDC & 0x10 >> 4;
+        bit = (LCDC & 0x10) >> 4;
         windowTileData = bit == 1;
         //Read bit 3
-        bit = LCDC & 0x08 >> 3;
+        bit = (LCDC & 0x08) >> 3;
         tileMapDisplay = bit == 1;
         //Read bit 2
-        bit = LCDC & 0x04 >> 2;
+        bit = (LCDC & 0x04) >> 2;
         spriteSize = bit == 1;
         //Read bit 1
-        bit = LCDC & 0x02 >> 1;
+        bit = (LCDC & 0x02) >> 1;
         spriteOn = bit == 1;
         //Read bit 0
         bit = LCDC & 0x01;
@@ -117,22 +129,22 @@ public class PPU {
 
     }
 
-    private void readLCDStatus() {
-        int bit = 0;
+    public void readLCDStatus() {
+        int bit;
 
         char LCD = memory.getMemory(0xFF41);
         //Read bit 1 and 0
-        bit = LCD & 0x02 >> 1;
-        mode += bit + bit;
+        bit = (LCD & 0x02) >> 1;
+        mode = bit + bit;
         bit = LCD & 0x01;
         mode += bit;
     }
 
-    private char readScrollY() {
+    public char readScrollY() {
         return (char) (memory.getMemory(0xFF42) & 0xff);
     }
 
-    private char readScrollX() {
+    public char readScrollX() {
         return (char) (memory.getMemory(0xFF43) & 0xff);
     }
 
@@ -141,18 +153,23 @@ public class PPU {
     }
 
     private void draw() {
-        if(lcdOn) counter++;
+        if(lcdOn) counter += 2;
         else return;
 
         char currentLine = readLY();
-        int scrollY = readScrollY();
-        int scrollX = readScrollX();
+        int tileMapAddress = getTileMapDisplay() ? 0x9c00 : 0x9800;
+        int tileDataAddress = getWindowTileData() ? 0x8000 : 0x9000;
 
         switch(mode) {
             case 0: //H-BLANK
-                if(counter == 456) {
+                //System.out.println(" Entering H-Blank " + counter);
+                if(counter == 114) {
+                    draw = true;
                     counter = 0;
-                    memory.setMemory(0xff42, (char) ((memory.getMemory(0xff42) & 0xff) + 1));
+                    currentLine++;
+                    memory.setMemory(0xff42, currentLine);
+                    memory.setMemory(0xff44, currentLine);
+                    memory.setMemory(0xff0f, (char) ((memory.getMemory(0xff0f) & 0xff) + 2));
                     currentLine = readLY();
                 if(currentLine == 144) memory.setMemory(0xff41, (char) ((memory.getMemory(0xff41) & 0xff) + 1));
                 else memory.setMemory(0xff41, (char) ((memory.getMemory(0xff41) & 0xff) + 2));
@@ -160,32 +177,47 @@ public class PPU {
                 break;
 
             case 1: //V-BLANK
-                if(counter == 456) {
+                //System.out.println(" Entering V-Blank " + counter);
+                if(counter == 114) {
                     counter = 0;
-                    memory.setMemory(0xff42, (char) ((memory.getMemory(0xff42) & 0xff) + 1));
+                    currentLine++;
+                    memory.setMemory(0xff44, currentLine);
                     currentLine = readLY();
-                if(currentLine == 153) {
+                } if(currentLine == 153) {
+                    memory.setMemory(0xff0f, (char) ((memory.getMemory(0xff0f) & 0xff) + 1));
+                    GBEmulator.setFrameCompleted(true);
                     memory.setMemory(0xff42, (char) 0);
+                    memory.setMemory(0xff44, (char) 0);
                     memory.setMemory(0xff41, (char) ((memory.getMemory(0xff41) & 0xff) + 1));
                 }
-            }
                 break;
 
             case 2: //OAM Search
-                if(counter == 40) {
+                //System.out.println(" Entering OAM " + counter);
+                if(counter == 10) {
                     memory.setMemory(0xff41, (char) ((memory.getMemory(0xff41) & 0xff) + 1));
-
-                    currentX++;
-                    currentTileLine = (char) (currentLine % 8);
-                    currentTileMapRow = (char) (0x9800 + ((currentLine / 8) * 32));
-
-                    displayFrame.repaint();
+                    memory.setMemory(0xff0f, (char) ((memory.getMemory(0xff0f) & 0xff) + 2));
                 }
                 break;
 
             case 3: //Pixel Transfer
-                currentX++;
-                if(counter == 140) memory.setMemory(0xff41, (char) ((memory.getMemory(0xff41) & 0xff) - 3));
+                //System.out.println(" Entering Pixel Transfer " + counter);
+                if(counter == 34) {
+                    for(int i = 0; i < 0x20; i++) display.setRowTiles(i, memory.getMemory(tileMapAddress + (currentLine * 0x20) + i) & 0xff);
+                    for(int i = 0; i < 0x100; i++) {
+                        for(int l = 0; l < 8; l++) {
+                            display.setTiles(i, l, (((memory.getMemory(tileDataAddress + (i * 0x10) + (l + 1)) & 0x80) >> 7) * 2) + ((memory.getMemory(tileDataAddress + (i * 0x10) + (l + 1)) & 0x80) >> 7));
+                            display.setTiles(i, l, (((memory.getMemory(tileDataAddress + (i * 0x10) + (l + 1)) & 0x40) >> 6) * 2) + ((memory.getMemory(tileDataAddress + (i * 0x10) + (l + 1)) & 0x40) >> 6));
+                            display.setTiles(i, l, (((memory.getMemory(tileDataAddress + (i * 0x10) + (l + 1)) & 0x20) >> 5) * 2) + ((memory.getMemory(tileDataAddress + (i * 0x10) + (l + 1)) & 0x20) >> 5));
+                            display.setTiles(i, l, (((memory.getMemory(tileDataAddress + (i * 0x10) + (l + 1)) & 0x10) >> 4) * 2) + ((memory.getMemory(tileDataAddress + (i * 0x10) + (l + 1)) & 0x10) >> 4));
+                            display.setTiles(i, l, (((memory.getMemory(tileDataAddress + (i * 0x10) + (l + 1)) & 0x8) >> 3) * 2) + ((memory.getMemory(tileDataAddress + (i * 0x10) + (l + 1)) & 0x8) >> 3));
+                            display.setTiles(i, l, (((memory.getMemory(tileDataAddress + (i * 0x10) + (l + 1)) & 0x4) >> 2) * 2) + ((memory.getMemory(tileDataAddress + (i * 0x10) + (l + 1)) & 0x4) >> 2));
+                            display.setTiles(i, l, (((memory.getMemory(tileDataAddress + (i * 0x10) + (l + 1)) & 0x2) >> 1) * 2) + ((memory.getMemory(tileDataAddress + (i * 0x10) + (l + 1)) & 0x2) >> 1));
+                            display.setTiles(i, l, ((memory.getMemory(tileDataAddress + (i * 0x10) + (l + 1)) & 0x1) * 2) + (memory.getMemory(tileDataAddress + (i * 0x10) + (l + 1)) & 0x1));
+                        }
+                    }
+                    memory.setMemory(0xff41, (char) ((memory.getMemory(0xff41) & 0xff) - 3));
+                }
                 break;
         }
 
