@@ -12,7 +12,7 @@ public class CPU {
     private boolean isStopped;
 
     private char operationCode;
-    private char programCounter = 0x0100;
+    private char programCounter = 0x100;
     private char stackPointer = 0xFFFE;
 
     int counter = 0;
@@ -22,11 +22,12 @@ public class CPU {
     private boolean continueFlag = true;
     private boolean interruptMasterEnable = false;
 
-    String romName = "./src/testRom/tetris.gb";
+    String romName = "./src/test/bitops.gb";
 
     Memory memory;
     PPU ppu;
-    Display display;
+    DisplayPanel displayPanel;
+    DisplayFrame displayFrame;
 
     //Resets
 
@@ -107,8 +108,12 @@ public class CPU {
     }
 
     //Return the Display
-    public Display getDisplay() {
-        return display;
+    public DisplayFrame getDisplayFrame() {
+        return displayFrame;
+    }
+
+    public DisplayPanel getDisplayPanel() {
+        return displayPanel;
     }
 
     //Setters (for registers mainly)
@@ -190,7 +195,9 @@ public class CPU {
         clearRegisters();
         memory = new Memory(this);
         ppu = new PPU(this, memory);
-        display = new Display(this, memory, ppu);
+        displayFrame = new DisplayFrame(this, memory, ppu);
+
+                //new DisplayPanel(this, memory, ppu);
         CPUInstructions.setCpu(this);
         CPUInstructions.setMem(memory);
 
@@ -198,11 +205,11 @@ public class CPU {
     }
 
     private void init() {
-        registers[0] = 0x1;
-        registers[2] = 0xD;
+        registers[0] = 0x01;
+        registers[2] = 0x0D;
         registers[4] = 0xD8;
         registers[5] = 0xB0;
-        registers[6] = 0x1;
+        registers[6] = 0x01;
         registers[7] = 0x4D;
 
         zeroFlag = true;
@@ -221,6 +228,8 @@ public class CPU {
 
     public void cycle() throws InterruptedException {
         int tempCycleCount = counter;
+
+        //if(counter == 523815) { memory.dumpMemory(); System.exit(-1); }
 
         if (!getIsStopped()) {
             if(!getIsHalted()) {
@@ -334,11 +343,14 @@ public class CPU {
 
     private void decodeOperationCodes() {
 
-        //CPUInstructions.dumpRegisters();
-        //CPUInstructions.dumpFlags();
-        //CPUInstructions.show();
+        CPUInstructions.dumpRegisters();
+        CPUInstructions.dumpFlags();
+        CPUInstructions.show();
 
-        //memory.dumpMemory();
+        if(counter >= 200000) {
+            memory.dumpMemory();
+            System.exit(-1);
+        }
 
         switch(operationCode) {
             case 0x00: //NOP
@@ -871,7 +883,7 @@ public class CPU {
                 CPUInstructions.ld(0, 0);
                 break;
 
-            case 0x80: //ADD A,B NOT SURE
+            case 0x80: //ADD A,B
                 CPUInstructions.add(1);
                 break;
 
@@ -933,6 +945,70 @@ public class CPU {
 
             case 0x8F: //ADC A,A
                 CPUInstructions.adc(0);
+                break;
+
+            case 0x90: //SUB A,B
+                CPUInstructions.sub(1);
+                break;
+
+            case 0x91: //SUB A,C
+                CPUInstructions.sub(2);
+                break;
+
+            case 0x92: //SUB A,D
+                CPUInstructions.sub(3);
+                break;
+
+            case 0x93: //SUB A,E
+                CPUInstructions.sub(4);
+                break;
+
+            case 0x94: //SUB A,H
+                CPUInstructions.sub(6);
+                break;
+
+            case 0x95: //SUB A,L
+                CPUInstructions.sub(7);
+                break;
+
+            case 0x96: //SUB A, (HL)
+                CPUInstructions.sub(8);
+                break;
+
+            case 0x97: //SUB A,A
+                CPUInstructions.sub(0);
+                break;
+
+            case 0x98: //SBC A,B
+                CPUInstructions.sbc(1);
+                break;
+
+            case 0x99: //SBC A,C
+                CPUInstructions.sbc(2);
+                break;
+
+            case 0x9A: //SBC A,D
+                CPUInstructions.sbc(3);
+                break;
+
+            case 0x9B: //SBC A,E
+                CPUInstructions.sbc(4);
+                break;
+
+            case 0x9C: //SBC A,H
+                CPUInstructions.sbc(6);
+                break;
+
+            case 0x9D: //SBC A,L
+                CPUInstructions.sbc(7);
+                break;
+
+            case 0x9E: //SBC A, (HL)
+                CPUInstructions.sbc(8);
+                break;
+
+            case 0x9F: //SBC A,A
+                CPUInstructions.sbc(0);
                 break;
 
             case 0xA0: //AND A,B
@@ -1064,10 +1140,11 @@ public class CPU {
                 break;
 
             case 0xC0: //RET NZ
-                counter += 2;
-                //if(DEBUGMODE) System.out.println("RET NZ");
+                CPUInstructions.retCond(0);
+                break;
 
-                //if(!zeroFlag)
+            case 0xC1: //POP BC
+                CPUInstructions.pop(1);
                 break;
 
             case 0xC2: //JP NZ,u16
@@ -1082,6 +1159,10 @@ public class CPU {
                 CPUInstructions.callCond(0);
                 break;
 
+            case 0xC5: //PUSH BC
+                CPUInstructions.push(1);
+                break;
+
             case 0xC6: //ADD A,#
                 CPUInstructions.add(9);
                 break;
@@ -1091,16 +1172,11 @@ public class CPU {
                 break;
 
             case 0xC8: //RET Z
-                counter += 2;
-                 System.out.println("RET Z");
-
-                //if(zeroFlag)
+                CPUInstructions.retCond(1);
                 break;
 
             case 0xC9: //RET
-                counter += 2;
-                 System.out.println("RET");
-
+                CPUInstructions.ret();
                 break;
 
             case 0xCA: //JP Z,u16
@@ -2160,6 +2236,14 @@ public class CPU {
                 CPUInstructions.rst(1);
                 break;
 
+            case 0xD0: //RET NC
+                CPUInstructions.retCond(2);
+                break;
+
+            case 0xD1: //POP DE
+                CPUInstructions.pop(2);
+                break;
+
             case 0xD2: //JP NC,u16
                 CPUInstructions.jpCond(2);
                 break;
@@ -2168,8 +2252,24 @@ public class CPU {
                 CPUInstructions.callCond(2);
                 break;
 
+            case 0xD5: //PUSH DE
+                CPUInstructions.push(2);
+                break;
+
+            case 0xD6: //SUB A, #
+                CPUInstructions.sub(9);
+                break;
+
             case 0xD7: //RST 10H
                 CPUInstructions.rst(2);
+                break;
+
+            case 0xD8: //RET C
+                CPUInstructions.retCond(3);
+                break;
+
+            case 0xD9: //RETI
+                CPUInstructions.reti();
                 break;
 
             case 0xDA: //JP C,u16
@@ -2178,6 +2278,10 @@ public class CPU {
 
             case 0xDC: //CALL C,nn
                 CPUInstructions.callCond(3);
+                break;
+
+            case 0xDE: //SBC A,#
+                CPUInstructions.sbc(9);
                 break;
 
             case 0xDF: //RST 18H
@@ -2189,14 +2293,15 @@ public class CPU {
                 break;
 
             case 0xE1: //POP nn
-                counter += 3;
-                System.out.println("POP");
-
-
+                CPUInstructions.pop(3);
                 break;
 
             case 0xE2: //LD (C), A
                 CPUInstructions.ldAC(1);
+                break;
+
+            case 0xE5: //PUSH HL
+                CPUInstructions.push(3);
                 break;
 
             case 0xE6: //AND #
@@ -2227,8 +2332,12 @@ public class CPU {
                 CPUInstructions.rst(5);
                 break;
 
-            case 0xF0: //LD A,(FF00+u8)    IMPLEMENTED AND WORKING I THINK
+            case 0xF0: //LD A,(FF00+u8)
                 CPUInstructions.ldh(1);
+                break;
+
+            case 0xF1: //POP AF
+                CPUInstructions.pop(0);
                 break;
 
             case 0xF2: //LD A,(C)
@@ -2237,6 +2346,10 @@ public class CPU {
 
             case 0xF3: //DI
                 CPUInstructions.di();
+                break;
+
+            case 0xF5: //PUSH AF
+                CPUInstructions.push(0);
                 break;
 
             case 0xF6: //OR #

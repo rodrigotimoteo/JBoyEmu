@@ -11,7 +11,7 @@ public class ROM {
     private static int licenseeCode;
     public static byte[] romContent;
 
-    public String getRomTitle() {
+    public static String getRomTitle() {
         return romTitle;
     }
 
@@ -53,7 +53,6 @@ public class ROM {
                 else break;
             }
             romTitle = stringB.toString();
-            GBEmulator.setTitle(romTitle);
 
             int cartridgeTypeInt = romContent[0x0147];
 
@@ -64,6 +63,9 @@ public class ROM {
             switch (cartridgeTypeInt) {
                 case 0:
                     cartridgeType = "ROM_ONLY";
+                    for(int i = 0; i < 0x2000; i++) {
+                        mem.setMemory(0xA000 + i, (char) 0xff);
+                    }
                     break;
 
                 case 1:
@@ -113,6 +115,8 @@ public class ROM {
             System.err.println("Could not read ROM");
             System.exit(3);
         }
+
+        mem.setMemory(0xff40, (char) 0x90);
 
         return romContent;
     }

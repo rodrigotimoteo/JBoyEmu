@@ -43,20 +43,30 @@ public class Memory {
     //Init
 
     private void init() {
-       cartridge = ROM.loadProgram(gbCPU.getRomName(), this);
-       gbCPU.setRegisters(0, 7, (char) 0, (char) 1);
-       gbCPU.setRegister(7, (char) 0xB0);
+        cartridge = ROM.loadProgram(gbCPU.getRomName(), this);
+
+        setMemory(0xff10, (char) 0x80);
+        setMemory(0xff11, (char) 0xbf);
+        setMemory(0xff12, (char) 0xf3);
+        setMemory(0xff14, (char) 0xbf);
+        setMemory(0xff16, (char) 0x3f);
+        setMemory(0xff19, (char) 0xbf);
+        setMemory(0xff1a, (char) 0x7f);
+        setMemory(0xff1b, (char) 0xff);
+        setMemory(0xff1c, (char) 0x9f);
+        setMemory(0xff1e, (char) 0xbf);
+        setMemory(0xff20, (char) 0xff);
+        setMemory(0xff23, (char) 0xbf);
+        setMemory(0xff24, (char) 0x77);
+        setMemory(0xff25, (char) 0xf3);
+        setMemory(0xff26, (char) 0xf1);
+        setMemory(0xff40, (char) 0x91);
+        setMemory(0xff47, (char) 0xfc);
+        setMemory(0xff48, (char) 0xff);
+        setMemory(0xff49, (char) 0xff);
     }
 
     /* Reserved Memory Locations
-     * 0000 - restart $00 - restart address 0000
-     * 0008 - restart $08 - restart address 0008
-     * 0010 - restart $10 - restart address 0010
-     * 0018 - restart $18 - restart address 0018
-     * 0020 - restart $20 - restart address 0020
-     * 0028 - restart $28 - restart address 0028
-     * 0030 - restart $30 - restart address 0030
-     * 0038 - restart $38 - restart address 0038
      * 0040 - vertical blank interrupt start address
      * 0048 - lcdc status interrupt start address
      * 0050 - timer overflow interrupt start address
