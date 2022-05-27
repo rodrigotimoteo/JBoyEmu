@@ -4,47 +4,20 @@ import java.awt.image.BufferedImage;
 
 public class DisplayPanel extends JPanel {
 
-    private byte[] rowTiles = new byte[0x20];
-    private byte[][] tiles = new byte[0x100][64];
-
     private Image tempImage;
 
-    private final CPU cpu;
     private final Memory memory;
     private final PPU ppu;
     private final DisplayFrame displayFrame;
 
     private final int WIDTH;
     private final int HEIGHT;
-    private final int SCALE;
 
-    //Seters
-
-    public void setRowTiles(int index, int tile) {
-        rowTiles[index] = (byte) tile;
-    }
-
-    public void setTiles(int tile, int index, int value) {
-        tiles[tile][index] = (byte) value;
-    }
-
-    //Debug
-
-    private void dumpRowTiles() {
-        System.out.print("0 ");
-        for (int i = 0; i < 0x20; i++) {
-            if (i % 16 == 0 && i != 0) {
-                System.out.println(" ");
-                System.out.print(Integer.toHexString(i) + " ");
-                System.out.print(Integer.toHexString(rowTiles[i] & 0xff) + " ");
-            } else System.out.print(Integer.toHexString(rowTiles[i] & 0xff) + " ");
-        }
-    }
+    public double oldTime = 0;
 
     //Constructor
 
-    public DisplayPanel(CPU cpu, Memory memory, PPU ppu, DisplayFrame displayFrame) {
-        this.cpu = cpu;
+    public DisplayPanel(Memory memory, PPU ppu, DisplayFrame displayFrame) {
         this.memory = memory;
         this.ppu = ppu;
         this.displayFrame = displayFrame;
@@ -52,48 +25,54 @@ public class DisplayPanel extends JPanel {
 
         WIDTH = displayFrame.getWidth();
         HEIGHT = displayFrame.getHeight();
-        SCALE = displayFrame.getScale();
     }
 
-    public void drawImage() {
-        int currentLine = ((ppu.readScrollY() + ppu.readLY()) % 256);
-        if(currentLine == ppu.readScrollY()) tempImage = null;
-
-        Image temp = createImage(tempImage);
-        tempImage = temp;
+    private double getFPS(double oldTime) {
+        double newTime = System.nanoTime();
+        double fps = 1 / ((newTime - oldTime) / 1000000000);
+        this.oldTime = newTime;
+        return fps;
     }
 
-    public void paint(Graphics g) {
-        Image tempImg = createImage(tempImage);
-        g.drawImage(tempImg, 0, 0, this);
-    }
+    public void drawImage(byte[][] painting) {
+        BufferedImage bufferedImage = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
 
-    private Image createImage(Image img) {
-        int tileNumber;
+        int[] size = displayFrame.getCurrentSize();
+        this.setSize(new Dimension(size[0], size[1]));
+        displayFrame.setHeight(size[1] + 28);
+        displayFrame.setWidth(size[0]);
 
-        BufferedImage bufferedImage = new BufferedImage(WIDTH * SCALE, HEIGHT * SCALE, BufferedImage.TYPE_INT_RGB);
+
         Graphics g = bufferedImage.getGraphics();
+        int scrollX = ppu.readScrollX();
+        int scrollY = ppu.readScrollY();
 
-        if(img != null) g.drawImage(img, 0, 0, this);
-
-        int currentLine = ppu.readLY();
-        int scrollX = (ppu.readScrollX() % 32);
-
-        for(int i = 0; i < 20; i++) {
-            tileNumber = rowTiles[(scrollX + i) % 32];
-            int startX = ((i + scrollX) * 8) % 32;
-            for(int x = 0; x < 8; x++) {
-                Color c = getColor(tiles[tileNumber][x + (((currentLine + ppu.readScrollY()) % 8) * 8)]);
+        for(int x = 0; x < 160; x++) {
+            for(int y = 0; y < 144; y++) {
+                Color c = getColor(painting[(x + scrollX) % 160][(y + scrollY) % 144]);
                 g.setColor(c);
-                g.fillRect(x + (i * 8), ppu.readLY(), 1, 1);
+                g.fillRect(x, y, 1, 1);
             }
         }
 
         tempImage = bufferedImage;
-        return bufferedImage;
     }
 
-    private Color getColor(int pixelNumber) {
+
+
+    public void paint(Graphics g) {
+        int[] size = displayFrame.getCurrentSize();
+//        System.out.println(size[0] + " " + size[1]);
+        if(tempImage != null) {
+            Image newImage = tempImage.getScaledInstance(size[0], size[1], Image.SCALE_DEFAULT);
+            g.drawImage(newImage, 0, 0, this);
+        }
+
+        if(oldTime == 0) oldTime = System.nanoTime();
+        else System.out.format("%.2f\n", getFPS(oldTime));
+    }
+
+    private Color getColor(byte pixelNumber) {
         int palette = (memory.getMemory(0xff47) & 0xff);
         int colorSelect;
         Color color;

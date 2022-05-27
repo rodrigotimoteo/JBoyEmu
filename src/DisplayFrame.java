@@ -3,15 +3,8 @@ import java.awt.*;
 
 public class DisplayFrame extends JFrame {
 
-    private CPU cpu;
-    private Memory memory;
-    private PPU ppu;
-
-    private DisplayPanel displayPanel;
-
-    private static final int WIDTH = 160;
-    private static final int HEIGHT = 144;
-    private static final int SCALE = 4;
+    private static int WIDTH = 160;
+    private static int HEIGHT = 144;
 
     public int getWidth() {
         return WIDTH;
@@ -21,31 +14,40 @@ public class DisplayFrame extends JFrame {
         return HEIGHT;
     }
 
-    public int getScale() {
-        return SCALE;
+    public void setWidth(int width) {
+        WIDTH = width;
     }
 
-    public DisplayPanel getDisplayPanel() {
-        return displayPanel;
+    public void setHeight(int height) {
+        HEIGHT = height;
     }
 
-    public DisplayFrame(CPU cpu, Memory memory, PPU ppu) {
-        this.cpu = cpu;
-        this.memory = memory;
-        this.ppu = ppu;
+    public int[] getCurrentSize() {
+        Dimension actualSize = getContentPane().getSize();
+        int[] size = new int[2];
+        size[1] = actualSize.height;
+        size[0] = actualSize.width;
 
-        displayPanel = new DisplayPanel(cpu, memory, ppu, this);
+        return size;
+    }
+
+    public DisplayFrame(Memory memory, PPU ppu) {
+
+        DisplayPanel displayPanel = new DisplayPanel(memory, ppu, this);
         ppu.setDisplayFrame(this);
 
-        setPreferredSize(new Dimension(WIDTH, HEIGHT));
-        pack();
-        setLayout(new BorderLayout());
-        add(displayPanel, BorderLayout.CENTER);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
+
+        setPreferredSize(new Dimension(WIDTH, HEIGHT));
+        setLayout(new BorderLayout());
+        pack();
+        add(displayPanel);
+        setResizable(true);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setTitle(ROM.getRomTitle());
         pack();
         setVisible(true);
+
     }
 
 }

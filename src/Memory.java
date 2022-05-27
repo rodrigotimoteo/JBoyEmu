@@ -2,7 +2,7 @@ import java.util.Arrays;
 
 public class Memory {
 
-    private char[] memory = new char[0x10000];
+    private final char[] memory = new char[0x10000];
 
     private byte[] cartridge;
 
@@ -14,13 +14,13 @@ public class Memory {
         Arrays.fill(memory, (char) 0);
     }
 
-    //Seters
+    //Setters
 
     public void setMemory(int index, char value) {
-        memory[index] = value;
+        memory[index] = (char) (value & 0xff);
     }
 
-    //Geters
+    //Getters
 
     public char getMemory(int index) {
         return memory[index];
@@ -44,6 +44,9 @@ public class Memory {
 
     private void init() {
         cartridge = ROM.loadProgram(gbCPU.getRomName(), this);
+
+        //TEMPORARY
+        setMemory(0xff00, (char) 0xcf);
 
         setMemory(0xff10, (char) 0x80);
         setMemory(0xff11, (char) 0xbf);
