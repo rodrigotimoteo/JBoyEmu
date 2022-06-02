@@ -36,7 +36,6 @@ public class ROM {
     }
 
     public static byte[] loadProgram(String romName, Memory mem) {
-        DataInputStream input;
         try {
             File file = new File(romName);
             romContent = Files.readAllBytes(file.toPath());
@@ -57,28 +56,19 @@ public class ROM {
             int cartridgeTypeInt = romContent[0x0147];
 
             for(int i = 0; i < 0x7fff; i++) {
-                mem.setMemory(i, (char) romContent[i]);
+                mem.writePriv(i, (char) romContent[i]);
             }
 
             switch (cartridgeTypeInt) {
-                case 0:
+                case 0 -> {
                     cartridgeType = "ROM_ONLY";
-                    for(int i = 0; i < 0x2000; i++) {
-                        mem.setMemory(0xA000 + i, (char) 0xff);
+                    for (int i = 0; i < 0x2000; i++) {
+                        mem.writePriv(0xA000 + i, (char) 0xff);
                     }
-                    break;
-
-                case 1:
-                    cartridgeType = "ROM+MBC1";
-                    break;
-
-                case 8:
-                    cartridgeType = "ROM_RAM";
-                    break;
-
-                case 9:
-                    cartridgeType = "ROM_RAM_BATTERY";
-                    break;
+                }
+                case 1 -> cartridgeType = "ROM+MBC1";
+                case 8 -> cartridgeType = "ROM_RAM";
+                case 9 -> cartridgeType = "ROM_RAM_BATTERY";
             }
 
             int romSizeInt = romContent[0x0148];
@@ -89,18 +79,10 @@ public class ROM {
 
             int ramSizeInt = romContent[0x0149];
 
-            switch(ramSizeInt) {
-                case 0:
-                case 1:
-                    ramSize = 1;
-                    break;
-
-                case 3:
-                    ramSize = 4;
-                    break;
-
-                case 4:
-                    ramSize = 16;
+            switch (ramSizeInt) {
+                case 0, 1 -> ramSize = 1;
+                case 3 -> ramSize = 4;
+                case 4 -> ramSize = 16;
             }
 
             region = romContent[0x014A];

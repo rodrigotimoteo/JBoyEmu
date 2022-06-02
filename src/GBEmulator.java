@@ -1,15 +1,18 @@
+import java.io.FileNotFoundException;
+
 public class GBEmulator extends Thread{
 
     private final CPU cpu;
     private final PPU ppu;
 
-    public GBEmulator() {
+    public GBEmulator() throws FileNotFoundException {
         cpu = new CPU();
         ppu = cpu.getPPU();
 
     }
 
     private void gameLoop() {
+        ppu.setCounter(29);
         while (true) {
             try {
                 //Thread.sleep(0, 90);
@@ -20,7 +23,7 @@ public class GBEmulator extends Thread{
                     ppu.readLCDCStatus();
                 } else {
                     cpu.cycle();
-                    for(int i = 0; i < ((cpu.getCounter() - cpuCounter) * 2); i++) ppu.cycle();
+                    for(int i = 0; i < (cpu.getCounter() - cpuCounter); i++) ppu.cycle();
                 }
             } catch (InterruptedException e) {
                 System.exit(-1);
@@ -28,7 +31,7 @@ public class GBEmulator extends Thread{
         }
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws FileNotFoundException {
         GBEmulator emulator = new GBEmulator();
         emulator.gameLoop();
     }

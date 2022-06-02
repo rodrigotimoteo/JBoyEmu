@@ -68,8 +68,8 @@ public class DisplayPanel extends JPanel {
             g.drawImage(newImage, 0, 0, this);
         }
 
-        if(oldTime == 0) oldTime = System.nanoTime();
-        else System.out.format("%.2f\n", getFPS(oldTime));
+//        if(oldTime == 0) oldTime = System.nanoTime();
+//        else System.out.format("%.2f\n", getFPS(oldTime));
     }
 
     private Color getColor(byte pixelNumber) {

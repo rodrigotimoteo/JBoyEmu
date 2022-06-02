@@ -1,6 +1,10 @@
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.util.Arrays;
 
 public class CPU {
+
+    PrintStream debug;
 
     char[] registers = new char[8]; //AF, BC, DE and HL can be 16 bits if paired together
     private boolean zeroFlag;
@@ -15,13 +19,34 @@ public class CPU {
     private char programCounter = 0x100;
     private char stackPointer = 0xFFFE;
 
-    int counter = 0;
-    int divClockCounter = 0;
-    int timerClockCounter = 0;
+    private int counter = 0;
+    private int divClockCounter = 0;
+    private int timerClockCounter = 0;
+    private int interruptCounter = 0;
 
     private boolean interruptMasterEnable = false;
+    private boolean setChangeTo = false;
+    private boolean changeInterrupt = false;
 
-    String romName = "./src/test/tetris.gb";
+    private boolean debugText = false;
+
+    /* Test ROM's that work
+    ldrr.gb
+    bitops.gb
+    oprb.gb
+       Test ROM's that do not work
+    cpu_instrs.gb
+    interrupts.gb failed #2
+    jpjrcall.gb
+    misc.gb
+    opahl.gb - bigger pile of errors
+    oprimm.gb - CE DE
+    oprr.gb - many errros
+    opsphl.gb
+    special.gb POP AF - Failed #5
+     */
+
+    String romName = "./src/test/special.gb";
 
     Memory memory;
     PPU ppu;
@@ -48,17 +73,12 @@ public class CPU {
 
     //Return Register[index]
     public char getRegister(int index) {
-        return registers[index];
+        return (char) (registers[index] & 0xff);
     }
 
     //Return the Program Counter
     public char getProgramCounter() {
         return programCounter;
-    }
-
-    //Return the Operation Code
-    public char getOperationCode() {
-        return operationCode;
     }
 
     //Return the Stack Pointer address
@@ -163,20 +183,32 @@ public class CPU {
         isStopped = state;
     }
 
-    //Sets the Interrupt Master Enable to a State
-    public void setInterruptMasterEnable(boolean state) {
-        interruptMasterEnable = state;
+    public void setChangeInterrupt(boolean state) {
+        changeInterrupt = state;
+    }
+
+    public void setInterruptCounter(int value) {
+        interruptCounter = value;
+    }
+
+    public void setChangeTo(boolean state) {
+        setChangeTo = state;
     }
 
     //Constructor
 
-    public CPU() {
+    public CPU() throws FileNotFoundException {
         clearRegisters();
         memory = new Memory(this);
         ppu = new PPU(memory);
         displayFrame = new DisplayFrame(memory, ppu);
 
-                //new DisplayPanel(this, memory, ppu);
+        if(debugText) {
+            debug = new PrintStream("A.txt");
+            PrintStream console = System.out;
+            System.setOut(debug);
+        }
+
         CPUInstructions.setCpu(this);
         CPUInstructions.setMem(memory);
 
@@ -185,7 +217,7 @@ public class CPU {
 
     private void init() {
         registers[0] = 0x01;
-        registers[2] = 0x0D;
+        registers[2] = 0x13;
         registers[4] = 0xD8;
         registers[5] = 0xB0;
         registers[6] = 0x01;
@@ -197,15 +229,23 @@ public class CPU {
         carryFlag = true;
     }
 
+    public void computeFlags() {
+        zeroFlag = (registers[5] & 0x80) != 0;
+        subtractFlag = (registers[5] & 0x40) != 0;
+        halfCarryFlag = (registers[5] & 0x20) != 0;
+        carryFlag = (registers[5] & 0x10) != 0;
+    }
+
     public void computeFRegister() {
         registers[5] = 0;
-        if(zeroFlag) registers[5] += 128;
-        if(subtractFlag) registers[5] += 64;
-        if(halfCarryFlag) registers[5] += 32;
-        if(carryFlag) registers[5] += 16;
+        if(zeroFlag) registers[5] = (char) (registers[5] | 0x80);
+        if(subtractFlag) registers[5] = (char) (registers[5] | 0x40);
+        if(halfCarryFlag) registers[5] = (char) (registers[5] | 0x20);
+        if(carryFlag) registers[5] = (char) (registers[5] | 0x10);
     }
 
     public void cycle() throws InterruptedException {
+//        System.out.println( "CPU COUNTER  " + counter);
         int tempCycleCount = counter;
 
         //if(counter == 523815) { memory.dumpMemory(); System.exit(-1); }
@@ -214,6 +254,10 @@ public class CPU {
             if(!getIsHalted()) {
                 fetchOperationCodes();
                 decodeOperationCodes();
+                if(changeInterrupt && interruptCounter < counter) {
+                    interruptMasterEnable = setChangeTo;
+                    changeInterrupt = false;
+                }
             } else {
                 increaseCounter(1);
             }
@@ -225,8 +269,15 @@ public class CPU {
 
     private void handleInterrupts() {
         if(interruptMasterEnable) {
-            char interrupt = (char) (memory.getMemory(0xff0f) & memory.getMemory(0xffff));
+            char interrupt = (char) ((memory.getMemory(0xff0f) & 0xff) & (memory.getMemory(0xffff) & 0xff));
+//            System.out.println(Integer.toHexString(interrupt) + "  " + Integer.toHexString(memory.getMemory(0xff0f) & 0xff) +
+//                    "  " + Integer.toHexString(memory.getMemory(0xffff) & 0xff));
             if(interrupt > 0) {
+                if(getIsHalted()) {
+                    setIsHalted(false);
+                    programCounter++;
+                }
+
                 int vBlank = ((memory.getMemory(0xff0f) & 0x1) & (memory.getMemory(0xffff) & 0x1));
                 if(vBlank == 1) {
                     //System.out.println("Treat V-Blank");
@@ -291,29 +342,31 @@ public class CPU {
             memory.setMemory(0xff04, (char) ((memory.getMemory(0xff04) & 0xff) + 1));
         }
 
+//        System.out.println(Integer.toHexString(memory.getMemory(0xff05) & 0xff));
         int[] tacStatus = CPUInstructions.readTAC();
         if (tacStatus[0] == 1) {
-            timerClockCounter += cycles * 4;
+            timerClockCounter += cycles;
 
-            //Sets the timer's frequency
-            int frequency = 4096;
-            if (tacStatus[1] == 3)
-                frequency = 262144;
-            else if (tacStatus[1] == 2)
-                frequency = 65536;
-            else if (tacStatus[1] == 1)
-                frequency = 16384;
+            if(timerClockCounter >= 256) {
+                switch(tacStatus[1]) {
+                    case 0 ->
+                            timerClockCounter -= 256;
+                    case 1 ->
+                            timerClockCounter -= 4;
+                    case 2 ->
+                            timerClockCounter -= 16;
+                    case 3 ->
+                            timerClockCounter -= 64;
+                }
 
-            while (timerClockCounter >= (4194304 / frequency)) {
-                memory.setMemory(0xff05, (char) ((memory.getMemory(0xff05) & 0xff) + 1));
-                if (memory.getMemory(0xff05) == 0x100) {
+                if (memory.getMemory(0xff05) == 0xff) {
                     memory.setMemory(0xff0f, (char) (memory.getMemory(0xff0f) | 0x4));
                     memory.setMemory(0xff05, (char) (memory.getMemory(0xff06) & 0xff));
+                } else {
+                    memory.setMemory(0xff05, (char) ((memory.getMemory(0xff05) & 0xff) + 1));
                 }
-                timerClockCounter -= (4194304 / frequency);
             }
         }
-
     }
 
     private void fetchOperationCodes() {
@@ -322,16 +375,16 @@ public class CPU {
 
     private void decodeOperationCodes() {
 
-//        CPUInstructions.dumpRegisters();
-//        CPUInstructions.dumpFlags();
-//        CPUInstructions.show();
-//
-//        if(counter >= 1265300) {
-//            CPUInstructions.dumpRegisters();
-//            CPUInstructions.dumpFlags();
-//            CPUInstructions.show();
+        CPUInstructions.dumpRegisters();
+        CPUInstructions.show();
+
+        if(debugText) System.setOut(debug);
+//        if(counter >= 17000) System.exit(0);
+
+//        if(counter >= 1395403) { //195509
 //            memory.dumpMemory();
 //            System.exit(-1);
+////            System.out.println("here");
 //        }
 
         switch (operationCode) {
@@ -340,7 +393,7 @@ public class CPU {
             case 0x01 -> //LD BC,u16
                     CPUInstructions.ld16bit(0);
             case 0x02 -> //LD (BC),A
-                    CPUInstructions.ldTwoRegisters(1, 0);
+                    CPUInstructions.ldTwoRegisters(0);
             case 0x03 -> //INC BC
                     CPUInstructions.incR(0);
             case 0x04 -> //INC B
@@ -356,7 +409,7 @@ public class CPU {
             case 0x09 -> //ADD HL,BC
                     CPUInstructions.addHL(0);
             case 0x0A -> //LD A,(BC)
-                    CPUInstructions.ldTwoRegisters(0, 0);
+                    CPUInstructions.ldTwoRegistersIntoA(0);
             case 0x0B -> //DEC BC
                     CPUInstructions.decR(0);
             case 0x0C -> //INC C
@@ -372,7 +425,7 @@ public class CPU {
             case 0x11 -> //LD DE,u16
                     CPUInstructions.ld16bit(1);
             case 0x12 -> //LD (DE),A
-                    CPUInstructions.ldTwoRegisters(1, 1);
+                    CPUInstructions.ldTwoRegisters(1);
             case 0x13 -> //INC DE
                     CPUInstructions.incR(1);
             case 0x14 -> //INC D
@@ -384,55 +437,55 @@ public class CPU {
             case 0x17 -> //RLA
                     CPUInstructions.rla();
             case 0x18 -> //JR i8
-                    CPUInstructions.jr(0, 4);
+                    CPUInstructions.jr();
             case 0x19 -> //ADD HL,DE
                     CPUInstructions.addHL(1);
             case 0x1A -> //LD A,(DE)
-                    CPUInstructions.ldTwoRegisters(0, 1);
+                    CPUInstructions.ldTwoRegistersIntoA(1);
             case 0x1B -> //DEC DE
                     CPUInstructions.decR(1);
             case 0x1C -> //INC E
                     CPUInstructions.inc(4);
-            case 0x1D -> //DEC E IMPLEMENTED AND WORKING
+            case 0x1D -> //DEC E
                     CPUInstructions.dec(4);
-            case 0x1E -> //LD E,u8 IMPLEMENTED AND WORKING
+            case 0x1E -> //LD E,u8
                     CPUInstructions.ld(4, 9);
             case 0x1F -> //RRA
                     CPUInstructions.rra();
             case 0x20 -> //JR NZ,i8
-                    CPUInstructions.jr(1, 0);
-            case 0x21 -> //LD HL,u16   IMPLEMENTED AND WORKING
+                    CPUInstructions.jrCond(0);
+            case 0x21 -> //LD HL,u16
                     CPUInstructions.ld16bit(2);
-            case 0x22 -> //LDI (HL),A IMPLEMENTED AND WORKING
+            case 0x22 -> //LDI (HL),A
                     CPUInstructions.ldi(1);
             case 0x23 -> //INC HL
                     CPUInstructions.incR(2);
-            case 0x24 -> //INC H IMPLEMENTED AND WORKING
+            case 0x24 -> //INC H
                     CPUInstructions.inc(6);
-            case 0x25 -> //DEC H IMPLEMENTED AND WORKING
+            case 0x25 -> //DEC H
                     CPUInstructions.dec(6);
-            case 0x26 -> //LD H,u8 IMPLEMENTED AND WORKING
+            case 0x26 -> //LD H,u8
                     CPUInstructions.ld(6, 9);
             case 0x27 -> //DAA
                     CPUInstructions.daa();
             case 0x28 -> //JR Z,u8
-                    CPUInstructions.jr(1, 1);
+                    CPUInstructions.jrCond(1);
             case 0x29 -> //ADD HL, HL
                     CPUInstructions.addHL(2);
             case 0x2A -> //LDI A,(HL)
                     CPUInstructions.ldi(0);
             case 0x2B -> //DEC HL
                     CPUInstructions.decR(2);
-            case 0x2C -> //INC L IMPLEMENTED AND WORKING
+            case 0x2C -> //INC L
                     CPUInstructions.inc(7);
-            case 0x2D -> //DEC L IMPLEMENTED AND WORKING
+            case 0x2D -> //DEC L
                     CPUInstructions.dec(7);
-            case 0x2E -> //LD L,u8 IMPLEMENTED AND WORKING
+            case 0x2E -> //LD L,u8
                     CPUInstructions.ld(7, 9);
             case 0x2F -> //CPL
                     CPUInstructions.cpl();
             case 0x30 -> //JR NC,u8
-                    CPUInstructions.jr(1, 2);
+                    CPUInstructions.jrCond(2);
             case 0x31 -> //LD SP,u16
                     CPUInstructions.ld16bit(3);
             case 0x32 -> //LDD (HL),A   IMPLEMENTED AND WORKING
@@ -448,7 +501,7 @@ public class CPU {
             case 0x37 -> //SCF
                     CPUInstructions.scf();
             case 0x38 -> //JR C,u8
-                    CPUInstructions.jr(1, 3);
+                    CPUInstructions.jrCond(3);
             case 0x39 -> //ADD HL,SP
                     CPUInstructions.addHL(3);
             case 0x3A -> //LDD A,(HL)
@@ -457,10 +510,10 @@ public class CPU {
                     CPUInstructions.decR(3);
             case 0x3C -> //INC A
                     CPUInstructions.inc(0);
-            case 0x3D -> //DEC A IMPLEMENTED AND WORKING
+            case 0x3D -> //DEC A
                     CPUInstructions.dec(0);
             case 0x3E -> //LD A,u8   IMPLEMENTED AND WORKING
-                    CPUInstructions.ldTwoRegisters(0, 3);
+                    CPUInstructions.ldTwoRegistersIntoA(3);
             case 0x3F -> //CCF
                     CPUInstructions.ccf();
             case 0x40 -> //LD B,B  IMPLEMENTED AND WORKING
@@ -744,7 +797,7 @@ public class CPU {
             case 0xCB -> {
                 CPUInstructions.cb();
                 programCounter++;
-                operationCode = (char) (memory.getCartridgeMemory(programCounter) & 0xff);
+                operationCode = (char) (memory.getMemory(programCounter) & 0xff);
                 switch (operationCode) {
                     case 0x00 -> //RLC B
                             CPUInstructions.rlc(1);
@@ -1311,7 +1364,7 @@ public class CPU {
             case 0xE9 -> //JP (HL)
                     CPUInstructions.jpHL();
             case 0xEA -> //LD (nn),A
-                    CPUInstructions.ldTwoRegisters(1, 2);
+                    CPUInstructions.ldTwoRegisters(2);
             case 0xEE -> //XOR #
                     CPUInstructions.xor(9);
             case 0xEF -> //RST 28H
@@ -1335,7 +1388,7 @@ public class CPU {
             case 0xF9 -> //LD SP,HL
                     CPUInstructions.ldSPHL();
             case 0xFA -> //LD A,(nn)
-                    CPUInstructions.ldTwoRegisters(0, 2);
+                    CPUInstructions.ldTwoRegistersIntoA(2);
             case 0xFB -> //EI
                     CPUInstructions.ei();
             case 0xFE -> //CP A,u8

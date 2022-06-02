@@ -16,18 +16,27 @@ public class Memory {
 
     //Setters
 
+    public void writePriv(int index, char value) {
+        memory[index] = value;
+    }
+
     public void setMemory(int index, char value) {
-        memory[index] = (char) (value & 0xff);
+        if(index == 0xff44 || index == 0xff04) memory[index] = 0;
+        else if(index >= 0xc000 && index <= 0xde00) {
+            memory[index] = (char) (value & 0xff);
+            memory[index + 0x2000] = (char) (value & 0xff);
+        }
+        else if(index >= 0xe000 && index <= 0xfe00) {
+            memory[index] = (char) (value & 0xff);
+            memory[index - 0x2000] = (char) (value & 0xff);
+        }
+        else if(index > 0x8000) memory[index] = (char) (value & 0xff);
     }
 
     //Getters
 
     public char getMemory(int index) {
-        return memory[index];
-    }
-
-    public byte getCartridgeMemory(int index) {
-        return cartridge[index];
+        return (char) (memory[index] & 0xff);
     }
 
     //Debug
@@ -67,16 +76,10 @@ public class Memory {
         setMemory(0xff47, (char) 0xfc);
         setMemory(0xff48, (char) 0xff);
         setMemory(0xff49, (char) 0xff);
-    }
 
-    /* Reserved Memory Locations
-     * 0040 - vertical blank interrupt start address
-     * 0048 - lcdc status interrupt start address
-     * 0050 - timer overflow interrupt start address
-     * 0058 - serial transfer completion interrupt
-     * 0060 - high-to-low of p10-p13 interrupt
-     *
-    */
+        setMemory(0xff44, (char) 0x99);
+        setMemory(0xff41, (char) 0x01);
+    }
 
     public Memory(CPU gbCPU) {
         this.gbCPU = gbCPU;
