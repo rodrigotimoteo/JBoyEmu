@@ -3,9 +3,6 @@ import java.io.PrintStream;
 import java.util.Arrays;
 
 public class CPU {
-
-    PrintStream debug;
-
     char[] registers = new char[8]; //AF, BC, DE and HL can be 16 bits if paired together
     private boolean zeroFlag;
     private boolean subtractFlag;
@@ -30,23 +27,7 @@ public class CPU {
 
     private boolean debugText = false;
 
-    /* Test ROM's that work
-    ldrr.gb
-    bitops.gb
-    oprb.gb
-       Test ROM's that do not work
-    cpu_instrs.gb
-    interrupts.gb failed #2
-    jpjrcall.gb
-    misc.gb
-    opahl.gb - bigger pile of errors
-    oprimm.gb - CE DE
-    oprr.gb - many errros
-    opsphl.gb
-    special.gb POP AF - Failed #5
-     */
-
-    String romName = "./src/test/special.gb";
+    PrintStream debug;
 
     Memory memory;
     PPU ppu;
@@ -60,11 +41,6 @@ public class CPU {
     }
 
     //Getters
-
-    //Return the Rom Name
-    public String getRomName() {
-        return romName;
-    }
 
     //Return the CPU Cycle counter
     public int getCounter() {
@@ -202,6 +178,7 @@ public class CPU {
         memory = new Memory(this);
         ppu = new PPU(memory);
         displayFrame = new DisplayFrame(memory, ppu);
+        memory.setDisplayFrame(displayFrame);
 
         if(debugText) {
             debug = new PrintStream("A.txt");
@@ -263,17 +240,22 @@ public class CPU {
             }
             handleTimer(counter - tempCycleCount);
 
+//            if(counter >= 366600) {
+//                System.exit(0);
+//            }
+
             handleInterrupts();
         }
     }
 
     private void handleInterrupts() {
         if(interruptMasterEnable) {
+
             char interrupt = (char) ((memory.getMemory(0xff0f) & 0xff) & (memory.getMemory(0xffff) & 0xff));
 //            System.out.println(Integer.toHexString(interrupt) + "  " + Integer.toHexString(memory.getMemory(0xff0f) & 0xff) +
 //                    "  " + Integer.toHexString(memory.getMemory(0xffff) & 0xff));
             if(interrupt > 0) {
-                if(getIsHalted()) {
+                if(isHalted) {
                     setIsHalted(false);
                     programCounter++;
                 }
@@ -324,7 +306,9 @@ public class CPU {
 
                 int hiLo = (((memory.getMemory(0xff0f) & 0x10) >> 4) & ((memory.getMemory(0xffff) & 0x10) >> 4));
                 if(hiLo == 1) {
-                    //System.out.println("Treat hiLo");
+                    if(isStopped) {
+                        isStopped = false;
+                    }
 
                     memory.setMemory(--stackPointer, (char) ((programCounter & 0xff00) >> 8));
                     memory.setMemory(--stackPointer, (char) (programCounter & 0xff));
@@ -333,6 +317,9 @@ public class CPU {
                 }
             }
         }
+        else if(isHalted)
+            if((memory.getMemory(0xff0f) & memory.getMemory(0xffff) & 0x1f) > 0)
+                isHalted = false;
     }
 
     private void handleTimer(int cycles) {
@@ -378,10 +365,12 @@ public class CPU {
         CPUInstructions.dumpRegisters();
         CPUInstructions.show();
 
-        if(debugText) System.setOut(debug);
-//        if(counter >= 17000) System.exit(0);
+//          System.out.println(Integer.toHexString(memory.getMemory(0xffff)));
+//          System.setOut(debug);
+//        if(debugText)
+        if(counter >= 1) System.exit(0);
 
-//        if(counter >= 1395403) { //195509
+//        if(registers[0] == 0 && registers[1] == 0x12 && registers[2] == 0 && registers[3] == 0xde && registers[4] == 0xfb && registers[5] == 0 && registers[6] == 0xdc && registers[7] == 0xd2) { //195509
 //            memory.dumpMemory();
 //            System.exit(-1);
 ////            System.out.println("here");
@@ -796,7 +785,6 @@ public class CPU {
                     CPUInstructions.jpCond(1);
             case 0xCB -> {
                 CPUInstructions.cb();
-                programCounter++;
                 operationCode = (char) (memory.getMemory(programCounter) & 0xff);
                 switch (operationCode) {
                     case 0x00 -> //RLC B

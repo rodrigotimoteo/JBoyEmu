@@ -1,23 +1,25 @@
 import java.io.FileNotFoundException;
+import java.util.concurrent.CountDownLatch;
 
 public class GBEmulator extends Thread{
 
     private final CPU cpu;
     private final PPU ppu;
+    public static final CountDownLatch latch = new CountDownLatch(1);
 
-    public GBEmulator() throws FileNotFoundException {
+    public GBEmulator() throws FileNotFoundException, InterruptedException {
         cpu = new CPU();
         ppu = cpu.getPPU();
-
+        latch.await();
     }
 
-    private void gameLoop() {
-        ppu.setCounter(29);
+    private void gameLoop() throws InterruptedException {
+        cpu.cycle();
+        ppu.cycle();
         while (true) {
             try {
-                //Thread.sleep(0, 90);
                 int cpuCounter = cpu.getCounter();
-                if(ppu.isGetToSleep()) Thread.sleep(1);
+                //if(ppu.isGetToSleep()) Thread.sleep(10);
                 if (!ppu.getLcdOn()) {
                     cpu.cycle();
                     ppu.readLCDCStatus();
@@ -31,10 +33,11 @@ public class GBEmulator extends Thread{
         }
     }
 
-    public static void main(String[] args) throws FileNotFoundException {
+    public static void main(String[] args) throws FileNotFoundException, InterruptedException {
+        System.setProperty("apple.laf.useScreenMenuBar", "true");
+        System.setProperty("com.apple.mrj.application.apple.menu.about.name", "JBoyEmu");
         GBEmulator emulator = new GBEmulator();
         emulator.gameLoop();
     }
-
 }
 

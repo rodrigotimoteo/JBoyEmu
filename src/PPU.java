@@ -8,24 +8,25 @@ public class PPU {
 
     private int mode;
     private int currentLine;
+
     private int scrollY;
     private int scrollX;
 
+    private int windowX;
+    private int windowY;
+
     private final byte[][] painting = new byte[160][144];
-
-    private char currentTileMapRow;
-    private char currentTileLine;
-
     private boolean getToSleep;
 
     private boolean lcdOn;
-    private boolean windowDisplay;
+    private boolean windowOn;
+    private boolean backgroundOn;
     private boolean windowTileMap;
     private boolean windowTileData;
     private boolean tileMapDisplay;
     private boolean spriteSize;
     private boolean spriteOn;
-    private boolean backAndWindowOn;
+
 
     private boolean negativeTiles;
 
@@ -33,26 +34,6 @@ public class PPU {
 
     public boolean getLcdOn() {
         return lcdOn;
-    }
-
-    public boolean getWindowDisplay() {
-        return windowDisplay;
-    }
-
-    public boolean getWindowTileMap() {
-        return windowTileMap;
-    }
-
-    public boolean getWindowTileData() {
-        return windowTileData;
-    }
-
-    public boolean getTileMapDisplay() {
-        return tileMapDisplay;
-    }
-
-    public boolean getSpriteSize() {
-        return spriteSize;
     }
 
     public boolean isGetToSleep() {
@@ -83,7 +64,7 @@ public class PPU {
 
         counter = 0;
         lcdOn = false;
-        windowDisplay = false;
+        windowOn = false;
     }
 
     public void cycle() {
@@ -104,7 +85,7 @@ public class PPU {
         windowTileMap = bit == 1;
         //Read bit 5
         bit = (LCDC & 0x20) >> 5;
-        windowDisplay = bit == 1;
+        windowOn = bit == 1;
         //Read bit 4
         bit = (LCDC & 0x10) >> 4;
         windowTileData = bit == 1;
@@ -119,11 +100,11 @@ public class PPU {
         spriteOn = bit == 1;
         //Read bit 0
         bit = LCDC & 0x01;
-        backAndWindowOn = bit == 1;
+        backgroundOn = bit == 1;
 
     }
 
-    public void readLCDStatus() {
+    private void readLCDStatus() {
         int bit;
 
         char LCD = memory.getMemory(0xFF41);
@@ -132,6 +113,11 @@ public class PPU {
         mode = bit + bit;
         bit = LCD & 0x01;
         mode += bit;
+    }
+
+    private void readWindow() {
+        windowY = memory.getMemory(0xff4a);
+        windowX = memory.getMemory(0xff4b);
     }
 
     public char readScrollY() {
@@ -150,10 +136,10 @@ public class PPU {
         counter++;
 
         currentLine = readLY();
-        int tileMapAddress = getTileMapDisplay() ? 0x9c00 : 0x9800;
-        int tileDataAddress = getWindowTileData() ? 0x8000 : 0x9000;
+        int tileMapAddress = tileMapDisplay ? 0x9c00 : 0x9800;
+        int tileDataAddress = windowTileData ? 0x8000 : 0x9000;
 
-        System.out.print(currentLine + " " + counter * 4 + " ");
+//        System.out.print(currentLine + " " + counter * 4 + " ");
 
         if(tileDataAddress == 0x9000) negativeTiles = true;
 
@@ -162,31 +148,32 @@ public class PPU {
 //                System.out.println(" Entering H-Blank " + counter + " " + Integer.toHexString(currentLine));
                 if (counter == 114) {
                     counter = 0;
-                    displayFrame.repaint();
                     currentLine++;
                     memory.writePriv(0xff44, (char) currentLine);
                     currentLine = readLY();
                     if (currentLine == 144) {
                         display.drawImage(painting);
+                        displayFrame.repaint();
                         memory.writePriv(0xff41, (char) ((memory.getMemory(0xff41) & 0xff) + 1));
+                        memory.writePriv(0xff0f, (char) ((memory.getMemory(0xff0f) & 0xff) | 0x01));
                     } else memory.writePriv(0xff41, (char) ((memory.getMemory(0xff41) & 0xff) + 2));
                 }
             }
             case 1 -> { //V-BLANK
 //                System.out.println(" Entering V-Blank " + counter + " " + Integer.toHexString(currentLine));
-                if (currentLine == 153 && counter == 114) {
-                    memory.writePriv(0xff0f, (char) ((memory.getMemory(0xff0f) & 0xff) | 0x01));
-                    memory.writePriv(0xff44, (char) 0);
-                    memory.writePriv(0xff41, (char) ((memory.getMemory(0xff41) & 0xff) + 1));
-                    setScrolls(readScrollX(), readScrollY());
-                    getToSleep = true;
-                    counter = 0;
-                }
                 if (counter == 114) {
                     counter = 0;
                     currentLine++;
                     memory.writePriv(0xff44, (char) currentLine);
                     currentLine = readLY();
+                }
+                if (currentLine == 153) {
+                    memory.writePriv(0xff44, (char) 0);
+                    memory.writePriv(0xff41, (char) ((memory.getMemory(0xff41) & 0xff) + 1));
+                    setScrolls(readScrollX(), readScrollY());
+                    readWindow();
+                    getToSleep = true;
+                    counter = 0;
                 }
             }
             case 2 -> { //OAM Search
@@ -198,27 +185,41 @@ public class PPU {
             }
             case 3 -> { //Pixel Transfer
 //                System.out.println(" Entering Pixel Transfer " + counter + " " + Integer.toHexString(currentLine));
-                int tile;
                 if (counter == 40) {
                     //System.out.println(Integer.toHexString(tileDataAddress));
-                    int tempY = (currentLine + scrollY) % 0x100;
-                    for (int i = 0; i < 20; i++) {
-                        int tempX = (scrollX + i) % 0x20;
-                        tile = memory.getMemory(tileMapAddress + ((tempY / 8) * 0x20) + tempX);
-                        if(negativeTiles) {
-                            tile = memory.getMemory(tileMapAddress + ((tempY / 8) * 0x20) + tempX);
-                            if(((tile & 0x80) >> 7) == 0) tile = tile & 0x7f;
-                            else tile = (tile & 0x7f) - 0x80;
-                        } else {
-                            tile = memory.getMemory(tileMapAddress + ((tempY / 8) * 0x20) + tempX);
-                        }
-                        writeTile(tileDataAddress, tile, i * 8);
-                    }
+                    if(backgroundOn) drawBackground(tileMapAddress, tileDataAddress);
+                    if(windowOn) drawWindow(tileDataAddress);
+                    if(spriteOn) drawSprite();
                     memory.writePriv(0xff41, (char) ((memory.getMemory(0xff41) & 0xff) - 3));
                 }
             }
         }
     }
+
+    private void drawBackground(int tileMapAddress, int tileDataAddress) {
+        int tempY = (currentLine + scrollY) % 0x100;
+        for (int i = 0; i < 20; i++) {
+            int tempX = (scrollX + i) % 0x20;
+            int tile = memory.getMemory(tileMapAddress + ((tempY / 8) * 0x20) + tempX);
+            if(negativeTiles) {
+                if(((tile & 0x80) >> 7) == 0) tile = tile & 0x7f;
+                else tile = (tile & 0x7f) - 0x80;
+            }
+            writeTile(tileDataAddress, tile, i * 8);
+        }
+    }
+
+    private void drawWindow(int tileDataAddress) {
+        if(windowY > 143 || windowX > 166 || windowY > currentLine) return;
+        for(int i = 0; i < 20; i++) {
+
+        }
+    }
+
+    private void drawSprite() {
+
+    }
+
 
     private void writeTile(int tileDataAddress, int tile, int x) {
         int tileLine;
@@ -229,14 +230,14 @@ public class PPU {
 
 //        System.out.println(Integer.toHexString(tile) + "  " + Integer.toHexString(tileLine) + "  " + Integer.toHexString(tileLine + 1));
         //System.out.println(currentLine + "  " + Integer.toHexString(tile));
-        painting[x][currentLine] = (byte) (((memory.getMemory(tileLine) & 0x80) >> 7) + (((memory.getMemory(tileLine + 1) & 0x80) >> 7) * 2));
-        painting[x + 1][currentLine] = (byte) (((memory.getMemory(tileLine) & 0x40) >> 6) + (((memory.getMemory(tileLine + 1) & 0x40) >> 6) * 2));
-        painting[x + 2][currentLine] = (byte) (((memory.getMemory(tileLine) & 0x20) >> 5) + (((memory.getMemory(tileLine + 1) & 0x20) >> 5) * 2));
-        painting[x + 3][currentLine] = (byte) (((memory.getMemory(tileLine) & 0x10) >> 4) + (((memory.getMemory(tileLine + 1) & 0x10) >> 4) * 2));
-        painting[x + 4][currentLine] = (byte) (((memory.getMemory(tileLine) & 0x8) >> 3) + (((memory.getMemory(tileLine + 1) & 0x8) >> 3) * 2));
-        painting[x + 5][currentLine] = (byte) (((memory.getMemory(tileLine) & 0x4) >> 2) + (((memory.getMemory(tileLine + 1) & 0x4) >> 2) * 2));
-        painting[x + 6][currentLine] = (byte) (((memory.getMemory(tileLine) & 0x2) >> 1) + (((memory.getMemory(tileLine + 1) & 0x2) >> 1) * 2));
-        painting[x + 7][currentLine] = (byte) ((memory.getMemory(tileLine) & 0x1) + ((memory.getMemory(tileLine + 1) & 0x1) * 2));
+        if(x < 144) painting[x][currentLine] = (byte) (((memory.getMemory(tileLine) & 0x80) >> 7) + (((memory.getMemory(tileLine + 1) & 0x80) >> 7) * 2));
+        if((x + 1) < 144) painting[x + 1][currentLine] = (byte) (((memory.getMemory(tileLine) & 0x40) >> 6) + (((memory.getMemory(tileLine + 1) & 0x40) >> 6) * 2));
+        if((x + 2) < 144) painting[x + 2][currentLine] = (byte) (((memory.getMemory(tileLine) & 0x20) >> 5) + (((memory.getMemory(tileLine + 1) & 0x20) >> 5) * 2));
+        if((x + 3) < 144) painting[x + 3][currentLine] = (byte) (((memory.getMemory(tileLine) & 0x10) >> 4) + (((memory.getMemory(tileLine + 1) & 0x10) >> 4) * 2));
+        if((x + 4) < 144) painting[x + 4][currentLine] = (byte) (((memory.getMemory(tileLine) & 0x8) >> 3) + (((memory.getMemory(tileLine + 1) & 0x8) >> 3) * 2));
+        if((x + 5) < 144) painting[x + 5][currentLine] = (byte) (((memory.getMemory(tileLine) & 0x4) >> 2) + (((memory.getMemory(tileLine + 1) & 0x4) >> 2) * 2));
+        if((x + 6) < 144) painting[x + 6][currentLine] = (byte) (((memory.getMemory(tileLine) & 0x2) >> 1) + (((memory.getMemory(tileLine + 1) & 0x2) >> 1) * 2));
+        if((x + 7) < 144) painting[x + 7][currentLine] = (byte) ((memory.getMemory(tileLine) & 0x1) + ((memory.getMemory(tileLine + 1) & 0x1) * 2));
     }
 
 }

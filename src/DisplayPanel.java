@@ -13,7 +13,7 @@ public class DisplayPanel extends JPanel {
     private final int WIDTH;
     private final int HEIGHT;
 
-    public double oldTime = 0;
+    private long oldTime;
 
     //Constructor
 
@@ -25,11 +25,12 @@ public class DisplayPanel extends JPanel {
 
         WIDTH = displayFrame.getWidth();
         HEIGHT = displayFrame.getHeight();
+        oldTime = System.nanoTime();
     }
 
     private double getFPS(double oldTime) {
-        double newTime = System.nanoTime();
-        double fps = 1 / ((newTime - oldTime) / 1000000000);
+        long newTime = System.nanoTime();
+        long fps = (long) (1 / ((newTime - oldTime) / 1000000000));
         this.oldTime = newTime;
         return fps;
     }
@@ -68,8 +69,7 @@ public class DisplayPanel extends JPanel {
             g.drawImage(newImage, 0, 0, this);
         }
 
-//        if(oldTime == 0) oldTime = System.nanoTime();
-//        else System.out.format("%.2f\n", getFPS(oldTime));
+
     }
 
     private Color getColor(byte pixelNumber) {
