@@ -159,14 +159,17 @@ public class CPU {
         isStopped = state;
     }
 
+    //Set the signal to change the IME flag
     public void setChangeInterrupt(boolean state) {
         changeInterrupt = state;
     }
 
+    //Used to enable interrupt after a cycle
     public void setInterruptCounter(int value) {
         interruptCounter = value;
     }
 
+    //Set the state to change the IME flag to
     public void setChangeTo(boolean state) {
         setChangeTo = state;
     }
@@ -176,7 +179,7 @@ public class CPU {
     public CPU() throws FileNotFoundException {
         clearRegisters();
         memory = new Memory(this);
-        ppu = new PPU(memory);
+        ppu = new PPU(memory, this);
         displayFrame = new DisplayFrame(memory, ppu);
         memory.setDisplayFrame(displayFrame);
 
@@ -245,6 +248,16 @@ public class CPU {
 //            }
 
             handleInterrupts();
+        }
+    }
+
+    public void setInterrupt(int interrupt) {
+        switch(interrupt) {
+            case 0: memory.writePriv(0xff0f, (char) (memory.getMemory(0xff0f) | 0x01));
+            case 1: memory.writePriv(0xff0f, (char) (memory.getMemory(0xff0f) | 0x02));
+            case 2: memory.writePriv(0xff0f, (char) (memory.getMemory(0xff0f) | 0x04));
+            case 3: memory.writePriv(0xff0f, (char) (memory.getMemory(0xff0f) | 0x08));
+            case 4: memory.writePriv(0xff0f, (char) (memory.getMemory(0xff0f) | 0x10));
         }
     }
 
@@ -329,21 +342,16 @@ public class CPU {
             memory.setMemory(0xff04, (char) ((memory.getMemory(0xff04) & 0xff) + 1));
         }
 
-//        System.out.println(Integer.toHexString(memory.getMemory(0xff05) & 0xff));
         int[] tacStatus = CPUInstructions.readTAC();
         if (tacStatus[0] == 1) {
             timerClockCounter += cycles;
 
             if(timerClockCounter >= 256) {
                 switch(tacStatus[1]) {
-                    case 0 ->
-                            timerClockCounter -= 256;
-                    case 1 ->
-                            timerClockCounter -= 4;
-                    case 2 ->
-                            timerClockCounter -= 16;
-                    case 3 ->
-                            timerClockCounter -= 64;
+                    case 0 -> timerClockCounter -= 256;
+                    case 1 -> timerClockCounter -= 4;
+                    case 2 -> timerClockCounter -= 16;
+                    case 3 -> timerClockCounter -= 64;
                 }
 
                 if (memory.getMemory(0xff05) == 0xff) {
@@ -361,14 +369,19 @@ public class CPU {
     }
 
     private void decodeOperationCodes() {
+//
+//        CPUInstructions.dumpRegisters();
+//        CPUInstructions.show();
 
-        CPUInstructions.dumpRegisters();
-        CPUInstructions.show();
+//        if(counter >= 150000)
+//            System.out.println("A");
 
 //          System.out.println(Integer.toHexString(memory.getMemory(0xffff)));
 //          System.setOut(debug);
 //        if(debugText)
-        if(counter >= 1) System.exit(0);
+//        if(counter >= 100) {
+//            System.out.println();
+//        }
 
 //        if(registers[0] == 0 && registers[1] == 0x12 && registers[2] == 0 && registers[3] == 0xde && registers[4] == 0xfb && registers[5] == 0 && registers[6] == 0xdc && registers[7] == 0xd2) { //195509
 //            memory.dumpMemory();

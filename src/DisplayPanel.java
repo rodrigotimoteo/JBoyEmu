@@ -43,14 +43,11 @@ public class DisplayPanel extends JPanel {
         displayFrame.setHeight(size[1] + 28);
         displayFrame.setWidth(size[0]);
 
-
         Graphics g = bufferedImage.getGraphics();
-        int scrollX = ppu.readScrollX();
-        int scrollY = ppu.readScrollY();
 
         for(int x = 0; x < 160; x++) {
             for(int y = 0; y < 144; y++) {
-                Color c = getColor(painting[(x + scrollX) % 160][(y + scrollY) % 144]);
+                Color c = getColor(painting[x][y]);
                 g.setColor(c);
                 g.fillRect(x, y, 1, 1);
             }
@@ -63,13 +60,10 @@ public class DisplayPanel extends JPanel {
 
     public void paint(Graphics g) {
         int[] size = displayFrame.getCurrentSize();
-//        System.out.println(size[0] + " " + size[1]);
         if(tempImage != null) {
             Image newImage = tempImage.getScaledInstance(size[0], size[1], Image.SCALE_DEFAULT);
             g.drawImage(newImage, 0, 0, this);
         }
-
-
     }
 
     private Color getColor(byte pixelNumber) {
