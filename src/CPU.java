@@ -3,6 +3,15 @@ import java.io.PrintStream;
 import java.util.Arrays;
 
 public class CPU {
+    private final int DIVIDER_REGISTER = 0xff04;
+    private final int TIMER_COUNTER = 0xff05;
+    private final int TIMER_MODULO = 0xff06;
+    private final int INTERRUPT_FLAG = 0xff0f;
+    private final int INTERRUPT_ENABLE = 0xffff;
+
+    private final int TIMER_INTERRUPT = 2;
+
+
     char[] registers = new char[8]; //AF, BC, DE and HL can be 16 bits if paired together
     private boolean zeroFlag;
     private boolean subtractFlag;
@@ -25,8 +34,7 @@ public class CPU {
     private boolean setChangeTo = false;
     private boolean changeInterrupt = false;
 
-    private boolean debugText = false;
-
+    private boolean debugText = true;
     PrintStream debug;
 
     Memory memory;
@@ -209,6 +217,15 @@ public class CPU {
         carryFlag = true;
     }
 
+    public void reset() {
+        memory.reset();
+        ppu.reset();
+        programCounter = 0x100;
+        stackPointer = 0xfffe;
+        counter = 0;
+        init();
+    }
+
     public void computeFlags() {
         zeroFlag = (registers[5] & 0x80) != 0;
         subtractFlag = (registers[5] & 0x40) != 0;
@@ -225,10 +242,7 @@ public class CPU {
     }
 
     public void cycle() throws InterruptedException {
-//        System.out.println( "CPU COUNTER  " + counter);
         int tempCycleCount = counter;
-
-        //if(counter == 523815) { memory.dumpMemory(); System.exit(-1); }
 
         if (!getIsStopped()) {
             if(!getIsHalted()) {
@@ -243,187 +257,133 @@ public class CPU {
             }
             handleTimer(counter - tempCycleCount);
 
-//            if(counter >= 366600) {
-//                System.exit(0);
-//            }
-
             handleInterrupts();
         }
     }
 
     public void setInterrupt(int interrupt) {
         switch(interrupt) {
-            case 0: memory.writePriv(0xff0f, (char) (memory.getMemory(0xff0f) | 0x01));
-            case 1: memory.writePriv(0xff0f, (char) (memory.getMemory(0xff0f) | 0x02));
-            case 2: memory.writePriv(0xff0f, (char) (memory.getMemory(0xff0f) | 0x04));
-            case 3: memory.writePriv(0xff0f, (char) (memory.getMemory(0xff0f) | 0x08));
-            case 4: memory.writePriv(0xff0f, (char) (memory.getMemory(0xff0f) | 0x10));
+            case 0: memory.setBit(INTERRUPT_FLAG, 0);
+            case 1: memory.setBit(INTERRUPT_FLAG, 1);
+            case 2: memory.setBit(INTERRUPT_FLAG, 2);
+            case 3: memory.setBit(INTERRUPT_FLAG, 3);
+            case 4: memory.setBit(INTERRUPT_FLAG, 4);
         }
     }
 
     private void handleInterrupts() {
         if(interruptMasterEnable) {
-
-            char interrupt = (char) ((memory.getMemory(0xff0f) & 0xff) & (memory.getMemory(0xffff) & 0xff));
-//            System.out.println(Integer.toHexString(interrupt) + "  " + Integer.toHexString(memory.getMemory(0xff0f) & 0xff) +
-//                    "  " + Integer.toHexString(memory.getMemory(0xffff) & 0xff));
+            char interrupt = (char) (memory.getMemory(INTERRUPT_FLAG) & memory.getMemory(INTERRUPT_ENABLE));
             if(interrupt > 0) {
                 if(isHalted) {
                     setIsHalted(false);
                     programCounter++;
                 }
 
-                int vBlank = ((memory.getMemory(0xff0f) & 0x1) & (memory.getMemory(0xffff) & 0x1));
+                interruptMasterEnable = false;
+                memory.storeWordInSP(stackPointer, programCounter);
+
+                int vBlank = interrupt & 0x1;
                 if(vBlank == 1) {
-                    //System.out.println("Treat V-Blank");
-
-                    memory.setMemory(--stackPointer, (char) ((programCounter & 0xff00) >> 8));
-                    memory.setMemory(--stackPointer, (char) (programCounter & 0xff));
                     setProgramCounter((char) 0x40);
-                    memory.setMemory(0xff0f, (char) ((memory.getMemory(0xff0f) & 0xff) - 0x1));
+                    memory.resetBit(INTERRUPT_FLAG, 0);
                     return;
                 }
 
-                int LCDCStatus = (((memory.getMemory(0xff0f) & 0x2) >> 1) & ((memory.getMemory(0xffff) & 0x2) >> 1));
+                int LCDCStatus = (interrupt & 0x2) >> 1;
                 if(LCDCStatus == 1) {
-                    //System.out.println("Treat LCDCStatus");
-
-                    memory.setMemory(--stackPointer, (char) ((programCounter & 0xff00) >> 8));
-                    memory.setMemory(--stackPointer, (char) (programCounter & 0xff));
                     setProgramCounter((char) 0x48);
-                    memory.setMemory(0xff0f, (char) ((memory.getMemory(0xff0f) & 0xff) - 0x2));
+                    memory.resetBit(INTERRUPT_FLAG, 1);
                     return;
                 }
 
-                int timerOverflow = (((memory.getMemory(0xff0f) & 0x4) >> 2) & ((memory.getMemory(0xffff) & 0x4) >> 2));
+                int timerOverflow = (interrupt & 0x4) >> 2;
                 if(timerOverflow == 1) {
-                    //System.out.println("Treat timerOverflow");
-
-                    memory.setMemory(--stackPointer, (char) ((programCounter & 0xff00) >> 8));
-                    memory.setMemory(--stackPointer, (char) (programCounter & 0xff));
                     setProgramCounter((char) 0x50);
-                    memory.setMemory(0xff0f, (char) ((memory.getMemory(0xff0f) & 0xff) - 0x4));
+                    memory.resetBit(INTERRUPT_FLAG, 2);
                     return;
                 }
 
-                int serialTransfer = (((memory.getMemory(0xff0f) & 0x8) >> 3) & ((memory.getMemory(0xffff) & 0x8) >> 3));
+                int serialTransfer = (interrupt & 0x8) >> 3;
                 if(serialTransfer == 1) {
-                    //System.out.println("Treat serialTransfer");
-
-                    memory.setMemory(--stackPointer, (char) ((programCounter & 0xff00) >> 8));
-                    memory.setMemory(--stackPointer, (char) (programCounter & 0xff));
-                    setProgramCounter((char) 0x50);
-                    memory.setMemory(0xff0f, (char) ((memory.getMemory(0xff0f) & 0xff) - 0x8));
+                    setProgramCounter((char) 0x58);
+                    memory.resetBit(INTERRUPT_FLAG, 3);
                     return;
                 }
 
-                int hiLo = (((memory.getMemory(0xff0f) & 0x10) >> 4) & ((memory.getMemory(0xffff) & 0x10) >> 4));
+                int hiLo = (interrupt & 0x10) >> 4;
                 if(hiLo == 1) {
                     if(isStopped) {
                         isStopped = false;
                     }
-
-                    memory.setMemory(--stackPointer, (char) ((programCounter & 0xff00) >> 8));
-                    memory.setMemory(--stackPointer, (char) (programCounter & 0xff));
                     setProgramCounter((char) 0x60);
-                    memory.setMemory(0xff0f, (char) ((memory.getMemory(0xff0f) & 0xff) - 0x10));
+                    memory.resetBit(INTERRUPT_FLAG, 4);
                 }
             }
         }
         else if(isHalted)
-            if((memory.getMemory(0xff0f) & memory.getMemory(0xffff) & 0x1f) > 0)
+            if((memory.getMemory(INTERRUPT_FLAG) & memory.getMemory(INTERRUPT_ENABLE) & 0x1f) > 0)
                 isHalted = false;
     }
 
     private void handleTimer(int cycles) {
         divClockCounter += cycles;
-        if (divClockCounter >= 256) {
-            divClockCounter -= 256;
-            memory.setMemory(0xff04, (char) ((memory.getMemory(0xff04) & 0xff) + 1));
+        if (divClockCounter >= 0xff) {
+            divClockCounter -= 0xff;
+            memory.setMemory(DIVIDER_REGISTER, (char) (((memory.getMemory(DIVIDER_REGISTER) & 0xff) + 1) & 0xff));
         }
 
         int[] tacStatus = CPUInstructions.readTAC();
         if (tacStatus[0] == 1) {
             timerClockCounter += cycles;
 
-            if(timerClockCounter >= 256) {
+            if(timerClockCounter >= 0xff) {
                 switch(tacStatus[1]) {
-                    case 0 -> timerClockCounter -= 256;
-                    case 1 -> timerClockCounter -= 4;
-                    case 2 -> timerClockCounter -= 16;
-                    case 3 -> timerClockCounter -= 64;
+                    case 0 -> timerClockCounter -= 0xff;
+                    case 1 -> timerClockCounter -= 0x4;
+                    case 2 -> timerClockCounter -= 0x10;
+                    case 3 -> timerClockCounter -= 0x40;
                 }
 
-                if (memory.getMemory(0xff05) == 0xff) {
-                    memory.setMemory(0xff0f, (char) (memory.getMemory(0xff0f) | 0x4));
-                    memory.setMemory(0xff05, (char) (memory.getMemory(0xff06) & 0xff));
+                if (memory.getMemory(TIMER_COUNTER) == 0xff) {
+                    setInterrupt(TIMER_INTERRUPT);
+                    memory.setMemory(TIMER_COUNTER, memory.getMemory(TIMER_MODULO));
                 } else {
-                    memory.setMemory(0xff05, (char) ((memory.getMemory(0xff05) & 0xff) + 1));
+                    memory.setMemory(TIMER_COUNTER, (char) (((memory.getMemory(TIMER_COUNTER) & 0xff) + 1) & 0xff));
                 }
             }
         }
     }
 
     private void fetchOperationCodes() {
-        operationCode = (char) (memory.getMemory(programCounter) & 0xff);
+        operationCode = memory.getMemory(programCounter);
     }
 
     private void decodeOperationCodes() {
-//
-//        CPUInstructions.dumpRegisters();
-//        CPUInstructions.show();
 
-//        if(counter >= 150000)
-//            System.out.println("A");
+        CPUInstructions.dumpRegisters();
+        CPUInstructions.show();
 
-//          System.out.println(Integer.toHexString(memory.getMemory(0xffff)));
-//          System.setOut(debug);
-//        if(debugText)
-//        if(counter >= 100) {
-//            System.out.println();
-//        }
-
-//        if(registers[0] == 0 && registers[1] == 0x12 && registers[2] == 0 && registers[3] == 0xde && registers[4] == 0xfb && registers[5] == 0 && registers[6] == 0xdc && registers[7] == 0xd2) { //195509
-//            memory.dumpMemory();
-//            System.exit(-1);
-////            System.out.println("here");
-//        }
+        if(debugText) System.setOut(debug);
 
         switch (operationCode) {
-            case 0x00 -> //NOP
-                    CPUInstructions.nop();
-            case 0x01 -> //LD BC,u16
-                    CPUInstructions.ld16bit(0);
-            case 0x02 -> //LD (BC),A
-                    CPUInstructions.ldTwoRegisters(0);
-            case 0x03 -> //INC BC
-                    CPUInstructions.incR(0);
-            case 0x04 -> //INC B
-                    CPUInstructions.inc(1);
-            case 0x05 -> //DEC B
-                    CPUInstructions.dec(1);
-            case 0x06 -> //LD B,u8
-                    CPUInstructions.ld(1, 9);
-            case 0x07 -> //RLCA
-                    CPUInstructions.rlca();
-            case 0x08 -> //LD (u16),SP
-                    CPUInstructions.LDnnSP();
-            case 0x09 -> //ADD HL,BC
-                    CPUInstructions.addHL(0);
-            case 0x0A -> //LD A,(BC)
-                    CPUInstructions.ldTwoRegistersIntoA(0);
-            case 0x0B -> //DEC BC
-                    CPUInstructions.decR(0);
-            case 0x0C -> //INC C
-                    CPUInstructions.inc(2);
-            case 0x0D -> //DEC C
-                    CPUInstructions.dec(2);
-            case 0x0E -> //LD C,u8
-                    CPUInstructions.ld(2, 9);
-            case 0x0F -> //RRCA
-                    CPUInstructions.rrca();
-            case 0x10 -> //STOP
-                    CPUInstructions.stop();
+            case 0x00 -> CPUInstructions.nop();                               //NOP
+            case 0x01 -> CPUInstructions.ld16bit(0);                   //LD BC,u16
+            case 0x02 -> CPUInstructions.ldTwoRegisters(0);                  //LD (BC),A
+            case 0x03 -> CPUInstructions.incR(0);                  //INC BC
+            case 0x04 -> CPUInstructions.inc(1);                   //INC B
+            case 0x05 -> CPUInstructions.dec(1);                   //DEC B
+            case 0x06 -> CPUInstructions.ld(1, 9);  //LD B,u8
+            case 0x07 -> CPUInstructions.rlca();                             //RLCA
+            case 0x08 -> CPUInstructions.LDnnSP();                           //LD (u16),SP
+            case 0x09 -> CPUInstructions.addHL(0);                 //ADD HL,BC
+            case 0x0A -> CPUInstructions.ldTwoRegistersIntoA(0);             //LD A,(BC)
+            case 0x0B -> CPUInstructions.decR(0);                  //DEC BC
+            case 0x0C -> CPUInstructions.inc(2);                   //INC C
+            case 0x0D -> CPUInstructions.dec(2);                   //DEC C
+            case 0x0E -> CPUInstructions.ld(2, 9);  //LD C,u8
+            case 0x0F -> CPUInstructions.rrca();                             //RRCA
+            case 0x10 -> CPUInstructions.stop();                             //STOP
             case 0x11 -> //LD DE,u16
                     CPUInstructions.ld16bit(1);
             case 0x12 -> //LD (DE),A

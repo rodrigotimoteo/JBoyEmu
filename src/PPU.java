@@ -67,6 +67,10 @@ public class PPU {
         this.scrollY = scrollY;
     }
 
+    public void reset() {
+        counter = 0;
+    }
+
     public PPU(Memory memory, CPU cpu) {
         this.memory = memory;
         this.cpu = cpu;
@@ -188,6 +192,10 @@ public class PPU {
     }
 
     private void draw() {
+//        if(counter == 0) {
+//            setScrolls(readScrollX() & 0x7, scrollY);
+//        }
+
         counter++;
 
         currentLine = readLY();
@@ -204,7 +212,7 @@ public class PPU {
                 if (counter == 114) {
                     counter = 0;
                     currentLine++;
-                    memory.writePriv(0xff44, (char) currentLine);
+                    //memory.writePriv(0xff44, (char) currentLine);
                     if (currentLine >= 144) {
                         display.drawImage(painting);
                         displayFrame.repaint();
@@ -215,28 +223,28 @@ public class PPU {
                 }
             }
             case 1 -> { //V-BLANK
-                if (currentLine == 153 && counter == 114) {
-                    memory.writePriv(0xff44, (char) 0);
+                if (counter == 114) {
+                    counter = 0;
+                    currentLine++;
+                    //memory.writePriv(0xff44, (char) currentLine);
+                }
+                if (currentLine > 153) {
+                    currentLine = 0;
+                    //memory.writePriv(0xff44, (char) currentLine);
                     changeMode(OAM);
                     getToSleep = true;
                     counter = 0;
                 }
-                if (counter == 114) {
-                    counter = 0;
-                    currentLine++;
-                    memory.writePriv(0xff44, (char) currentLine);
-                }
-
             }
             case 2 -> { //OAM Search
                 if(getToSleep) getToSleep = false;
                 if (counter == 10) {
-                    setScrolls(readScrollX(), readScrollY());
                     changeMode(PIXEL_TRANSFER);
                 }
             }
             case 3 -> { //Pixel Transfer
                 if (counter == 40) {
+                    setScrolls(readScrollX(), readScrollY());
                     if(backgroundOn) drawBackground(tileMapAddress, tileDataAddress);
                     //if(windowOn) drawWindow(tileMapAddress, tileDataAddress);
                     //if(spriteOn) drawSprite();

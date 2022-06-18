@@ -13,6 +13,8 @@ public class DisplayFrame extends JFrame implements KeyListener, ActionListener 
     private final JMenuBar menuBar;
     private final JMenu file;
 
+    private boolean gameLoaded = false;
+
     private static int WIDTH = 160;
     private static int HEIGHT = 144;
 
@@ -109,10 +111,10 @@ public class DisplayFrame extends JFrame implements KeyListener, ActionListener 
             case KeyEvent.VK_X -> 1;  //B
             case KeyEvent.VK_1 -> 2;  //SELECT
             case KeyEvent.VK_2 -> 3;  //START
-            case KeyEvent.VK_L -> 4;  //RIGHT
-            case KeyEvent.VK_J -> 5;  //LEFT
-            case KeyEvent.VK_I -> 6;  //UP
-            case KeyEvent.VK_K -> 7;  //DOWN
+            case KeyEvent.VK_RIGHT -> 4;  //RIGHT
+            case KeyEvent.VK_LEFT -> 5;   //LEFT
+            case KeyEvent.VK_UP -> 6;     //UP
+            case KeyEvent.VK_DOWN -> 7;   //DOWN
             default -> -1;
         };
     }
@@ -136,7 +138,11 @@ public class DisplayFrame extends JFrame implements KeyListener, ActionListener 
     @Override
     public void actionPerformed(ActionEvent e) {
         if("open".equals(e.getActionCommand())) {
+            if(gameLoaded) {
+                //CPUInstructions.reset();
+            }
             ROM.loadProgram(chooseFile(), memory);
+            gameLoaded = true;
             GBEmulator.latch.countDown();
         }
     }

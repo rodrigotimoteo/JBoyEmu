@@ -306,7 +306,7 @@ public class Memory {
         writePriv(0xff48, (char) 0xff);
         writePriv(0xff49, (char) 0xff);
         writePriv(0xff4d, (char) 0xff);
-        writePriv(0xff44, (char) 0x00);
+        writePriv(0xff44, (char) 0x90);
     }
 
     //Utils
@@ -318,6 +318,19 @@ public class Memory {
     //Reset Bit n of Memory Address
     public void resetBit(int address, int bit) {
         setMemory(address, (char) (memory[address] & (~(1 << bit))));
+    }
+
+    //Reset Memory State to Default
+    public void reset() {
+        resetMemory();
+        init();
+    }
+
+    public void storeWordInSP(int stackPointer, int programCounter) {
+        setMemory(--stackPointer, (char) ((programCounter & 0xff00) >> 8));
+        setMemory(--stackPointer, (char) (programCounter & 0xff));
+
+        cpu.increaseStackPointer(-2);
     }
 
     //Constructor

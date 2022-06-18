@@ -1,5 +1,7 @@
 public class CPUInstructions {
 
+    private final static int DIVIDER_REGISTER = 0xff04;
+
     private static CPU cpu;
     private static Memory memory;
 
@@ -10,6 +12,12 @@ public class CPUInstructions {
     }
     public static void setMem(Memory memoryIn) {
         memory = memoryIn;
+    }
+
+    //Reset
+
+    public static void reset() {
+        cpu.reset();
     }
 
     //Debugs
@@ -77,8 +85,8 @@ public class CPUInstructions {
     public static void ldTwoRegisters(int register) {
         int status = 0, address;
 
-        if(register == 2) cpu.increaseCounter(4);
-        else cpu.increaseCounter(2);
+        if(register != 2) cpu.increaseCounter(2);
+        else cpu.increaseCounter(4);
 
         switch(register) {
             case 0 -> address = (cpu.getRegister(1) << 8) + cpu.getRegister(2);
@@ -1181,6 +1189,7 @@ public class CPUInstructions {
         cpu.increaseCounter(1);
 
         cpu.setIsStopped(true);
+        memory.setMemory(DIVIDER_REGISTER, (char) 0);
 
         cpu.increaseProgramCounter(1);
     }
