@@ -10,8 +10,22 @@ public class PPU {
     private final int OAM = 2;
     private final int PIXEL_TRANSFER = 3;
 
+    private final int TILE_DATA_0 = 0x8000;
+    private final int TILE_DATA_1 = 0x8800;
+    private final int TILE_DATA_2 = 0x9000;
+
+    private final int TILE_MAP_0 = 0x9800;
+    private final int TILE_MAP_1 = 0x9c00;
+
+    private final int OAM_START = 0xfe00;
     private final int LCDC_CONTROL = 0xff40;
     private final int LCDC_STATUS = 0xff41;
+    private final int SCROLL_Y_REGISTER = 0xff42;
+    private final int SCROLL_X_REGISTER = 0xff43;
+    private final int LY_REGISTER = 0xff44;
+    private final int LYC_REGISTER = 0xff45;
+    private final int WINDOW_Y_REGISTER = 0xff4a;
+    private final int WINDOW_X_REGISTER = 0xff4b;
 
     private final int VBLANK_INTERRUPT = 0;
     private final int STAT_INTERRUPT = 1;
@@ -62,9 +76,9 @@ public class PPU {
         this.display = display;
     }
 
-    public void setScrolls(int scrollX, int scrollY) {
-        this.scrollX = scrollX;
-        this.scrollY = scrollY;
+    public void setScrolls() {
+        this.scrollX = readScrollX();
+        this.scrollY = readScrollY();
     }
 
     public void reset() {
@@ -136,20 +150,20 @@ public class PPU {
     }
 
     private void readWindow() {
-        windowY = memory.getMemory(0xff4a);
-        windowX = memory.getMemory(0xff4b);
+        windowY = memory.getMemory(WINDOW_Y_REGISTER);
+        windowX = memory.getMemory(WINDOW_X_REGISTER);
     }
 
     public char readScrollY() {
-        return memory.getMemory(0xff42);
+        return memory.getMemory(SCROLL_Y_REGISTER);
     }
 
     public char readScrollX() {
-        return memory.getMemory(0xff43);
+        return memory.getMemory(SCROLL_X_REGISTER);
     }
 
     public char readLY() {
-        return memory.getMemory(0xff44);
+        return memory.getMemory(LY_REGISTER);
     }
 
     private boolean treatLYC() {
@@ -192,28 +206,24 @@ public class PPU {
     }
 
     private void draw() {
-//        if(counter == 0) {
-//            setScrolls(readScrollX() & 0x7, scrollY);
-//        }
-
         counter++;
 
         currentLine = readLY();
         int tileMapAddress;
-        if(windowOn) tileMapAddress = windowTileMap ? 0x9c00 : 0x9800;
-        else tileMapAddress = backgroundTileMap ? 0x9c00 : 0x9800;
+        if(windowOn) tileMapAddress = windowTileMap ? TILE_MAP_1 : TILE_MAP_0;
+        else tileMapAddress = backgroundTileMap ? TILE_MAP_1 : TILE_MAP_0;
 
-        int tileDataAddress = windowTileData ? 0x8000 : 0x9000;
+        int tileDataAddress = windowTileData ? TILE_DATA_0 : TILE_DATA_2;
 
-        if(tileDataAddress == 0x9000) negativeTiles = true;
+        if(tileDataAddress == TILE_DATA_2) negativeTiles = true;
 
         switch (mode) {
             case 0 -> { //H-BLANK
                 if (counter == 114) {
                     counter = 0;
                     currentLine++;
-                    //memory.writePriv(0xff44, (char) currentLine);
-                    if (currentLine >= 144) {
+                    memory.writePriv(LY_REGISTER, (char) currentLine);
+                    if (currentLine >= 143) {
                         display.drawImage(painting);
                         displayFrame.repaint();
                         changeMode(VBLANK);
@@ -226,14 +236,13 @@ public class PPU {
                 if (counter == 114) {
                     counter = 0;
                     currentLine++;
-                    //memory.writePriv(0xff44, (char) currentLine);
-                }
-                if (currentLine > 153) {
-                    currentLine = 0;
-                    //memory.writePriv(0xff44, (char) currentLine);
-                    changeMode(OAM);
-                    getToSleep = true;
-                    counter = 0;
+                    memory.writePriv(LY_REGISTER, (char) currentLine);
+                    if (currentLine > 153) {
+                        currentLine = 0;
+                        memory.writePriv(LY_REGISTER, (char) currentLine);
+                        changeMode(OAM);
+                        getToSleep = true;
+                    }
                 }
             }
             case 2 -> { //OAM Search
@@ -244,10 +253,11 @@ public class PPU {
             }
             case 3 -> { //Pixel Transfer
                 if (counter == 40) {
-                    setScrolls(readScrollX(), readScrollY());
+                    setScrolls();
+                    //readWindow();
                     if(backgroundOn) drawBackground(tileMapAddress, tileDataAddress);
                     //if(windowOn) drawWindow(tileMapAddress, tileDataAddress);
-                    //if(spriteOn) drawSprite();
+                    if(spriteOn) drawSprite();
                     changeMode(HBLANK);
                 }
             }
@@ -271,7 +281,7 @@ public class PPU {
             int tileLine;
             if(negativeTiles) {
                 if(((tile & 0x80) >> 7) == 0) tileLine = tileDataAddress + ((tile & 0xff) * 0x10) + ((currentLine % 8) * 2);
-                else tileLine = 0x8800 + (((tile & 0xff) - 128) * 0x10) + ((currentLine % 8) * 2);
+                else tileLine = TILE_DATA_1 + (((tile & 0xff) - 128) * 0x10) + ((currentLine % 8) * 2);
             } else tileLine = tileDataAddress + ((tile & 0xff) * 0x10) + ((currentLine % 8) * 2);
 
             int offset = 7 - (tempX % 8);
@@ -298,7 +308,7 @@ public class PPU {
             int tileLine;
             if(negativeTiles) {
                 if(((tile & 0x80) >> 7) == 0) tileLine = tileDataAddress + ((tile & 0xff) * 0x10) + ((currentLine % 8) * 2);
-                else tileLine = 0x8800 + (((tile & 0xff) - 128) * 0x10) + ((currentLine % 8) * 2);
+                else tileLine = TILE_DATA_1 + (((tile & 0xff) - 128) * 0x10) + ((currentLine % 8) * 2);
             } else tileLine = tileDataAddress + ((tile & 0xff) * 0x10) + ((currentLine % 8) * 2);
 
             int offset = 7 - (tempX % 8);
@@ -308,22 +318,35 @@ public class PPU {
 
     private void drawSprite() {
         int tempY, tempX, spriteLocation, spriteAttributes;
-        for (int i = 0; i < 40; i++) {
-            tempY = memory.getMemory(0xfe00 + (i * 4)) - 16;
-            tempX = memory.getMemory(0xfe00 + (i * 4) + 1) - 8;
+        for (int spriteNumber = 0; spriteNumber < 40; spriteNumber++) {
 
-            spriteLocation = memory.getMemory(0xfe00 + (i * 4) + 2);
-            spriteAttributes = memory.getMemory(0xfe00 + (i * 4) + 3);
+            tempY = memory.getMemory(OAM_START + (spriteNumber * 4)) - 16;
+            tempX = memory.getMemory(OAM_START + (spriteNumber * 4) + 1) - 8;
+            spriteLocation = memory.getMemory(OAM_START + (spriteNumber * 4) + 2);
+            spriteAttributes = memory.getMemory(OAM_START + (spriteNumber * 4) + 3);
 
             boolean yFlipped = ((spriteAttributes & 0x40) >> 6) == 1;
             boolean xFlipped = ((spriteAttributes & 0x20) >> 5) == 1;
 
             int spriteSize = this.spriteSize ? 16 : 8;
 
-//            if(currentLine >= tempY) {
-//                writeTileSprite(spriteLocation, tile, tempX, yFlipped, xFlipped);
-//            }
+            if(currentLine >= tempY && currentLine < (tempY + spriteSize)) {
+                int offset;
 
+                if (yFlipped) offset = 2 * (currentLine - 1);
+                else offset = 2 * (currentLine - tempY);
+
+                int pixelData0 = memory.getMemory((TILE_DATA_0 + spriteLocation * 16) + offset);
+                int pixelData1 = memory.getMemory((TILE_DATA_0 + spriteLocation * 16) + offset + 1);
+
+                for (int x = 0; x < 8; x++) {
+                    int col_index = xFlipped ? x : 7 - x;
+                    int color_num = ((pixelData0 & (1 << col_index)) >> col_index) + (((pixelData1 & (1 << col_index)) >> col_index) * 2);
+                    if ((tempX + x < 160) && (tempX + x >= 0) && color_num != 0) {
+                        painting[tempX + x][currentLine] = (byte) color_num;
+                    }
+                }
+            }
         }
     }
 }

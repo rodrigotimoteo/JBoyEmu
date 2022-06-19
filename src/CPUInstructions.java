@@ -29,6 +29,7 @@ public class CPUInstructions {
         + " " + String.format("%02X", (int) memory.getMemory(cpu.getProgramCounter() + 1))
         + " " + String.format("%02X", (int) memory.getMemory(cpu.getProgramCounter() + 2))
         + " " + String.format("%02X", (int) memory.getMemory(cpu.getProgramCounter() + 3)) + ")");
+        System.out.println(cpu.getCounter());
     }
 
     public static void dumpRegisters() {

@@ -8,12 +8,15 @@ import java.io.File;
 
 public class DisplayFrame extends JFrame implements KeyListener, ActionListener {
 
-    private Memory memory;
+    private final Memory memory;
+    private final CPU cpu;
 
     private final JMenuBar menuBar;
     private final JMenu file;
 
     private boolean gameLoaded = false;
+
+    private final int HI_LO_INTERRUPT = 4;
 
     private static int WIDTH = 160;
     private static int HEIGHT = 144;
@@ -45,10 +48,11 @@ public class DisplayFrame extends JFrame implements KeyListener, ActionListener 
         return size;
     }
 
-    public DisplayFrame(Memory memory, PPU ppu) {
+    public DisplayFrame(Memory memory, PPU ppu, CPU cpu) {
 
         DisplayPanel displayPanel = new DisplayPanel(memory, ppu, this);
         this.memory = memory;
+        this.cpu = cpu;
         ppu.setDisplayFrame(this);
 
         menuBar = new JMenuBar();
@@ -59,9 +63,6 @@ public class DisplayFrame extends JFrame implements KeyListener, ActionListener 
         file.add(open);
         open.setActionCommand("open");
         open.addActionListener(this);
-
-
-
 
         setLocationRelativeTo(null);
 
@@ -90,8 +91,7 @@ public class DisplayFrame extends JFrame implements KeyListener, ActionListener 
         if(keyPressed == -1) return;
 
         joypad = joypad & (~(1 << keyPressed));
-        memory.setMemory(0xff80, (char) (~joypad & 0xff));
-        memory.writePriv(0xff0f, (char) ((memory.getMemory(0xff0f) & 0xff) | 0x10));
+        cpu.setInterrupt(HI_LO_INTERRUPT);
     }
 
     public int getJoypad(char joypadInfo) {
@@ -111,10 +111,10 @@ public class DisplayFrame extends JFrame implements KeyListener, ActionListener 
             case KeyEvent.VK_X -> 1;  //B
             case KeyEvent.VK_1 -> 2;  //SELECT
             case KeyEvent.VK_2 -> 3;  //START
-            case KeyEvent.VK_RIGHT -> 4;  //RIGHT
-            case KeyEvent.VK_LEFT -> 5;   //LEFT
-            case KeyEvent.VK_UP -> 6;     //UP
-            case KeyEvent.VK_DOWN -> 7;   //DOWN
+            case KeyEvent.VK_L -> 4;  //RIGHT
+            case KeyEvent.VK_J -> 5;   //LEFT
+            case KeyEvent.VK_I -> 6;     //UP
+            case KeyEvent.VK_K -> 7;   //DOWN
             default -> -1;
         };
     }
@@ -125,8 +125,6 @@ public class DisplayFrame extends JFrame implements KeyListener, ActionListener 
         if(keyPressed == -1) return;
 
         joypad = joypad | (1 << keyPressed);
-        memory.setMemory(0xff80, (char) (~joypad & 0xff));
-        memory.writePriv(0xff0f, (char) (memory.getMemory(0xff0f)| 0x10));
     }
 
     public File chooseFile() {

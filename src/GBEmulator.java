@@ -19,7 +19,7 @@ public class GBEmulator extends Thread{
         while (true) {
             try {
                 int cpuCounter = cpu.getCounter();
-                //if(ppu.isGetToSleep()) Thread.sleep(10);
+                //Thread.sleep(10);
                 if (!ppu.getLcdOn()) {
                     cpu.cycle();
                     ppu.readLCDControl();

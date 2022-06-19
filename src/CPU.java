@@ -34,7 +34,7 @@ public class CPU {
     private boolean setChangeTo = false;
     private boolean changeInterrupt = false;
 
-    private boolean debugText = true;
+    private final boolean debugText = false;
     PrintStream debug;
 
     Memory memory;
@@ -188,7 +188,7 @@ public class CPU {
         clearRegisters();
         memory = new Memory(this);
         ppu = new PPU(memory, this);
-        displayFrame = new DisplayFrame(memory, ppu);
+        displayFrame = new DisplayFrame(memory, ppu, this);
         memory.setDisplayFrame(displayFrame);
 
         if(debugText) {
@@ -263,11 +263,11 @@ public class CPU {
 
     public void setInterrupt(int interrupt) {
         switch(interrupt) {
-            case 0: memory.setBit(INTERRUPT_FLAG, 0);
-            case 1: memory.setBit(INTERRUPT_FLAG, 1);
-            case 2: memory.setBit(INTERRUPT_FLAG, 2);
-            case 3: memory.setBit(INTERRUPT_FLAG, 3);
-            case 4: memory.setBit(INTERRUPT_FLAG, 4);
+            case 0-> memory.setBit(INTERRUPT_FLAG, 0);
+            case 1-> memory.setBit(INTERRUPT_FLAG, 1);
+            case 2-> memory.setBit(INTERRUPT_FLAG, 2);
+            case 3-> memory.setBit(INTERRUPT_FLAG, 3);
+            case 4-> memory.setBit(INTERRUPT_FLAG, 4);
         }
     }
 
@@ -361,10 +361,15 @@ public class CPU {
 
     private void decodeOperationCodes() {
 
-        CPUInstructions.dumpRegisters();
-        CPUInstructions.show();
-
-        if(debugText) System.setOut(debug);
+//        if(counter >= 366100) {
+//            CPUInstructions.dumpRegisters();
+//            CPUInstructions.show();
+//        }
+//
+//        if(counter >= 366125) {
+//            System.exit(1);
+//        }
+//        if(debugText) System.setOut(debug);
 
         switch (operationCode) {
             case 0x00 -> CPUInstructions.nop();                               //NOP
@@ -384,378 +389,192 @@ public class CPU {
             case 0x0E -> CPUInstructions.ld(2, 9);  //LD C,u8
             case 0x0F -> CPUInstructions.rrca();                             //RRCA
             case 0x10 -> CPUInstructions.stop();                             //STOP
-            case 0x11 -> //LD DE,u16
-                    CPUInstructions.ld16bit(1);
-            case 0x12 -> //LD (DE),A
-                    CPUInstructions.ldTwoRegisters(1);
-            case 0x13 -> //INC DE
-                    CPUInstructions.incR(1);
-            case 0x14 -> //INC D
-                    CPUInstructions.inc(3);
-            case 0x15 -> //DEC D
-                    CPUInstructions.dec(3);
-            case 0x16 -> //LD D,u8
-                    CPUInstructions.ld(3, 9);
-            case 0x17 -> //RLA
-                    CPUInstructions.rla();
-            case 0x18 -> //JR i8
-                    CPUInstructions.jr();
-            case 0x19 -> //ADD HL,DE
-                    CPUInstructions.addHL(1);
-            case 0x1A -> //LD A,(DE)
-                    CPUInstructions.ldTwoRegistersIntoA(1);
-            case 0x1B -> //DEC DE
-                    CPUInstructions.decR(1);
-            case 0x1C -> //INC E
-                    CPUInstructions.inc(4);
-            case 0x1D -> //DEC E
-                    CPUInstructions.dec(4);
-            case 0x1E -> //LD E,u8
-                    CPUInstructions.ld(4, 9);
-            case 0x1F -> //RRA
-                    CPUInstructions.rra();
-            case 0x20 -> //JR NZ,i8
-                    CPUInstructions.jrCond(0);
-            case 0x21 -> //LD HL,u16
-                    CPUInstructions.ld16bit(2);
-            case 0x22 -> //LDI (HL),A
-                    CPUInstructions.ldi(1);
-            case 0x23 -> //INC HL
-                    CPUInstructions.incR(2);
-            case 0x24 -> //INC H
-                    CPUInstructions.inc(6);
-            case 0x25 -> //DEC H
-                    CPUInstructions.dec(6);
-            case 0x26 -> //LD H,u8
-                    CPUInstructions.ld(6, 9);
-            case 0x27 -> //DAA
-                    CPUInstructions.daa();
-            case 0x28 -> //JR Z,u8
-                    CPUInstructions.jrCond(1);
-            case 0x29 -> //ADD HL, HL
-                    CPUInstructions.addHL(2);
-            case 0x2A -> //LDI A,(HL)
-                    CPUInstructions.ldi(0);
-            case 0x2B -> //DEC HL
-                    CPUInstructions.decR(2);
-            case 0x2C -> //INC L
-                    CPUInstructions.inc(7);
-            case 0x2D -> //DEC L
-                    CPUInstructions.dec(7);
-            case 0x2E -> //LD L,u8
-                    CPUInstructions.ld(7, 9);
-            case 0x2F -> //CPL
-                    CPUInstructions.cpl();
-            case 0x30 -> //JR NC,u8
-                    CPUInstructions.jrCond(2);
-            case 0x31 -> //LD SP,u16
-                    CPUInstructions.ld16bit(3);
-            case 0x32 -> //LDD (HL),A   IMPLEMENTED AND WORKING
-                    CPUInstructions.ldd(1);
-            case 0x33 -> //INC SP
-                    CPUInstructions.incR(3);
-            case 0x34 -> //INC (HL)
-                    CPUInstructions.inc(8);
-            case 0x35 -> //INC (HL)
-                    CPUInstructions.dec(8);
-            case 0x36 -> //LD (HL), n
-                    CPUInstructions.ld(8, 9);
-            case 0x37 -> //SCF
-                    CPUInstructions.scf();
-            case 0x38 -> //JR C,u8
-                    CPUInstructions.jrCond(3);
-            case 0x39 -> //ADD HL,SP
-                    CPUInstructions.addHL(3);
-            case 0x3A -> //LDD A,(HL)
-                    CPUInstructions.ldd(0);
-            case 0x3B -> //DEC SP
-                    CPUInstructions.decR(3);
-            case 0x3C -> //INC A
-                    CPUInstructions.inc(0);
-            case 0x3D -> //DEC A
-                    CPUInstructions.dec(0);
-            case 0x3E -> //LD A,u8   IMPLEMENTED AND WORKING
-                    CPUInstructions.ldTwoRegistersIntoA(3);
-            case 0x3F -> //CCF
-                    CPUInstructions.ccf();
-            case 0x40 -> //LD B,B  IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(1, 1);
-            case 0x41 -> //LD B,C IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(1, 2);
-            case 0x42 -> //LD B,D IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(1, 3);
-            case 0x43 -> //LD B,E IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(1, 4);
-            case 0x44 -> //LD B,H IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(1, 6);
-            case 0x45 -> //LD B,L IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(1, 7);
-            case 0x46 -> //LD B,(HL) IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(1, 8);
-            case 0x47 -> //LD B,A IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(1, 0);
-            case 0x48 -> //LD C,B IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(2, 1);
-            case 0x49 -> //LD C,C IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(2, 2);
-            case 0x4A -> //LD C,D IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(2, 3);
-            case 0x4B -> //LD C,E IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(2, 4);
-            case 0x4C -> //LD C,H IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(2, 6);
-            case 0x4D -> //LD C,L IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(2, 7);
-            case 0x4E -> //LD C,(HL) IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(2, 8);
-            case 0x4F -> //LD C,A IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(2, 0);
-            case 0x50 -> //LD D,B IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(3, 1);
-            case 0x51 -> //LD D,C IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(3, 2);
-            case 0x52 -> //LD D,D IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(3, 3);
-            case 0x53 -> //LD D,E IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(3, 4);
-            case 0x54 -> //LD D,H IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(3, 6);
-            case 0x55 -> //LD D,L IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(3, 7);
-            case 0x56 -> //LD D,(HL) IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(3, 8);
-            case 0x57 -> //LD D,A IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(3, 0);
-            case 0x58 -> //LD E,B IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(4, 1);
-            case 0x59 -> //LD E,C IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(4, 2);
-            case 0x5A -> //LD E,D IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(4, 3);
-            case 0x5B -> //LD E,E IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(4, 4);
-            case 0x5C -> //LD E,H IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(4, 6);
-            case 0x5D -> //LD E,L IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(4, 7);
-            case 0x5E -> //LD E,(HL) IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(4, 8);
-            case 0x5F -> //LD E,A IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(4, 0);
-            case 0x60 -> //LD H,B IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(6, 1);
-            case 0x61 -> //LD H,C IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(6, 2);
-            case 0x62 -> //LD H,D IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(6, 3);
-            case 0x63 -> //LD H,E IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(6, 4);
-            case 0x64 -> //LD H,H IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(6, 6);
-            case 0x65 -> //LD H,L IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(6, 7);
-            case 0x66 -> //LD H,(HL) IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(6, 8);
-            case 0x67 -> //LD H,A IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(6, 0);
-            case 0x68 -> //LD L,B IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(7, 1);
-            case 0x69 -> //LD L,C IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(7, 2);
-            case 0x6A -> //LD L,D IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(7, 3);
-            case 0x6B -> //LD L,E IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(7, 4);
-            case 0x6C -> //LD L,H IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(7, 6);
-            case 0x6D -> //LD L,L IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(7, 7);
-            case 0x6E -> //LD L,(HL) IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(7, 8);
-            case 0x6F -> //LD L,A IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(7, 0);
-            case 0x70 -> //LD (HL),B
-                    CPUInstructions.ld(8, 1);
-            case 0x71 -> //LD (HL),C
-                    CPUInstructions.ld(8, 2);
-            case 0x72 -> //LD (HL),D
-                    CPUInstructions.ld(8, 3);
-            case 0x73 -> //LD (HL),E
-                    CPUInstructions.ld(8, 4);
-            case 0x74 -> //LD (HL),H
-                    CPUInstructions.ld(8, 6);
-            case 0x75 -> //LD (HL),L
-                    CPUInstructions.ld(8, 7);
-            case 0x76 -> //HALT
-                    CPUInstructions.halt();
-            case 0x77 -> //LD (HL),A
-                    CPUInstructions.ld(8, 0);
-            case 0x78 -> //LD A,B  IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(0, 1);
-            case 0x79 -> //LD A,C  IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(0, 2);
-            case 0x7A -> //LD A,D  IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(0, 3);
-            case 0x7B -> //LD A,E  IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(0, 4);
-            case 0x7C -> //LD A,H  IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(0, 6);
-            case 0x7D -> //LD A,L  IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(0, 7);
-            case 0x7E -> //LD A,(HL)  IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(0, 8);
-            case 0x7F -> //LD A,A  IMPLEMENTED AND WORKING
-                    CPUInstructions.ld(0, 0);
-            case 0x80 -> //ADD A,B
-                    CPUInstructions.add(1);
-            case 0x81 -> //ADD A,C
-                    CPUInstructions.add(2);
-            case 0x82 -> //ADD A,D
-                    CPUInstructions.add(3);
-            case 0x83 -> //ADD A,E
-                    CPUInstructions.add(4);
-            case 0x84 -> //ADD A, H
-                    CPUInstructions.add(6);
-            case 0x85 -> //ADD A,L
-                    CPUInstructions.add(7);
-            case 0x86 -> //ADD A,(HL)
-                    CPUInstructions.add(8);
-            case 0x87 -> //ADD A,A
-                    CPUInstructions.add(0);
-            case 0x88 -> //ADC A,B
-                    CPUInstructions.adc(1);
-            case 0x89 -> //ADC A,C
-                    CPUInstructions.adc(2);
-            case 0x8A -> //ADC A,D
-                    CPUInstructions.adc(3);
-            case 0x8B -> //ADC A,E
-                    CPUInstructions.adc(4);
-            case 0x8C -> //ADC A,H
-                    CPUInstructions.adc(6);
-            case 0x8D -> //ADC A,L
-                    CPUInstructions.adc(7);
-            case 0x8E -> //ADC A,(HL)
-                    CPUInstructions.adc(8);
-            case 0x8F -> //ADC A,A
-                    CPUInstructions.adc(0);
-            case 0x90 -> //SUB A,B
-                    CPUInstructions.sub(1);
-            case 0x91 -> //SUB A,C
-                    CPUInstructions.sub(2);
-            case 0x92 -> //SUB A,D
-                    CPUInstructions.sub(3);
-            case 0x93 -> //SUB A,E
-                    CPUInstructions.sub(4);
-            case 0x94 -> //SUB A,H
-                    CPUInstructions.sub(6);
-            case 0x95 -> //SUB A,L
-                    CPUInstructions.sub(7);
-            case 0x96 -> //SUB A, (HL)
-                    CPUInstructions.sub(8);
-            case 0x97 -> //SUB A,A
-                    CPUInstructions.sub(0);
-            case 0x98 -> //SBC A,B
-                    CPUInstructions.sbc(1);
-            case 0x99 -> //SBC A,C
-                    CPUInstructions.sbc(2);
-            case 0x9A -> //SBC A,D
-                    CPUInstructions.sbc(3);
-            case 0x9B -> //SBC A,E
-                    CPUInstructions.sbc(4);
-            case 0x9C -> //SBC A,H
-                    CPUInstructions.sbc(6);
-            case 0x9D -> //SBC A,L
-                    CPUInstructions.sbc(7);
-            case 0x9E -> //SBC A, (HL)
-                    CPUInstructions.sbc(8);
-            case 0x9F -> //SBC A,A
-                    CPUInstructions.sbc(0);
-            case 0xA0 -> //AND A,B
-                    CPUInstructions.and(1);
-            case 0xA1 -> //AND A,C
-                    CPUInstructions.and(2);
-            case 0xA2 -> //AND A,D
-                    CPUInstructions.and(3);
-            case 0xA3 -> //AND A,E
-                    CPUInstructions.and(4);
-            case 0xA4 -> //AND A,H
-                    CPUInstructions.and(6);
-            case 0xA5 -> //AND A,L
-                    CPUInstructions.and(7);
-            case 0xA6 -> //AND A,(HL)
-                    CPUInstructions.and(8);
-            case 0xA7 -> //AND A,A
-                    CPUInstructions.and(0);
-            case 0xA8 -> //XOR A,B
-                    CPUInstructions.xor(1);
-            case 0xA9 -> //XOR A,C
-                    CPUInstructions.xor(2);
-            case 0xAA -> //XOR A,D
-                    CPUInstructions.xor(3);
-            case 0xAB -> //XOR A,E
-                    CPUInstructions.xor(4);
-            case 0xAC -> //XOR A,H
-                    CPUInstructions.xor(6);
-            case 0xAD -> //XOR A,L
-                    CPUInstructions.xor(7);
-            case 0xAE -> //XOR A,(HL)
-                    CPUInstructions.xor(8);
-            case 0xAF -> //XOR A,A
-                    CPUInstructions.xor(0);
-            case 0xB0 -> //OR A,B
-                    CPUInstructions.or(1);
-            case 0xB1 -> //OR A,C
-                    CPUInstructions.or(2);
-            case 0xB2 -> //OR A,D
-                    CPUInstructions.or(3);
-            case 0xB3 -> //OR A,E
-                    CPUInstructions.or(4);
-            case 0xB4 -> //OR A,H
-                    CPUInstructions.or(6);
-            case 0xB5 -> //OR A,L
-                    CPUInstructions.or(7);
-            case 0xB6 -> //OR A,(HL)
-                    CPUInstructions.or(8);
-            case 0xB7 -> //OR A,A
-                    CPUInstructions.or(0);
-            case 0xB8 -> //CP A,B
-                    CPUInstructions.cp(1);
-            case 0xB9 -> //CP A,C
-                    CPUInstructions.cp(2);
-            case 0xBA -> //CP A,D
-                    CPUInstructions.cp(3);
-            case 0xBB -> //CP A,E
-                    CPUInstructions.cp(4);
-            case 0xBC -> //CP A,H
-                    CPUInstructions.cp(6);
-            case 0xBD -> //CP A,L
-                    CPUInstructions.cp(7);
-            case 0xBE -> //CP A,(HL)
-                    CPUInstructions.cp(8);
-            case 0xBF -> //CP A,A
-                    CPUInstructions.cp(0);
-            case 0xC0 -> //RET NZ
-                    CPUInstructions.retCond(0);
-            case 0xC1 -> //POP BC
-                    CPUInstructions.pop(1);
-            case 0xC2 -> //JP NZ,u16
-                    CPUInstructions.jpCond(0);
-            case 0xC3 -> //JP u16   IMPLEMENTED AND WORKING
-                    CPUInstructions.jp();
-            case 0xC4 -> //CALL NZ, nn
-                    CPUInstructions.callCond(0);
-            case 0xC5 -> //PUSH BC
-                    CPUInstructions.push(1);
-            case 0xC6 -> //ADD A,#
-                    CPUInstructions.add(9);
-            case 0xC7 -> //RST 00H
-                    CPUInstructions.rst(0);
-            case 0xC8 -> //RET Z
-                    CPUInstructions.retCond(1);
-            case 0xC9 -> //RET
-                    CPUInstructions.ret();
-            case 0xCA -> //JP Z,u16
-                    CPUInstructions.jpCond(1);
+            case 0x11 -> CPUInstructions.ld16bit(1);                  //LD DE,u16
+            case 0x12 -> CPUInstructions.ldTwoRegisters(1);                  //LD (DE),A
+            case 0x13 -> CPUInstructions.incR(1);                  //INC DE
+            case 0x14 -> CPUInstructions.inc(3);                   //INC D
+            case 0x15 -> CPUInstructions.dec(3);                   //DEC D
+            case 0x16 -> CPUInstructions.ld(3, 9);  //LD D,u8
+            case 0x17 -> CPUInstructions.rla();                              //RLA
+            case 0x18 -> CPUInstructions.jr();                               //JR i8
+            case 0x19 -> CPUInstructions.addHL(1);                 //ADD HL,DE
+            case 0x1A -> CPUInstructions.ldTwoRegistersIntoA(1);             //LD A,(DE)
+            case 0x1B -> CPUInstructions.decR(1);                  //DEC DE
+            case 0x1C -> CPUInstructions.inc(4);                   //INC E
+            case 0x1D -> CPUInstructions.dec(4);                   //DEC E
+            case 0x1E -> CPUInstructions.ld(4, 9);  //LD E,u8
+            case 0x1F -> CPUInstructions.rra();                              //RRA
+            case 0x20 -> CPUInstructions.jrCond(0);                   //JR NZ,i8
+            case 0x21 -> CPUInstructions.ld16bit(2);                  //LD HL,u16
+            case 0x22 -> CPUInstructions.ldi(1);                      //LDI (HL),A
+            case 0x23 -> CPUInstructions.incR(2);                  //INC HL
+            case 0x24 -> CPUInstructions.inc(6);                   //INC H
+            case 0x25 -> CPUInstructions.dec(6);                   //DEC H
+            case 0x26 -> CPUInstructions.ld(6, 9);  //LD H,u8
+            case 0x27 -> CPUInstructions.daa();                              //DAA
+            case 0x28 -> CPUInstructions.jrCond(1);                   //JR Z,u8
+            case 0x29 -> CPUInstructions.addHL(2);                //ADD HL, HL
+            case 0x2A -> CPUInstructions.ldi(0);                      //LDI A,(HL)
+            case 0x2B -> CPUInstructions.decR(2);                  //DEC HL
+            case 0x2C -> CPUInstructions.inc(7);                   //INC L
+            case 0x2D -> CPUInstructions.dec(7);                   //DEC L
+            case 0x2E -> CPUInstructions.ld(7, 9);  //LD L,u8
+            case 0x2F -> CPUInstructions.cpl();                              //CPL
+            case 0x30 -> CPUInstructions.jrCond(2);                    //JR NC,u8
+            case 0x31 -> CPUInstructions.ld16bit(3);                   //LD SP,u16
+            case 0x32 -> CPUInstructions.ldd(1);                       //LDD (HL),A
+            case 0x33 -> CPUInstructions.incR(3);                  //INC SP
+            case 0x34 -> CPUInstructions.inc(8);                   //INC (HL)
+            case 0x35 -> CPUInstructions.dec(8);                   //INC (HL)
+            case 0x36 -> CPUInstructions.ld(8, 9);  //LD (HL), n
+            case 0x37 -> CPUInstructions.scf();                              //SCF
+            case 0x38 -> CPUInstructions.jrCond(3);                    //JR C,u8
+            case 0x39 -> CPUInstructions.addHL(3);                 //ADD HL,SP
+            case 0x3A -> CPUInstructions.ldd(0);                       //LDD A,(HL)
+            case 0x3B -> CPUInstructions.decR(3);                  //DEC SP
+            case 0x3C -> CPUInstructions.inc(0);                   //INC A
+            case 0x3D -> CPUInstructions.dec(0);                   //DEC A
+            case 0x3E -> CPUInstructions.ldTwoRegistersIntoA(3);             //LD A,u8
+            case 0x3F -> CPUInstructions.ccf();                              //CCF
+            case 0x40 -> CPUInstructions.ld(1, 1);  //LD B,B
+            case 0x41 -> CPUInstructions.ld(1, 2);  //LD B,C
+            case 0x42 -> CPUInstructions.ld(1, 3);  //LD B,D
+            case 0x43 -> CPUInstructions.ld(1, 4);  //LD B,E
+            case 0x44 -> CPUInstructions.ld(1, 6);  //LD B,H
+            case 0x45 -> CPUInstructions.ld(1, 7);  //LD B,L
+            case 0x46 -> CPUInstructions.ld(1, 8);  //LD B,(HL)
+            case 0x47 -> CPUInstructions.ld(1, 0);  //LD B,A
+            case 0x48 -> CPUInstructions.ld(2, 1);  //LD C,B
+            case 0x49 -> CPUInstructions.ld(2, 2);  //LD C,C
+            case 0x4A -> CPUInstructions.ld(2, 3);  //LD C,D
+            case 0x4B -> CPUInstructions.ld(2, 4);  //LD C,E
+            case 0x4C -> CPUInstructions.ld(2, 6);  //LD C,H
+            case 0x4D -> CPUInstructions.ld(2, 7);  //LD C,L
+            case 0x4E -> CPUInstructions.ld(2, 8);  //LD C,(HL)
+            case 0x4F -> CPUInstructions.ld(2, 0);  //LD C,A
+            case 0x50 -> CPUInstructions.ld(3, 1);  //LD D,B
+            case 0x51 -> CPUInstructions.ld(3, 2);  //LD D,C
+            case 0x52 -> CPUInstructions.ld(3, 3);  //LD D,D
+            case 0x53 -> CPUInstructions.ld(3, 4);  //LD D,E
+            case 0x54 -> CPUInstructions.ld(3, 6);  //LD D,H
+            case 0x55 -> CPUInstructions.ld(3, 7);  //LD D,L
+            case 0x56 -> CPUInstructions.ld(3, 8);  //LD D,(HL)
+            case 0x57 -> CPUInstructions.ld(3, 0);  //LD D,A
+            case 0x58 -> CPUInstructions.ld(4, 1);  //LD E,B
+            case 0x59 -> CPUInstructions.ld(4, 2);  //LD E,C
+            case 0x5A -> CPUInstructions.ld(4, 3);  //LD E,D
+            case 0x5B -> CPUInstructions.ld(4, 4);  //LD E,E
+            case 0x5C -> CPUInstructions.ld(4, 6);  //LD E,H
+            case 0x5D -> CPUInstructions.ld(4, 7);  //LD E,L
+            case 0x5E -> CPUInstructions.ld(4, 8);  //LD E,(HL)
+            case 0x5F -> CPUInstructions.ld(4, 0);  //LD E,A
+            case 0x60 -> CPUInstructions.ld(6, 1);  //LD H,B
+            case 0x61 -> CPUInstructions.ld(6, 2);  //LD H,C
+            case 0x62 -> CPUInstructions.ld(6, 3);  //LD H,D
+            case 0x63 -> CPUInstructions.ld(6, 4);  //LD H,E
+            case 0x64 -> CPUInstructions.ld(6, 6);  //LD H,H
+            case 0x65 -> CPUInstructions.ld(6, 7);  //LD H,L
+            case 0x66 -> CPUInstructions.ld(6, 8);  //LD H,(HL)
+            case 0x67 -> CPUInstructions.ld(6, 0);  //LD H,A
+            case 0x68 -> CPUInstructions.ld(7, 1);  //LD L,B
+            case 0x69 -> CPUInstructions.ld(7, 2);  //LD L,C
+            case 0x6A -> CPUInstructions.ld(7, 3);  //LD L,D
+            case 0x6B -> CPUInstructions.ld(7, 4);  //LD L,E
+            case 0x6C -> CPUInstructions.ld(7, 6);  //LD L,H
+            case 0x6D -> CPUInstructions.ld(7, 7);  //LD L,L
+            case 0x6E -> CPUInstructions.ld(7, 8);  //LD L,(HL)
+            case 0x6F -> CPUInstructions.ld(7, 0);  //LD L,A
+            case 0x70 -> CPUInstructions.ld(8, 1);  //LD (HL),B
+            case 0x71 -> CPUInstructions.ld(8, 2);  //LD (HL),C
+            case 0x72 -> CPUInstructions.ld(8, 3);  //LD (HL),D
+            case 0x73 -> CPUInstructions.ld(8, 4);  //LD (HL),E
+            case 0x74 -> CPUInstructions.ld(8, 6);  //LD (HL),H
+            case 0x75 -> CPUInstructions.ld(8, 7);  //LD (HL),L
+            case 0x76 -> CPUInstructions.halt();                             //HALT
+            case 0x77 -> CPUInstructions.ld(8, 0);  //LD (HL),A
+            case 0x78 -> CPUInstructions.ld(0, 1);  //LD A,B
+            case 0x79 -> CPUInstructions.ld(0, 2);  //LD A,C
+            case 0x7A -> CPUInstructions.ld(0, 3);  //LD A,D
+            case 0x7B -> CPUInstructions.ld(0, 4);  //LD A,E
+            case 0x7C -> CPUInstructions.ld(0, 6);  //LD A,H
+            case 0x7D -> CPUInstructions.ld(0, 7);  //LD A,L
+            case 0x7E -> CPUInstructions.ld(0, 8);  //LD A,(HL)
+            case 0x7F -> CPUInstructions.ld(0, 0);  //LD A,A
+            case 0x80 -> CPUInstructions.add(1);                             //ADD A,B
+            case 0x81 -> CPUInstructions.add(2);                             //ADD A,C
+            case 0x82 -> CPUInstructions.add(3);                             //ADD A,D
+            case 0x83 -> CPUInstructions.add(4);                             //ADD A,E
+            case 0x84 -> CPUInstructions.add(6);                             //ADD A,H
+            case 0x85 -> CPUInstructions.add(7);                             //ADD A,L
+            case 0x86 -> CPUInstructions.add(8);                             //ADD A,(HL)
+            case 0x87 -> CPUInstructions.add(0);                             //ADD A,A
+            case 0x88 -> CPUInstructions.adc(1);                   //ADC A,B
+            case 0x89 -> CPUInstructions.adc(2);                   //ADC A,C
+            case 0x8A -> CPUInstructions.adc(3);                   //ADC A,D
+            case 0x8B -> CPUInstructions.adc(4);                   //ADC A,E
+            case 0x8C -> CPUInstructions.adc(6);                   //ADC A,H
+            case 0x8D -> CPUInstructions.adc(7);                   //ADC A,L
+            case 0x8E -> CPUInstructions.adc(8);                   //ADC A,(HL)
+            case 0x8F -> CPUInstructions.adc(0);                   //ADC A,A
+            case 0x90 -> CPUInstructions.sub(1);                   //SUB A,B
+            case 0x91 -> CPUInstructions.sub(2);                   //SUB A,C
+            case 0x92 -> CPUInstructions.sub(3);                   //SUB A,D
+            case 0x93 -> CPUInstructions.sub(4);                   //SUB A,E
+            case 0x94 -> CPUInstructions.sub(6);                   //SUB A,H
+            case 0x95 -> CPUInstructions.sub(7);                   //SUB A,L
+            case 0x96 -> CPUInstructions.sub(8);                   //SUB A, (HL)
+            case 0x97 -> CPUInstructions.sub(0);                   //SUB A,A
+            case 0x98 -> CPUInstructions.sbc(1);                   //SBC A,B
+            case 0x99 -> CPUInstructions.sbc(2);                   //SBC A,C
+            case 0x9A -> CPUInstructions.sbc(3);                   //SBC A,D
+            case 0x9B -> CPUInstructions.sbc(4);                   //SBC A,E
+            case 0x9C -> CPUInstructions.sbc(6);                   //SBC A,H
+            case 0x9D -> CPUInstructions.sbc(7);                   //SBC A,L
+            case 0x9E -> CPUInstructions.sbc(8);                   //SBC A, (HL)
+            case 0x9F -> CPUInstructions.sbc(0);                   //SBC A,A
+            case 0xA0 -> CPUInstructions.and(1);                   //AND A,B
+            case 0xA1 -> CPUInstructions.and(2);                   //AND A,C
+            case 0xA2 -> CPUInstructions.and(3);                   //AND A,D
+            case 0xA3 -> CPUInstructions.and(4);                   //AND A,E
+            case 0xA4 -> CPUInstructions.and(6);                   //AND A,H
+            case 0xA5 -> CPUInstructions.and(7);                   //AND A,L
+            case 0xA6 -> CPUInstructions.and(8);                   //AND A,(HL)
+            case 0xA7 -> CPUInstructions.and(0);                   //AND A,A
+            case 0xA8 -> CPUInstructions.xor(1);                   //XOR A,B
+            case 0xA9 -> CPUInstructions.xor(2);                   //XOR A,C
+            case 0xAA -> CPUInstructions.xor(3);                   //XOR A,D
+            case 0xAB -> CPUInstructions.xor(4);                   //XOR A,E
+            case 0xAC -> CPUInstructions.xor(6);                   //XOR A,H
+            case 0xAD -> CPUInstructions.xor(7);                   //XOR A,L
+            case 0xAE -> CPUInstructions.xor(8);                   //XOR A,(HL)
+            case 0xAF -> CPUInstructions.xor(0);                   //XOR A,A
+            case 0xB0 -> CPUInstructions.or(1);                    //OR A,B
+            case 0xB1 -> CPUInstructions.or(2);                    //OR A,C
+            case 0xB2 -> CPUInstructions.or(3);                    //OR A,D
+            case 0xB3 -> CPUInstructions.or(4);                    //OR A,E
+            case 0xB4 -> CPUInstructions.or(6);                    //OR A,H
+            case 0xB5 -> CPUInstructions.or(7);                    //OR A,L
+            case 0xB6 -> CPUInstructions.or(8);                    //OR A,(HL)
+            case 0xB7 -> CPUInstructions.or(0);                    //OR A,A
+            case 0xB8 -> CPUInstructions.cp(1);                    //CP A,B
+            case 0xB9 -> CPUInstructions.cp(2);                    //CP A,C
+            case 0xBA -> CPUInstructions.cp(3);                    //CP A,D
+            case 0xBB -> CPUInstructions.cp(4);                    //CP A,E
+            case 0xBC -> CPUInstructions.cp(6);                    //CP A,H
+            case 0xBD -> CPUInstructions.cp(7);                    //CP A,L
+            case 0xBE -> CPUInstructions.cp(8);                    //CP A,(HL)
+            case 0xBF -> CPUInstructions.cp(0);                    //CP A,A
+            case 0xC0 -> CPUInstructions.retCond(0);                   //RET NZ
+            case 0xC1 -> CPUInstructions.pop(1);                   //POP BC
+            case 0xC2 -> CPUInstructions.jpCond(0);                    //JP NZ,u16
+            case 0xC3 -> CPUInstructions.jp();                               //JP u16
+            case 0xC4 -> CPUInstructions.callCond(0);                 //CALL NZ, nn
+            case 0xC5 -> CPUInstructions.push(1);                 //PUSH BC
+            case 0xC6 -> CPUInstructions.add(9);                             //ADD A,#
+            case 0xC7 -> CPUInstructions.rst(0);                      //RST 00H
+            case 0xC8 -> CPUInstructions.retCond(1);                  //RET Z
+            case 0xC9 -> CPUInstructions.ret();                              //RET
+            case 0xCA -> CPUInstructions.jpCond(1);                   //JP Z,u16
             case 0xCB -> {
                 CPUInstructions.cb();
                 operationCode = (char) (memory.getMemory(programCounter) & 0xff);
@@ -1273,89 +1092,48 @@ public class CPU {
                     case 0xFF -> //SET 7,A
                             CPUInstructions.set(7, 0);
                 }
-            }
-            case 0xCC -> //CALL Z,nn
-                    CPUInstructions.callCond(1);
-            case 0xCD -> //CALL u16
-                    CPUInstructions.call();
-            case 0xCE -> //ADC A,#
-                    CPUInstructions.adc(9);
-            case 0xCF -> //RST 08H
-                    CPUInstructions.rst(1);
-            case 0xD0 -> //RET NC
-                    CPUInstructions.retCond(2);
-            case 0xD1 -> //POP DE
-                    CPUInstructions.pop(2);
-            case 0xD2 -> //JP NC,u16
-                    CPUInstructions.jpCond(2);
-            case 0xD4 -> //CALL NC,nn
-                    CPUInstructions.callCond(2);
-            case 0xD5 -> //PUSH DE
-                    CPUInstructions.push(2);
-            case 0xD6 -> //SUB A, #
-                    CPUInstructions.sub(9);
-            case 0xD7 -> //RST 10H
-                    CPUInstructions.rst(2);
-            case 0xD8 -> //RET C
-                    CPUInstructions.retCond(3);
-            case 0xD9 -> //RETI
-                    CPUInstructions.reti();
-            case 0xDA -> //JP C,u16
-                    CPUInstructions.jpCond(3);
-            case 0xDC -> //CALL C,nn
-                    CPUInstructions.callCond(3);
-            case 0xDE -> //SBC A,#
-                    CPUInstructions.sbc(9);
-            case 0xDF -> //RST 18H
-                    CPUInstructions.rst(3);
-            case 0xE0 -> //LD (FF00+u8),A    IMPLEMENTED AND WORKING I THINK
-                    CPUInstructions.ldh(0);
-            case 0xE1 -> //POP nn
-                    CPUInstructions.pop(3);
-            case 0xE2 -> //LD (C), A
-                    CPUInstructions.ldAC(1);
-            case 0xE5 -> //PUSH HL
-                    CPUInstructions.push(3);
-            case 0xE6 -> //AND #
-                    CPUInstructions.and(9);
-            case 0xE7 -> //RST 20H
-                    CPUInstructions.rst(4);
-            case 0xE8 -> //ADD SP,n
-                    CPUInstructions.addSP();
-            case 0xE9 -> //JP (HL)
-                    CPUInstructions.jpHL();
-            case 0xEA -> //LD (nn),A
-                    CPUInstructions.ldTwoRegisters(2);
-            case 0xEE -> //XOR #
-                    CPUInstructions.xor(9);
-            case 0xEF -> //RST 28H
-                    CPUInstructions.rst(5);
-            case 0xF0 -> //LD A,(FF00+u8)
-                    CPUInstructions.ldh(1);
-            case 0xF1 -> //POP AF
-                    CPUInstructions.pop(0);
-            case 0xF2 -> //LD A,(C)
-                    CPUInstructions.ldAC(0);
-            case 0xF3 -> //DI
-                    CPUInstructions.di();
-            case 0xF5 -> //PUSH AF
-                    CPUInstructions.push(0);
-            case 0xF6 -> //OR #
-                    CPUInstructions.or(9);
-            case 0xF7 -> //RST 30H
-                    CPUInstructions.rst(6);
-            case 0xF8 -> //LDHL SP,n
-                    CPUInstructions.LDHL();
-            case 0xF9 -> //LD SP,HL
-                    CPUInstructions.ldSPHL();
-            case 0xFA -> //LD A,(nn)
-                    CPUInstructions.ldTwoRegistersIntoA(2);
-            case 0xFB -> //EI
-                    CPUInstructions.ei();
-            case 0xFE -> //CP A,u8
-                    CPUInstructions.cp(9);
-            case 0xFF -> //RST 38H
-                    CPUInstructions.rst(7);
+            }                                               //CB PREFIX
+            case 0xCC -> CPUInstructions.callCond(1);                 //CALL Z,nn
+            case 0xCD -> CPUInstructions.call();                             //CALL u16
+            case 0xCE -> CPUInstructions.adc(9);                   //ADC A,#
+            case 0xCF -> CPUInstructions.rst(1);                       //RST 08H
+            case 0xD0 -> CPUInstructions.retCond(2);                   //RET NC
+            case 0xD1 -> CPUInstructions.pop(2);                   //POP DE
+            case 0xD2 -> CPUInstructions.jpCond(2);                   //JP NC,u16
+            case 0xD4 -> CPUInstructions.callCond(2);                 //CALL NC,nn
+            case 0xD5 -> CPUInstructions.push(2);                  //PUSH DE
+            case 0xD6 -> CPUInstructions.sub(9);                   //SUB A, #
+            case 0xD7 -> CPUInstructions.rst(2);                       //RST 10H
+            case 0xD8 -> CPUInstructions.retCond(3);                   //RET C
+            case 0xD9 -> CPUInstructions.reti();                              //RETI
+            case 0xDA -> CPUInstructions.jpCond(3);                    //JP C,u16
+            case 0xDC -> CPUInstructions.callCond(3);                  //CALL C,nn
+            case 0xDE -> CPUInstructions.sbc(9);                   //SBC A,#
+            case 0xDF -> CPUInstructions.rst(3);                       //RST 18H
+            case 0xE0 -> CPUInstructions.ldh(0);                       //LD (FF00+u8),A
+            case 0xE1 -> CPUInstructions.pop(3);                   //POP nn
+            case 0xE2 -> CPUInstructions.ldAC(1);                      //LD (C), A
+            case 0xE5 -> CPUInstructions.push(3);                  //PUSH HL
+            case 0xE6 -> CPUInstructions.and(9);                   //AND #
+            case 0xE7 -> CPUInstructions.rst(4);                       //RST 20H
+            case 0xE8 -> CPUInstructions.addSP();                            //ADD SP,n
+            case 0xE9 -> CPUInstructions.jpHL();                             //JP (HL)
+            case 0xEA -> CPUInstructions.ldTwoRegisters(2);                  //LD (nn),A
+            case 0xEE -> CPUInstructions.xor(9);                   //XOR #
+            case 0xEF -> CPUInstructions.rst(5);                      //RST 28H
+            case 0xF0 -> CPUInstructions.ldh(1);                      //LD A,(FF00+u8)
+            case 0xF1 -> CPUInstructions.pop(0);                   //POP AF
+            case 0xF2 -> CPUInstructions.ldAC(0);                      //LD A,(C)
+            case 0xF3 -> CPUInstructions.di();                               //DI
+            case 0xF5 -> CPUInstructions.push(0);                 //PUSH AF
+            case 0xF6 -> CPUInstructions.or(9);                    //OR #
+            case 0xF7 -> CPUInstructions.rst(6);                      //RST 30H
+            case 0xF8 -> CPUInstructions.LDHL();                             //LDHL SP,n
+            case 0xF9 -> CPUInstructions.ldSPHL();                           //LD SP,HL
+            case 0xFA -> CPUInstructions.ldTwoRegistersIntoA(2);             //LD A,(nn)
+            case 0xFB -> CPUInstructions.ei();                               //EI
+            case 0xFE -> CPUInstructions.cp(9);                   //CP A,u8
+            case 0xFF -> CPUInstructions.rst(7);                      //RST 38H
             default -> {
                 System.out.println("No OPCode or Lacks Implementation");
                 System.exit(0);

@@ -7,7 +7,9 @@ public class Memory {
     private char[][] ramBank;
 
     private boolean ramOn = false;
-    private boolean hasBattery;
+    private boolean littleRam = false;
+    private boolean hasBattery = false;
+    private boolean hasTimer = false;
 
     private int memoryModel = 0; //ROM = 0 RAM = 1
     private int currentRomBank;
@@ -34,6 +36,14 @@ public class Memory {
 
     public void setHasBattery(boolean state) {
         hasBattery = state;
+    }
+
+    public void setLittleRam(boolean state) {
+        littleRam = state;
+    }
+
+    public void setHasTimer(boolean state) {
+        hasTimer = state;
     }
 
     public void setDisplayFrame(DisplayFrame displayFrame) {
@@ -79,11 +89,6 @@ public class Memory {
         else if(address >= 0xe000 && address <= 0xfe00) { //Check Ram Echo
             memory[address] = (char) (value & 0xff);
             memory[address - 0x2000] = (char) (value & 0xff);
-        }
-        else if(address == 0xff00) {
-            if(value == 0x10) setMemory(address, (char) (0xc0 + (memory[0xff00] & 0xf) + 0x10));
-            else if(value == 0x20) setMemory(address, (char) (0xc0 + (memory[0xff00] & 0xf) + 0x20));
-            else if(value == 0x30) setMemory(address, (char) (0xc0 + (memory[0xff00] & 0xf)));
         }
         else if(address >= 0xa000 && address <= 0xbfff && ramOn) {
             memory[address] = (char) (value & 0xff);
@@ -135,22 +140,15 @@ public class Memory {
             else if(address < 0x4000) { //ROM Bank Number
                 if(currentRomBank != (value & 0b0001_1111)) {
                     currentRomBank = (value & 0b0001_1111);
-                    loadRomBank(currentRomBank);
+                    if(currentRomBank == 0 || currentRomBank == 1)
+                        loadRomBank(1);
+                    else
+                        loadRomBank(currentRomBank);
                 }
             }
-            else if(address < 0x6000) { //RAM
-                currentRamBank = (value & 0b0000_0011);
-
-            }
-            else { //ROM/RAM Select
-                memoryModel = (value & 0x1) == 1 ? 1 : 0;
-            }
-        } else if(ramOn) {
-            if(memoryModel == 0) {
-
-            } else {
-
-            }
+        } else {
+            //else if(address)
+            setMemoryMBC0(address, value);
         }
     }
 
@@ -162,22 +160,29 @@ public class Memory {
             else if(address < 0x4000) { //ROM Bank Number
                 if(currentRomBank != (value & 0b0001_1111)) {
                     currentRomBank = (value & 0b0001_1111);
-                    loadRomBank(currentRomBank);
+                    if(currentRomBank == 0 || currentRomBank == 1)
+                        loadRomBank(1);
+                    else if(romBank.length < 0x20)
+                        loadRomBank(currentRomBank % romBank.length);
                 }
             }
             else if(address < 0x6000) { //RAM
-                currentRamBank = (value & 0b0000_0011);
-
+                if(memoryModel == 0 && ramBank != null) {
+                    currentRomBank = (value & 0b0000_0011) << 5;
+                    saveRamBank(currentRamBank);
+                    currentRamBank = 0;
+                    loadRamBank(currentRamBank);
+                }
+                else if(ramBank != null) {
+                    currentRamBank = (value & 0b0000_0011);
+                    saveRamBank(currentRamBank);
+                }
             }
             else { //ROM/RAM Select
                 memoryModel = (value & 0x1) == 1 ? 1 : 0;
             }
-        } else if(ramOn) {
-            if(memoryModel == 0) {
-
-            } else {
-
-            }
+        } else {
+            setMemoryMBC0(address, value);
         }
     }
 
@@ -306,7 +311,7 @@ public class Memory {
         writePriv(0xff48, (char) 0xff);
         writePriv(0xff49, (char) 0xff);
         writePriv(0xff4d, (char) 0xff);
-        writePriv(0xff44, (char) 0x90);
+        writePriv(0xff44, (char) 0x0);
     }
 
     //Utils
