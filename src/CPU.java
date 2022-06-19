@@ -3,11 +3,11 @@ import java.io.PrintStream;
 import java.util.Arrays;
 
 public class CPU {
-    private final int DIVIDER_REGISTER = 0xff04;
-    private final int TIMER_COUNTER = 0xff05;
-    private final int TIMER_MODULO = 0xff06;
-    private final int INTERRUPT_FLAG = 0xff0f;
-    private final int INTERRUPT_ENABLE = 0xffff;
+    private final int DIV = 0xff04;
+    private final int TIMA = 0xff05;
+    private final int TMA = 0xff06;
+    private final int IF = 0xff0f;
+    private final int IE = 0xffff;
 
     private final int TIMER_INTERRUPT = 2;
 
@@ -20,19 +20,23 @@ public class CPU {
 
     private boolean isHalted;
     private boolean isStopped;
+    private boolean timerEnabled;
 
     private char operationCode;
     private char programCounter = 0x100;
     private char stackPointer = 0xFFFE;
 
     private int counter = 0;
+    private int haltCounter = 0;
     private int divClockCounter = 0;
     private int timerClockCounter = 0;
     private int interruptCounter = 0;
+    private int timerFrequency = 256;
 
     private boolean interruptMasterEnable = false;
     private boolean setChangeTo = false;
     private boolean changeInterrupt = false;
+    private boolean haltBug = false;
 
     private final boolean debugText = false;
     PrintStream debug;
@@ -182,6 +186,23 @@ public class CPU {
         setChangeTo = state;
     }
 
+    //Sets the state of the timer enabled/disabled
+    public void setTimerEnabled(boolean state) {
+        timerEnabled = state;
+    }
+
+    public void setTimerFrequency(int frequency) {
+        timerFrequency = frequency;
+    }
+
+    public void setDivClockCounter(int value) {
+        divClockCounter = value;
+    }
+
+    public void setHaltCounter(int value) {
+        haltCounter = value;
+    }
+
     //Constructor
 
     public CPU() throws FileNotFoundException {
@@ -255,7 +276,7 @@ public class CPU {
             } else {
                 increaseCounter(1);
             }
-            handleTimer(counter - tempCycleCount);
+            handleCPUTimers(counter - tempCycleCount);
 
             handleInterrupts();
         }
@@ -263,17 +284,17 @@ public class CPU {
 
     public void setInterrupt(int interrupt) {
         switch(interrupt) {
-            case 0-> memory.setBit(INTERRUPT_FLAG, 0);
-            case 1-> memory.setBit(INTERRUPT_FLAG, 1);
-            case 2-> memory.setBit(INTERRUPT_FLAG, 2);
-            case 3-> memory.setBit(INTERRUPT_FLAG, 3);
-            case 4-> memory.setBit(INTERRUPT_FLAG, 4);
+            case 0-> memory.setBit(IF, 0);
+            case 1-> memory.setBit(IF, 1);
+            case 2-> memory.setBit(IF, 2);
+            case 3-> memory.setBit(IF, 3);
+            case 4-> memory.setBit(IF, 4);
         }
     }
 
     private void handleInterrupts() {
         if(interruptMasterEnable) {
-            char interrupt = (char) (memory.getMemory(INTERRUPT_FLAG) & memory.getMemory(INTERRUPT_ENABLE));
+            char interrupt = (char) (memory.getMemory(IF) & memory.getMemory(IE));
             if(interrupt > 0) {
                 if(isHalted) {
                     setIsHalted(false);
@@ -286,28 +307,28 @@ public class CPU {
                 int vBlank = interrupt & 0x1;
                 if(vBlank == 1) {
                     setProgramCounter((char) 0x40);
-                    memory.resetBit(INTERRUPT_FLAG, 0);
+                    memory.resetBit(IF, 0);
                     return;
                 }
 
                 int LCDCStatus = (interrupt & 0x2) >> 1;
                 if(LCDCStatus == 1) {
                     setProgramCounter((char) 0x48);
-                    memory.resetBit(INTERRUPT_FLAG, 1);
+                    memory.resetBit(IF, 1);
                     return;
                 }
 
                 int timerOverflow = (interrupt & 0x4) >> 2;
                 if(timerOverflow == 1) {
                     setProgramCounter((char) 0x50);
-                    memory.resetBit(INTERRUPT_FLAG, 2);
+                    memory.resetBit(IF, 2);
                     return;
                 }
 
                 int serialTransfer = (interrupt & 0x8) >> 3;
                 if(serialTransfer == 1) {
                     setProgramCounter((char) 0x58);
-                    memory.resetBit(INTERRUPT_FLAG, 3);
+                    memory.resetBit(IF, 3);
                     return;
                 }
 
@@ -317,46 +338,55 @@ public class CPU {
                         isStopped = false;
                     }
                     setProgramCounter((char) 0x60);
-                    memory.resetBit(INTERRUPT_FLAG, 4);
+                    memory.resetBit(IF, 4);
                 }
             }
         }
         else if(isHalted)
-            if((memory.getMemory(INTERRUPT_FLAG) & memory.getMemory(INTERRUPT_ENABLE) & 0x1f) > 0)
+            if((memory.getMemory(IF) & memory.getMemory(IE) & 0x1f) > 0) {
                 isHalted = false;
+                if(haltCounter == counter) haltBug = true;
+            }
+    }
+
+    private void handleCPUTimers(int cycles) {
+        handleDividerTimer(cycles);
+        handleTimer(cycles);
+    }
+
+    private void handleDividerTimer(int cycles) {
+        divClockCounter += cycles;
+        while (divClockCounter >= 64) {
+            divClockCounter -= 64;
+            int div_counter = memory.getMemory(DIV);
+            div_counter = (div_counter + 1) & 0xff;
+            memory.writePriv(DIV, (char) div_counter);
+        }
     }
 
     private void handleTimer(int cycles) {
-        divClockCounter += cycles;
-        if (divClockCounter >= 0xff) {
-            divClockCounter -= 0xff;
-            memory.setMemory(DIVIDER_REGISTER, (char) (((memory.getMemory(DIVIDER_REGISTER) & 0xff) + 1) & 0xff));
-        }
-
-        int[] tacStatus = CPUInstructions.readTAC();
-        if (tacStatus[0] == 1) {
+        CPUInstructions.readTAC();
+        if (timerEnabled) {
             timerClockCounter += cycles;
+            while(timerClockCounter >= timerFrequency) {
+                timerClockCounter -= timerFrequency;
 
-            if(timerClockCounter >= 0xff) {
-                switch(tacStatus[1]) {
-                    case 0 -> timerClockCounter -= 0xff;
-                    case 1 -> timerClockCounter -= 0x4;
-                    case 2 -> timerClockCounter -= 0x10;
-                    case 3 -> timerClockCounter -= 0x40;
-                }
-
-                if (memory.getMemory(TIMER_COUNTER) == 0xff) {
+                if (memory.getMemory(TIMA) == 0xff) {
+                    memory.setMemory(TIMA, memory.getMemory(TMA));
                     setInterrupt(TIMER_INTERRUPT);
-                    memory.setMemory(TIMER_COUNTER, memory.getMemory(TIMER_MODULO));
                 } else {
-                    memory.setMemory(TIMER_COUNTER, (char) (((memory.getMemory(TIMER_COUNTER) & 0xff) + 1) & 0xff));
+                    memory.setMemory(TIMA, (char) (((memory.getMemory(TIMA) & 0xff) + 1) & 0xff));
                 }
             }
         }
     }
 
     private void fetchOperationCodes() {
-        operationCode = memory.getMemory(programCounter);
+        if(haltBug) {
+            operationCode = memory.getMemory(programCounter--);
+            haltBug = false;
+        }
+        else operationCode = memory.getMemory(programCounter);
     }
 
     private void decodeOperationCodes() {
@@ -372,9 +402,9 @@ public class CPU {
 //        if(debugText) System.setOut(debug);
 
         switch (operationCode) {
-            case 0x00 -> CPUInstructions.nop();                               //NOP
-            case 0x01 -> CPUInstructions.ld16bit(0);                   //LD BC,u16
-            case 0x02 -> CPUInstructions.ldTwoRegisters(0);                  //LD (BC),A
+            case 0x00 -> CPUInstructions.nop();  //NOP
+            case 0x01 -> CPUInstructions.ld16bit(0);  //LD BC,u16
+            case 0x02 -> CPUInstructions.ldTwoRegisters(0);  //LD (BC),A
             case 0x03 -> CPUInstructions.incR(0);                  //INC BC
             case 0x04 -> CPUInstructions.inc(1);                   //INC B
             case 0x05 -> CPUInstructions.dec(1);                   //DEC B
@@ -1135,7 +1165,7 @@ public class CPU {
             case 0xFE -> CPUInstructions.cp(9);                   //CP A,u8
             case 0xFF -> CPUInstructions.rst(7);                      //RST 38H
             default -> {
-                System.out.println("No OPCode or Lacks Implementation");
+                System.err.println("No OPCode or Lacks Implementation");
                 System.exit(0);
             }
         }

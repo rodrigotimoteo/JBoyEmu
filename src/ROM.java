@@ -28,7 +28,6 @@ public class ROM {
 
             if ((romContent[CONSOLE_REGISTER] & 0xff) == 0x80) {
                 System.err.println("Error - Emulator does not support Gameboy Color");
-                System.exit(1);
             } //COLOR GB INDICATOR
 
             StringBuilder stringB = new StringBuilder();

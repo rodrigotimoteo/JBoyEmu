@@ -10,6 +10,8 @@ public class DisplayPanel extends JPanel {
     private final PPU ppu;
     private final DisplayFrame displayFrame;
 
+    private final int BACK_WINDOW_PALLETE = 0xff47;
+
     private final int WIDTH;
     private final int HEIGHT;
 
@@ -56,6 +58,21 @@ public class DisplayPanel extends JPanel {
         tempImage = bufferedImage;
     }
 
+    public void drawBlankImage() {
+        BufferedImage bufferedImage = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
+
+        int[] size = displayFrame.getCurrentSize();
+        this.setSize(new Dimension(size[0], size[1]));
+        displayFrame.setHeight(size[1] + 28);
+        displayFrame.setWidth(size[0]);
+
+        Graphics g = bufferedImage.getGraphics();
+
+        g.setColor(Color.WHITE);
+        g.fillRect(0, 0, 160, 144);
+
+        tempImage = bufferedImage;
+    }
 
 
     public void paint(Graphics g) {
@@ -67,7 +84,7 @@ public class DisplayPanel extends JPanel {
     }
 
     private Color getColor(byte pixelNumber) {
-        int palette = (memory.getMemory(0xff47) & 0xff);
+        int palette = (memory.getMemory(BACK_WINDOW_PALLETE) & 0xff);
         int colorSelect;
         Color color;
 

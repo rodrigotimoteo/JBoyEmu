@@ -23,6 +23,7 @@ public class GBEmulator extends Thread{
                 if (!ppu.getLcdOn()) {
                     cpu.cycle();
                     ppu.readLCDControl();
+                    //ppu.requestRepaint();
                 } else {
                     cpu.cycle();
                     for(int i = 0; i < (cpu.getCounter() - cpuCounter); i++) ppu.cycle();

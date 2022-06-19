@@ -107,6 +107,7 @@ public class PPU {
         //Read LCD and PPU enabled bit
         bit = (LCDControl & 0x80) >> 7;
         lcdOn = bit == 1;
+        memory.setLcdOn(lcdOn);
 
         //Read Window Tile Map (where window tiles are located if enabled)
         bit = (LCDControl & 0x40) >> 6;
@@ -143,10 +144,9 @@ public class PPU {
 
         char LCD = memory.getMemory(LCDC_STATUS);
         //Read bit 1 and 0
-        bit = (LCD & 0x02) >> 1;
-        mode = bit + bit;
-        bit = LCD & 0x01;
-        mode += bit;
+        bit = LCD & 0x03;
+        mode = bit;
+        memory.setPpuMode(mode);
     }
 
     private void readWindow() {
@@ -225,7 +225,7 @@ public class PPU {
                     memory.writePriv(LY_REGISTER, (char) currentLine);
                     if (currentLine >= 143) {
                         display.drawImage(painting);
-                        displayFrame.repaint();
+                        requestRepaint();
                         changeMode(VBLANK);
                         cpu.setInterrupt(VBLANK_INTERRUPT);
                     }
@@ -271,7 +271,7 @@ public class PPU {
             int tempX = (scrollX + x) % 0x100;
 
             int address = tileMapAddress + ((tempY / 8) * 0x20);
-            int tile = memory.getMemory(address + (tempX) / 8);
+            int tile = memory.getMemoryPriv(address + (tempX) / 8);
 
             if(negativeTiles) {
                 if(((tile & 0x80) >> 7) == 0) tile = tile & 0x7f;
@@ -285,7 +285,7 @@ public class PPU {
             } else tileLine = tileDataAddress + ((tile & 0xff) * 0x10) + ((currentLine % 8) * 2);
 
             int offset = 7 - (tempX % 8);
-            painting[x][currentLine] = (byte) (((memory.getMemory(tileLine) & (1 << offset)) >> offset) + (((memory.getMemory(tileLine + 1) & (1 << offset)) >> offset) * 2));
+            painting[x][currentLine] = (byte) (((memory.getMemoryPriv(tileLine) & (1 << offset)) >> offset) + (((memory.getMemoryPriv(tileLine + 1) & (1 << offset)) >> offset) * 2));
         }
     }
 
@@ -298,7 +298,7 @@ public class PPU {
             int tempX = (windowX + x) % 0x100;
 
             int address = tileMapAddress + ((currentLine / 8) * 0x20);
-            int tile = memory.getMemory(address + (tempX) / 8);
+            int tile = memory.getMemoryPriv(address + (tempX) / 8);
 
             if(negativeTiles) {
                 if(((tile & 0x80) >> 7) == 0) tile = tile & 0x7f;
@@ -312,7 +312,7 @@ public class PPU {
             } else tileLine = tileDataAddress + ((tile & 0xff) * 0x10) + ((currentLine % 8) * 2);
 
             int offset = 7 - (tempX % 8);
-            painting[x][currentLine] = (byte) (((memory.getMemory(tileLine) & (1 << offset)) >> offset) + (((memory.getMemory(tileLine + 1) & (1 << offset)) >> offset) * 2));
+            painting[x][currentLine] = (byte) (((memory.getMemoryPriv(tileLine) & (1 << offset)) >> offset) + (((memory.getMemoryPriv(tileLine + 1) & (1 << offset)) >> offset) * 2));
         }
     }
 
@@ -320,10 +320,10 @@ public class PPU {
         int tempY, tempX, spriteLocation, spriteAttributes;
         for (int spriteNumber = 0; spriteNumber < 40; spriteNumber++) {
 
-            tempY = memory.getMemory(OAM_START + (spriteNumber * 4)) - 16;
-            tempX = memory.getMemory(OAM_START + (spriteNumber * 4) + 1) - 8;
-            spriteLocation = memory.getMemory(OAM_START + (spriteNumber * 4) + 2);
-            spriteAttributes = memory.getMemory(OAM_START + (spriteNumber * 4) + 3);
+            tempY = memory.getMemoryPriv(OAM_START + (spriteNumber * 4)) - 16;
+            tempX = memory.getMemoryPriv(OAM_START + (spriteNumber * 4) + 1) - 8;
+            spriteLocation = memory.getMemoryPriv(OAM_START + (spriteNumber * 4) + 2);
+            spriteAttributes = memory.getMemoryPriv(OAM_START + (spriteNumber * 4) + 3);
 
             boolean yFlipped = ((spriteAttributes & 0x40) >> 6) == 1;
             boolean xFlipped = ((spriteAttributes & 0x20) >> 5) == 1;
@@ -336,8 +336,8 @@ public class PPU {
                 if (yFlipped) offset = 2 * (currentLine - 1);
                 else offset = 2 * (currentLine - tempY);
 
-                int pixelData0 = memory.getMemory((TILE_DATA_0 + spriteLocation * 16) + offset);
-                int pixelData1 = memory.getMemory((TILE_DATA_0 + spriteLocation * 16) + offset + 1);
+                int pixelData0 = memory.getMemoryPriv((TILE_DATA_0 + spriteLocation * 16) + offset);
+                int pixelData1 = memory.getMemoryPriv((TILE_DATA_0 + spriteLocation * 16) + offset + 1);
 
                 for (int x = 0; x < 8; x++) {
                     int col_index = xFlipped ? x : 7 - x;
@@ -348,5 +348,10 @@ public class PPU {
                 }
             }
         }
+    }
+
+    public void requestRepaint() {
+        if(!lcdOn) display.drawBlankImage();
+        display.repaint();
     }
 }

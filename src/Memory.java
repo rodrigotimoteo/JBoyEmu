@@ -10,8 +10,10 @@ public class Memory {
     private boolean littleRam = false;
     private boolean hasBattery = false;
     private boolean hasTimer = false;
+    private boolean lcdOn = false;
 
     private int memoryModel = 0; //ROM = 0 RAM = 1
+    private int ppuMode = 0;
     private int currentRomBank;
     private int currentRamBank;
 
@@ -50,6 +52,14 @@ public class Memory {
         this.displayFrame = displayFrame;
     }
 
+    public void setLcdOn(boolean state) {
+        lcdOn = state;
+    }
+
+    public void setPpuMode(int value) {
+        ppuMode = value;
+    }
+
     //Writing to Memory
 
     public void writePriv(int address, char value) {
@@ -69,8 +79,10 @@ public class Memory {
     }
 
     private void setMemoryMBC0(int address, char value) {
-        if(address == 0xff44 || address == 0xff04) {
-            memory[address] = 0; //Check timer and currentLine
+        if(address == 0xff44) { //Check currentLine
+        } else if(address == 0xff04) {
+            memory[address] = 0; //Check timer
+            cpu.setDivClockCounter(0);
         }
         else if(address == 0xff26) { //Check sound enable/disable
             if(value != 0) memory[address] = 0xff;
@@ -79,6 +91,9 @@ public class Memory {
         else if(address == 0xff46) {
             doDMA(value);
         }
+        else if(address == 0xff0f) {
+            memory[address] = (char) ((0xe0 | value) & 0xff);
+        }
         else if(address == 0xff14 && ((value & 0xff) >> 7) != 0) { //Check Sound Channel 1
             memory[address] = value;
         }
@@ -86,6 +101,12 @@ public class Memory {
             memory[address] = (char) (value & 0xff);
             memory[address + 0x2000] = (char) (value & 0xff);
         }
+//        else if(address >= 0x8000 && address <= 0x9fff) {
+//            if(!lcdOn || ppuMode == 3) return;
+//        }
+//        else if(address >= 0xfe00 && address <= 0xfe9f) {
+//            if(ppuMode == 2 || ppuMode == 3) return;
+//        }
         else if(address >= 0xe000 && address <= 0xfe00) { //Check Ram Echo
             memory[address] = (char) (value & 0xff);
             memory[address - 0x2000] = (char) (value & 0xff);
@@ -217,6 +238,16 @@ public class Memory {
 
     public char getMemory(int address) {
         if(address == 0xff00) return (char) displayFrame.getJoypad((char) (memory[address] & 0xff));
+        else if(address >= 0x8000 && address <= 0x9fff) {
+            if(!lcdOn || ppuMode == 3) return 0xff;
+        }
+        else if(address >= 0xfe00 && address <= 0xfe9f) {
+            if(ppuMode == 2 || ppuMode == 3) return 0xff;
+        }
+        return (char) (memory[address] & 0xff);
+    }
+
+    public char getMemoryPriv(int address) {
         return (char) (memory[address] & 0xff);
     }
 
@@ -248,7 +279,7 @@ public class Memory {
     private void doDMA(char value) {
         int address = (value & 0xff) * 0x100;
         for(int i = 0; i < 0xa0; i++) {
-            setMemory(0xfe00 + i, getMemory(address + i));
+            writePriv(0xfe00 + i, getMemory(address + i));
         }
     }
 
@@ -264,6 +295,7 @@ public class Memory {
     //Initialize RAM Bank
     public void initRamBank(int size) {
         switch(size) {
+            case 0 -> ramBank = null;
             case 1 -> ramBank = new char[1][0x800];
             case 2 -> ramBank = new char[1][0x2000];
             case 3 -> ramBank = new char[4][0x2000];
@@ -290,6 +322,7 @@ public class Memory {
     //Initialize Memory Status
     private void init() {
         writePriv(0xff00, (char) 0xcf);
+        writePriv(0xff0f, (char) 0xe0);
         writePriv(0xff10, (char) 0x80);
         writePriv(0xff11, (char) 0xbf);
         writePriv(0xff12, (char) 0xf3);
@@ -323,6 +356,11 @@ public class Memory {
     //Reset Bit n of Memory Address
     public void resetBit(int address, int bit) {
         setMemory(address, (char) (memory[address] & (~(1 << bit))));
+    }
+
+    //Test Bit n of Memory Address
+    public boolean testBit(int address, int bit) {
+        return ((memory[address] & 0xff) & (1 << bit) >> bit) != 0;
     }
 
     //Reset Memory State to Default

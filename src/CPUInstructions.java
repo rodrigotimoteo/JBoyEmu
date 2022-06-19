@@ -420,9 +420,6 @@ public class CPUInstructions {
     }
 
 
-
-
-
     //8-Bit ALU !!DONE!!
 
     //DONE
@@ -1181,6 +1178,7 @@ public class CPUInstructions {
         cpu.increaseCounter(1);
 
         cpu.setIsHalted(true);
+        cpu.setHaltCounter(cpu.getCounter());
 
         cpu.increaseProgramCounter(1);
     }
@@ -2072,14 +2070,14 @@ public class CPUInstructions {
         if(DEBUGMODE) System.out.print("CB PREFIX ");
     }
 
-    public static int[] readTAC() {
-        int[] tacStatus = new int[2]; //Record Bit 2 information and Bit0+1 Information in 0 and 1 index
-
-        //Timer STOP
-        tacStatus[0] = ((memory.getMemory(0xff07) & 0x04) >> 2);
+    public static void readTAC() {
+        //Timer Enabled
+        cpu.setTimerEnabled(memory.testBit(0xff07, 2));
         //Timer Input Clock Select
-        tacStatus[1] = (memory.getMemory(0xff07) & 0x03);
-
-        return  tacStatus;
+        switch(memory.getMemory(0xff07) & 0x03) {
+            case 1-> cpu.setTimerFrequency(4);
+            case 2-> cpu.setTimerFrequency(16);
+            case 3-> cpu.setTimerFrequency(64);
+        }
     }
 }
