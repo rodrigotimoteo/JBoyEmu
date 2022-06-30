@@ -26,9 +26,9 @@ public class ROM {
         try {
             romContent = Files.readAllBytes(rom.toPath());
 
-            if ((romContent[CONSOLE_REGISTER] & 0xff) == 0x80) {
-                System.err.println("Error - Emulator does not support Gameboy Color");
-            } //COLOR GB INDICATOR
+            //if ((romContent[CONSOLE_REGISTER] & 0xff) == 0x80) {
+                //System.err.println("Error - Emulator does not support Gameboy Color");
+            //} //COLOR GB INDICATOR
 
             StringBuilder stringB = new StringBuilder();
             for (int i = TITLE_START, counter = 0; i <= TITLE_END; i++, counter++) {
@@ -48,7 +48,6 @@ public class ROM {
             int ramSizeInt = romContent[RAM_SIZE_REGISTER];
 
             memory.setCartridgeType(cartridgeType);
-
 
             switch (cartridgeType) {
                 case 0 -> {

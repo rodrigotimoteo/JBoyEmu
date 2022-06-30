@@ -11,7 +11,6 @@ public class CPU {
 
     private final int TIMER_INTERRUPT = 2;
 
-
     char[] registers = new char[8]; //AF, BC, DE and HL can be 16 bits if paired together
     private boolean zeroFlag;
     private boolean subtractFlag;
@@ -21,6 +20,7 @@ public class CPU {
     private boolean isHalted;
     private boolean isStopped;
     private boolean timerEnabled;
+    private boolean handleOverflow;
 
     private char operationCode;
     private char programCounter = 0x100;
@@ -262,9 +262,77 @@ public class CPU {
         if(carryFlag) registers[5] = (char) (registers[5] | 0x10);
     }
 
-    public void cycle() throws InterruptedException {
-        int tempCycleCount = counter;
+    public Object[] saveState() {
+        Object[] state = new Object[3];
+//        state[0] = saveStateCPU();
+        return state;
+    }
 
+//    private CPU saveStateCPU() {
+//saveStates[state].registers = Arrays.copyOf(registers, registers.length);
+//        saveStates[state].zeroFlag = zeroFlag;
+//        saveStates[state].subtractFlag = subtractFlag;
+//        saveStates[state].halfCarryFlag = halfCarryFlag;
+//        saveStates[state].carryFlag = carryFlag;
+//
+//        saveStates[state].isHalted = isHalted;
+//        saveStates[state].isStopped = isStopped;
+//        saveStates[state].timerEnabled = timerEnabled;
+//        saveStates[state].handleOverflow = handleOverflow;
+//
+//        saveStates[state].operationCode = operationCode;
+//        saveStates[state].programCounter = programCounter;
+//        saveStates[state].stackPointer = stackPointer;
+//
+//        saveStates[state].counter = counter;
+//        saveStates[state].haltCounter = haltCounter;
+//        saveStates[state].divClockCounter = divClockCounter;
+//        saveStates[state].timerClockCounter = timerClockCounter;
+//        saveStates[state].interruptCounter = interruptCounter;
+//        saveStates[state].timerFrequency = timerFrequency;
+//
+//        saveStates[state].interruptMasterEnable = interruptMasterEnable;
+//        saveStates[state].setChangeTo = setChangeTo;
+//        saveStates[state].changeInterrupt = changeInterrupt;
+//        saveStates[state].haltBug = haltBug;
+//    }
+//
+//    public void loadState(CPU cpu, Memory memory, PPU ppu) {
+//        loadState(cpu);
+//        memory.loadState(memory);
+//        ppu.loadState(ppu);
+//    }
+
+    private void loadState(CPU cpu) {
+        this.registers = Arrays.copyOf(cpu.registers, registers.length);
+        this.zeroFlag = cpu.zeroFlag;
+        this.subtractFlag = cpu.subtractFlag;
+        this.halfCarryFlag = cpu.halfCarryFlag;
+        this.carryFlag = cpu.carryFlag;
+
+        this.isHalted = cpu.isHalted;
+        this.isStopped = cpu.isStopped;
+        this.timerEnabled = cpu.timerEnabled;
+        this.handleOverflow = cpu.handleOverflow;
+
+        this.operationCode = cpu.operationCode;
+        this.programCounter = cpu.programCounter;
+        this.stackPointer = cpu.stackPointer;
+
+        this.counter = cpu.counter;
+        this.haltCounter = cpu.haltCounter;
+        this.divClockCounter = cpu.divClockCounter;
+        this.timerClockCounter = cpu.timerClockCounter;
+        this.interruptCounter = cpu.interruptCounter;
+        this.timerFrequency = cpu.timerFrequency;
+
+        this.interruptMasterEnable = cpu.interruptMasterEnable;
+        this.setChangeTo = cpu.setChangeTo;
+        this.changeInterrupt = cpu.changeInterrupt;
+        this.haltBug = cpu.haltBug;
+    }
+
+    public void cycle() throws InterruptedException {
         if (!getIsStopped()) {
             if(!getIsHalted()) {
                 fetchOperationCodes();
@@ -274,9 +342,8 @@ public class CPU {
                     changeInterrupt = false;
                 }
             } else {
-                increaseCounter(1);
+                handleCPUTimers();
             }
-            handleCPUTimers(counter - tempCycleCount);
 
             handleInterrupts();
         }
@@ -349,13 +416,16 @@ public class CPU {
             }
     }
 
-    private void handleCPUTimers(int cycles) {
-        handleDividerTimer(cycles);
-        handleTimer(cycles);
+    public void handleCPUTimers() {
+        increaseCounter(1);
+
+        handleDividerTimer();
+        handleTimer();
+//        System.out.println(divClockCounter + " " + timerClockCounter);
     }
 
-    private void handleDividerTimer(int cycles) {
-        divClockCounter += cycles;
+    private void handleDividerTimer() {
+        divClockCounter++;
         while (divClockCounter >= 64) {
             divClockCounter -= 64;
             int div_counter = memory.getMemory(DIV);
@@ -364,15 +434,19 @@ public class CPU {
         }
     }
 
-    private void handleTimer(int cycles) {
+    private void handleTimer() {
         CPUInstructions.readTAC();
+        if(handleOverflow) {
+            memory.setMemory(TIMA, memory.getMemory(TMA));
+            handleOverflow = false;
+        }
         if (timerEnabled) {
-            timerClockCounter += cycles;
+            timerClockCounter++;
             while(timerClockCounter >= timerFrequency) {
                 timerClockCounter -= timerFrequency;
 
                 if (memory.getMemory(TIMA) == 0xff) {
-                    memory.setMemory(TIMA, memory.getMemory(TMA));
+                    handleOverflow = true;
                     setInterrupt(TIMER_INTERRUPT);
                 } else {
                     memory.setMemory(TIMA, (char) (((memory.getMemory(TIMA) & 0xff) + 1) & 0xff));
@@ -387,11 +461,16 @@ public class CPU {
             haltBug = false;
         }
         else operationCode = memory.getMemory(programCounter);
+
+        handleCPUTimers();
     }
 
     private void decodeOperationCodes() {
+        //System.out.println(operationCode);
 
-//        if(counter >= 366100) {
+        //System.out.println(counter);
+
+//        if(counter >= 20000) System.exit(0);
 //            CPUInstructions.dumpRegisters();
 //            CPUInstructions.show();
 //        }
@@ -607,7 +686,7 @@ public class CPU {
             case 0xCA -> CPUInstructions.jpCond(1);                   //JP Z,u16
             case 0xCB -> {
                 CPUInstructions.cb();
-                operationCode = (char) (memory.getMemory(programCounter) & 0xff);
+                fetchOperationCodes();
                 switch (operationCode) {
                     case 0x00 -> //RLC B
                             CPUInstructions.rlc(1);

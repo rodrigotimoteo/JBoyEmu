@@ -144,4 +144,12 @@ public class DisplayFrame extends JFrame implements KeyListener, ActionListener 
             GBEmulator.latch.countDown();
         }
     }
+
+    public void saveState(int state) {
+
+    }
+
+    public void loadState(int state) {
+//        cpu.loadState();
+    }
 }

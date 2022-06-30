@@ -3,8 +3,8 @@ import java.util.concurrent.CountDownLatch;
 
 public class GBEmulator extends Thread{
 
-    private final CPU cpu;
-    private final PPU ppu;
+    private CPU cpu;
+    private PPU ppu;
     public static final CountDownLatch latch = new CountDownLatch(1);
 
     public GBEmulator() throws FileNotFoundException, InterruptedException {
@@ -23,7 +23,6 @@ public class GBEmulator extends Thread{
                 if (!ppu.getLcdOn()) {
                     cpu.cycle();
                     ppu.readLCDControl();
-                    //ppu.requestRepaint();
                 } else {
                     cpu.cycle();
                     for(int i = 0; i < (cpu.getCounter() - cpuCounter); i++) ppu.cycle();
