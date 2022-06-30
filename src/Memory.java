@@ -176,11 +176,11 @@ public class Memory {
     private void setMemoryMBC3(int address, char value) {
         if(address < ROM_LIMIT) { //Memory Bank Controller
             if(address < 0x2000) { //RAM ENABLE
-                ramOn = (value & 0b0000_1111) == 0b0000_1010;
+                ramOn = (value & 0b00001111) == 0b00001010;
             }
             else if(address < 0x4000) { //ROM Bank Number
-                if(currentRomBank != (value & 0b0001_1111)) {
-                    currentRomBank = (value & 0b0001_1111);
+                if(currentRomBank != (value & 0b01111111)) {
+                    currentRomBank = (value & 0b01111111);
                     if(currentRomBank == 0 || currentRomBank == 1)
                         loadRomBank(1);
                     else if(romBank.length < 0x20)
@@ -210,11 +210,11 @@ public class Memory {
     private void setMemoryMBC5(int address, char value) {
         if(address < ROM_LIMIT) { //Memory Bank Controller
             if(address < 0x2000) { //RAM ENABLE
-                ramOn = (value & 0b0000_1111) == 0b0000_1010;
+                ramOn = (value & 0b00001111) == 0b0000_1010;
             }
             else if(address < 0x4000) { //ROM Bank Number
-                if(currentRomBank != (value & 0b0001_1111)) {
-                    currentRomBank = (value & 0b0001_1111);
+                if(currentRomBank != (value & 0b01111111)) {
+                    currentRomBank = (value & 0b01111111);
                     loadRomBank(currentRomBank);
                 }
             }
@@ -360,7 +360,7 @@ public class Memory {
 
     //Test Bit n of Memory Address
     public boolean testBit(int address, int bit) {
-        return ((memory[address] & 0xff) & (1 << bit) >> bit) != 0;
+        return ((memory[address] & 0xff) & (1 << bit)) >> bit != 0;
     }
 
     //Reset Memory State to Default
