@@ -6,6 +6,11 @@ public class Memory {
     private char[][] romBank;   //Only used when MBC's are needed
     private char[][] ramBank;
 
+    private final int DIV = 0xff04;
+    private final int TIMA = 0xff05;
+    private final int TAC = 0xff07;
+    private final int SOUND1 = 0xff14;
+
     private boolean ramOn = false;
     private boolean littleRam = false;
     private boolean hasBattery = false;
@@ -79,10 +84,16 @@ public class Memory {
     }
 
     private void setMemoryMBC0(int address, char value) {
-        if(address == 0xff44) { //Check currentLine
-        } else if(address == 0xff04) {
-            memory[address] = 0; //Check timer
-            cpu.setDivClockCounter(0);
+        if(address == 0xff44) {} //Check currentLine
+        else if(address == DIV) {  //Check timer
+            cpu.resetClocks();
+            memory[address] = 0;
+        }
+        else if(address == TAC) {
+            int oldTac = memory[address] & 0x3;
+            if(oldTac == 0 && (value & 0x03) == 1 && (value & 0x4) != 0) setMemory(TIMA, (char) (memory[TIMA] + 1));
+
+            memory[address] = (char) (value & 0xff);
         }
         else if(address == 0xff26) { //Check sound enable/disable
             if(value != 0) memory[address] = 0xff;
@@ -94,7 +105,7 @@ public class Memory {
         else if(address == 0xff0f) {
             memory[address] = (char) ((0xe0 | value) & 0xff);
         }
-        else if(address == 0xff14 && ((value & 0xff) >> 7) != 0) { //Check Sound Channel 1
+        else if(address == SOUND1 && ((value & 0xff) >> 7) != 0) { //Check Sound Channel 1
             memory[address] = value;
         }
         else if(address >= 0xc000 && address <= 0xde00) { //Check Ram Echo
@@ -382,6 +393,4 @@ public class Memory {
         resetMemory();
         init();
     }
-
-
 }

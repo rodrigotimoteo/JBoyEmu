@@ -151,7 +151,7 @@ public class PPU {
 
     private void readWindow() {
         windowY = memory.getMemory(WINDOW_Y_REGISTER);
-        windowX = memory.getMemory(WINDOW_X_REGISTER);
+        windowX = memory.getMemory(WINDOW_X_REGISTER) - 7;
     }
 
     public char readScrollY() {
@@ -209,13 +209,6 @@ public class PPU {
         counter++;
 
         currentLine = readLY();
-        int tileMapAddress;
-        if(windowOn) tileMapAddress = windowTileMap ? TILE_MAP_1 : TILE_MAP_0;
-        else tileMapAddress = backgroundTileMap ? TILE_MAP_1 : TILE_MAP_0;
-
-        int tileDataAddress = windowTileData ? TILE_DATA_0 : TILE_DATA_2;
-
-        if(tileDataAddress == TILE_DATA_2) negativeTiles = true;
 
         switch (mode) {
             case 0 -> { //H-BLANK
@@ -253,8 +246,16 @@ public class PPU {
             }
             case 3 -> { //Pixel Transfer
                 if (counter == 40) {
+                    int tileMapAddress;
+                    if(windowOn) tileMapAddress = windowTileMap ? TILE_MAP_1 : TILE_MAP_0;
+                    else tileMapAddress = backgroundTileMap ? TILE_MAP_1 : TILE_MAP_0;
+
+                    int tileDataAddress = windowTileData ? TILE_DATA_0 : TILE_DATA_2;
+
+                    if(tileDataAddress == TILE_DATA_2) negativeTiles = true;
+
                     setScrolls();
-                    //readWindow();
+                    readWindow();
                     if(backgroundOn) drawBackground(tileMapAddress, tileDataAddress);
                     //if(windowOn) drawWindow(tileMapAddress, tileDataAddress);
                     if(spriteOn) drawSprite();
@@ -290,14 +291,17 @@ public class PPU {
     }
 
     private void drawWindow(int tileMapAddress, int tileDataAddress) {
-        if (windowY > 143 || windowX > 166 || windowY > currentLine) {
+        if (windowY > 143 || windowX > 166 || windowY < currentLine) {
             return;
         }
 
+        int tempY = currentLine - windowY;
         for(int x = 0; x < 160; x++) {
-            int tempX = (windowX + x) % 0x100;
+            int tempX;
+            if(x >= windowX) tempX = (x - windowX);
+            else continue;
 
-            int address = tileMapAddress + ((currentLine / 8) * 0x20);
+            int address = tileMapAddress + ((tempY / 8) * 0x20);
             int tile = memory.getMemoryPriv(address + (tempX) / 8);
 
             if(negativeTiles) {
@@ -318,6 +322,7 @@ public class PPU {
 
     private void drawSprite() {
         int tempY, tempX, spriteLocation, spriteAttributes;
+        int drawnSprites = 0;
         for (int spriteNumber = 0; spriteNumber < 40; spriteNumber++) {
 
             tempY = memory.getMemoryPriv(OAM_START + (spriteNumber * 4)) - 16;
@@ -330,8 +335,9 @@ public class PPU {
 
             int spriteSize = this.spriteSize ? 16 : 8;
 
-            if(currentLine >= tempY && currentLine < (tempY + spriteSize)) {
+            if(currentLine >= tempY && currentLine < (tempY + spriteSize) && drawnSprites < 10) {
                 int offset;
+                drawnSprites++;
 
                 if (yFlipped) offset = 2 * (currentLine - 1);
                 else offset = 2 * (currentLine - tempY);

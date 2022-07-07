@@ -29,9 +29,12 @@ public class CPU {
     private int counter = 0;
     private int haltCounter = 0;
     private int divClockCounter = 0;
+    private int totalDiv = 0;
     private int timerClockCounter = 0;
     private int interruptCounter = 0;
     private int timerFrequency = 256;
+
+    private int lastTimed = 0;
 
     private boolean interruptMasterEnable = false;
     private boolean setChangeTo = false;
@@ -107,6 +110,10 @@ public class CPU {
     //Return the PPU
     public PPU getPPU() {
         return ppu;
+    }
+
+    public int getLastTimed() {
+        return lastTimed;
     }
 
     //Setters (for registers mainly)
@@ -416,6 +423,20 @@ public class CPU {
             }
     }
 
+    public void resetClocks() {
+        boolean divUsed = timerFrequency == 256;
+
+        if(divUsed && timerEnabled) {
+            if(memory.testBit(DIV, 1)) memory.setMemory(TIMA, (char) (memory.getMemory(TIMA) + 1));
+        } else if(timerEnabled) {
+            if(totalDiv == 0) memory.setMemory(TIMA, (char) (memory.getMemory(TIMA) + 1));
+        }
+
+        divClockCounter = 0;
+        totalDiv = 0;
+        timerClockCounter = 0;
+    }
+
     public void handleCPUTimers() {
         increaseCounter(1);
 
@@ -426,28 +447,29 @@ public class CPU {
 
     private void handleDividerTimer() {
         divClockCounter++;
+        totalDiv++;
         while (divClockCounter >= 64) {
             divClockCounter -= 64;
             int div_counter = memory.getMemory(DIV);
             div_counter = (div_counter + 1) & 0xff;
             memory.writePriv(DIV, (char) div_counter);
         }
+        if(totalDiv >= timerFrequency) totalDiv = 0;
     }
 
     private void handleTimer() {
         CPUInstructions.readTAC();
         if(handleOverflow) {
             memory.setMemory(TIMA, memory.getMemory(TMA));
+            setInterrupt(TIMER_INTERRUPT);
             handleOverflow = false;
         }
         if (timerEnabled) {
             timerClockCounter++;
             while(timerClockCounter >= timerFrequency) {
                 timerClockCounter -= timerFrequency;
-
                 if (memory.getMemory(TIMA) == 0xff) {
                     handleOverflow = true;
-                    setInterrupt(TIMER_INTERRUPT);
                 } else {
                     memory.setMemory(TIMA, (char) (((memory.getMemory(TIMA) & 0xff) + 1) & 0xff));
                 }
@@ -468,9 +490,13 @@ public class CPU {
     private void decodeOperationCodes() {
         //System.out.println(operationCode);
 
-        //System.out.println(counter);
+//        System.out.println(counter);
 
-//        if(counter >= 20000) System.exit(0);
+//        if(counter >= 164200) {
+//            memory.dumpMemory();
+//            System.exit(0);
+//        }
+
 //            CPUInstructions.dumpRegisters();
 //            CPUInstructions.show();
 //        }
