@@ -48,7 +48,7 @@ public class PPU {
     private boolean windowOn;
     private boolean backgroundOn;
     private boolean windowTileMap;
-    private boolean windowTileData;
+    private boolean tileData;
     private boolean backgroundTileMap;
     private boolean spriteSize;
     private boolean spriteOn;
@@ -115,7 +115,7 @@ public class PPU {
 
         //Read Window and Background Tile Data
         bit = (LCDControl & 0x10) >> 4;
-        windowTileData = bit == 1;
+        tileData = bit == 1;
 
         //Read Background tile Area
         bit = (LCDControl & 0x08) >> 3;
@@ -167,13 +167,13 @@ public class PPU {
     }
 
     private boolean treatLYC() {
-        int lyc = memory.getMemory(0xff45);
+        int lyc = memory.getMemory(LYC_REGISTER);
 
         if(currentLine == lyc) {
-            memory.setBit(LCDC_CONTROL, 2);
-            return (memory.getMemory(LCDC_CONTROL) & 0x40) != 0;
+            memory.setBit(LCDC_STATUS, 2);
+            return (memory.getMemory(LCDC_STATUS) & 0x40) != 0;
         } else {
-            memory.resetBit(LCDC_CONTROL, 2);
+            memory.resetBit(LCDC_STATUS, 2);
         }
 
         return false;
@@ -200,10 +200,13 @@ public class PPU {
             }
         }
         memory.writePriv(LCDC_STATUS, (char) lcdStatus);
+        //System.out.println(currentLine + "   " + Integer.toHexString(memory.getMemory(LYC_REGISTER)));
         boolean lycInterrupt = treatLYC();
 
         if(requestInterrupt || lycInterrupt) cpu.setInterrupt(STAT_INTERRUPT);
     }
+
+    int lol = 0;
 
     private void draw() {
         counter++;
@@ -216,8 +219,9 @@ public class PPU {
                     counter = 0;
                     currentLine++;
                     memory.writePriv(LY_REGISTER, (char) currentLine);
-                    if (currentLine >= 143) {
+                    if (currentLine > 143) {
                         display.drawImage(painting);
+                        lol++;
                         requestRepaint();
                         changeMode(VBLANK);
                         cpu.setInterrupt(VBLANK_INTERRUPT);
@@ -246,19 +250,25 @@ public class PPU {
             }
             case 3 -> { //Pixel Transfer
                 if (counter == 40) {
-                    int tileMapAddress;
-                    if(windowOn) tileMapAddress = windowTileMap ? TILE_MAP_1 : TILE_MAP_0;
-                    else tileMapAddress = backgroundTileMap ? TILE_MAP_1 : TILE_MAP_0;
+//                    System.out.println(currentLine + " " + backgroundOn);
+                    int backgroundMapAddress, windowMapAddress;
+                    windowMapAddress = windowTileMap ? TILE_MAP_1 : TILE_MAP_0;
+                    backgroundMapAddress = backgroundTileMap ? TILE_MAP_1 : TILE_MAP_0;
 
-                    int tileDataAddress = windowTileData ? TILE_DATA_0 : TILE_DATA_2;
+                    int tileDataAddress = tileData ? TILE_DATA_0 : TILE_DATA_2;
 
                     if(tileDataAddress == TILE_DATA_2) negativeTiles = true;
 
+                    //System.out.println(currentLine + "  " + Integer.toHexString(backgroundMapAddress));
+//                    System.out.println(scrollX + " " + scrollY + "  " + cpu.getIsHalted());
+
+
                     setScrolls();
                     readWindow();
-                    if(backgroundOn) drawBackground(tileMapAddress, tileDataAddress);
-                    //if(windowOn) drawWindow(tileMapAddress, tileDataAddress);
+                    if(backgroundOn) drawBackground(backgroundMapAddress, tileDataAddress);
+                    if(windowOn) drawWindow(windowMapAddress, tileDataAddress);
                     if(spriteOn) drawSprite();
+
                     changeMode(HBLANK);
                 }
             }
