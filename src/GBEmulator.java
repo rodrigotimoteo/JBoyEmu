@@ -3,9 +3,18 @@ import java.util.concurrent.CountDownLatch;
 
 public class GBEmulator extends Thread{
 
+    private long oldTime;
+
     private CPU cpu;
     private PPU ppu;
     public static final CountDownLatch latch = new CountDownLatch(1);
+
+//    private long getSleepTime(double oldTime) {
+//        long newTime = System.nanoTime();
+//        long sleepTime = (long) ((1000000000L / 60) - newTime - oldTime) / 1000000;
+//        this.oldTime = newTime;
+//        return sleepTime;
+//    }
 
     public GBEmulator() throws FileNotFoundException, InterruptedException {
         cpu = new CPU();
@@ -14,12 +23,14 @@ public class GBEmulator extends Thread{
     }
 
     private void gameLoop() throws InterruptedException {
+        System.out.println(System.nanoTime());
         cpu.cycle();
         ppu.cycle();
+        oldTime = System.nanoTime();
         while (true) {
             try {
                 int cpuCounter = cpu.getCounter();
-                //Thread.sleep(10);
+//                if(ppu.isGetToSleep()) Thread.sleep(getSleepTime(oldTime));
                 if (!ppu.getLcdOn()) {
                     cpu.cycle();
                     ppu.readLCDControl();

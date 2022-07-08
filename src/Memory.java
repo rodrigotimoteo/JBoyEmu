@@ -126,7 +126,6 @@ public class Memory {
             memory[address] = (char) (value & 0xff);
         }
         else if(address > ROM_LIMIT) {
-            if(address == 0xff40) System.out.println(Integer.toHexString(value));
             memory[address] = (char) (value & 0xff);
         }
     }

@@ -34,6 +34,7 @@ public class PPU {
 
     private int mode;
     private int currentLine;
+    private int currentLineWindow;
 
     private int scrollY;
     private int scrollX;
@@ -60,6 +61,10 @@ public class PPU {
 
     public boolean getLcdOn() {
         return lcdOn;
+    }
+
+    public int getCounter() {
+        return counter;
     }
 
     public boolean isGetToSleep() {
@@ -150,8 +155,8 @@ public class PPU {
     }
 
     private void readWindow() {
-        windowY = memory.getMemory(WINDOW_Y_REGISTER);
-        windowX = memory.getMemory(WINDOW_X_REGISTER) - 7;
+        this.windowY = memory.getMemory(WINDOW_Y_REGISTER);
+        this.windowX = memory.getMemory(WINDOW_X_REGISTER) - 7;
     }
 
     public char readScrollY() {
@@ -202,7 +207,6 @@ public class PPU {
         memory.writePriv(LCDC_STATUS, (char) lcdStatus);
         //System.out.println(currentLine + "   " + Integer.toHexString(memory.getMemory(LYC_REGISTER)));
         boolean lycInterrupt = treatLYC();
-
         if(requestInterrupt || lycInterrupt) cpu.setInterrupt(STAT_INTERRUPT);
     }
 
@@ -236,6 +240,7 @@ public class PPU {
                     memory.writePriv(LY_REGISTER, (char) currentLine);
                     if (currentLine > 153) {
                         currentLine = 0;
+                        currentLineWindow = 0;
                         memory.writePriv(LY_REGISTER, (char) currentLine);
                         changeMode(OAM);
                         getToSleep = true;
@@ -244,13 +249,12 @@ public class PPU {
             }
             case 2 -> { //OAM Search
                 if(getToSleep) getToSleep = false;
-                if (counter == 10) {
+                if (counter == 20) {
                     changeMode(PIXEL_TRANSFER);
                 }
             }
             case 3 -> { //Pixel Transfer
-                if (counter == 40) {
-//                    System.out.println(currentLine + " " + backgroundOn);
+                if (counter == 63) {
                     int backgroundMapAddress, windowMapAddress;
                     windowMapAddress = windowTileMap ? TILE_MAP_1 : TILE_MAP_0;
                     backgroundMapAddress = backgroundTileMap ? TILE_MAP_1 : TILE_MAP_0;
@@ -301,15 +305,15 @@ public class PPU {
     }
 
     private void drawWindow(int tileMapAddress, int tileDataAddress) {
-        if (windowY > 143 || windowX > 166 || windowY < currentLine) {
+        if (windowY < 0 || windowX > 166 || currentLine < windowY) {
             return;
         }
 
-        int tempY = currentLine - windowY;
+        int tempY = currentLineWindow;
         for(int x = 0; x < 160; x++) {
             int tempX;
-            if(x >= windowX) tempX = (x - windowX);
-            else continue;
+            if(x < windowX) continue;
+            else tempX = x - windowX;
 
             int address = tileMapAddress + ((tempY / 8) * 0x20);
             int tile = memory.getMemoryPriv(address + (tempX) / 8);
@@ -328,6 +332,8 @@ public class PPU {
             int offset = 7 - (tempX % 8);
             painting[x][currentLine] = (byte) (((memory.getMemoryPriv(tileLine) & (1 << offset)) >> offset) + (((memory.getMemoryPriv(tileLine + 1) & (1 << offset)) >> offset) * 2));
         }
+
+        currentLineWindow++;
     }
 
     private void drawSprite() {
