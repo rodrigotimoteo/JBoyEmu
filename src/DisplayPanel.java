@@ -15,8 +15,6 @@ public class DisplayPanel extends JPanel {
     private final int WIDTH;
     private final int HEIGHT;
 
-    private long oldTime;
-
     //Constructor
 
     public DisplayPanel(Memory memory, PPU ppu, DisplayFrame displayFrame) {
@@ -27,14 +25,6 @@ public class DisplayPanel extends JPanel {
 
         WIDTH = displayFrame.getWidth();
         HEIGHT = displayFrame.getHeight();
-        oldTime = System.nanoTime();
-    }
-
-    private double getFPS(double oldTime) {
-        long newTime = System.nanoTime();
-        long fps = (long) (1 / ((newTime - oldTime) / 1000000000));
-        this.oldTime = newTime;
-        return fps;
     }
 
     public void drawImage(byte[][] painting) {

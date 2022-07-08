@@ -370,10 +370,7 @@ public class CPU {
         if(interruptMasterEnable) {
             char interrupt = (char) (memory.getMemory(IF) & memory.getMemory(IE));
             if(interrupt > 0) {
-                if(isHalted) {
-                    setIsHalted(false);
-                    programCounter++;
-                }
+                if(isHalted) setIsHalted(false);
 
                 interruptMasterEnable = false;
                 memory.storeWordInSP(stackPointer, programCounter);
@@ -416,11 +413,12 @@ public class CPU {
                 }
             }
         }
-        else if(isHalted)
-            if((memory.getMemory(IF) & memory.getMemory(IE) & 0x1f) > 0) {
+        else if(isHalted) {
+            if ((memory.getMemory(IF) & memory.getMemory(IE) & 0x1f) > 0) {
                 isHalted = false;
-                if(haltCounter == counter) haltBug = true;
+                if (haltCounter == counter) haltBug = true;
             }
+        }
     }
 
     public void resetClocks() {
