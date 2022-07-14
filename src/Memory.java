@@ -19,6 +19,7 @@ public class Memory {
 
     private int memoryModel = 0; //ROM = 0 RAM = 1
     private int ppuMode = 0;
+    private int latchReg = 0;
     private int currentRomBank;
     private int currentRamBank;
 
@@ -122,8 +123,11 @@ public class Memory {
             memory[address] = (char) (value & 0xff);
             memory[address - 0x2000] = (char) (value & 0xff);
         }
-        else if(address >= 0xa000 && address <= 0xbfff && ramOn) {
+        else if(address >= 0xa000 && address <= 0xbfff && ramOn && currentRamBank < 4) {
             memory[address] = (char) (value & 0xff);
+        }
+        else if(address >= 0xa000 && address <= 0xbfff && ramOn && currentRamBank >= 4) {
+
         }
         else if(address > ROM_LIMIT) {
             memory[address] = (char) (value & 0xff);
@@ -187,31 +191,40 @@ public class Memory {
     private void setMemoryMBC3(int address, char value) {
         if(address < ROM_LIMIT) { //Memory Bank Controller
             if(address < 0x2000) { //RAM ENABLE
-                ramOn = (value & 0b00001111) == 0b00001010;
+                ramOn = (value & 0b1111) == 0b1010;
             }
             else if(address < 0x4000) { //ROM Bank Number
                 if(currentRomBank != (value & 0b01111111)) {
                     currentRomBank = (value & 0b01111111);
                     if(currentRomBank == 0 || currentRomBank == 1)
                         loadRomBank(1);
-                    else if(romBank.length < 0x20)
-                        loadRomBank(currentRomBank % romBank.length);
+                    else
+                        loadRomBank(currentRomBank);
                 }
             }
             else if(address < 0x6000) { //RAM
-                if(memoryModel == 0 && ramBank != null) {
-                    currentRomBank = (value & 0b0000_0011) << 5;
-                    saveRamBank(currentRamBank);
-                    currentRamBank = 0;
-                    loadRamBank(currentRamBank);
+                if((value & 0xff) < 4) {
+                    if(memoryModel == 0 && ramBank != null) {
+                        currentRomBank = (value & 0b0000_0011) << 5;
+                        saveRamBank(currentRamBank);
+                        currentRamBank = 0;
+                        loadRamBank(currentRamBank);
+                    }
+                    else if(ramBank != null) {
+                        currentRamBank = (value & 0b0000_0011);
+                        saveRamBank(currentRamBank);
+                    }
                 }
-                else if(ramBank != null) {
-                    currentRamBank = (value & 0b0000_0011);
-                    saveRamBank(currentRamBank);
+                else {
+                    if(value == 1 && latchReg == 0) {
+
+                    } else {
+
+                    }
                 }
             }
-            else { //ROM/RAM Select
-                memoryModel = (value & 0x1) == 1 ? 1 : 0;
+            else { //Latch Clock Data
+
             }
         } else {
             setMemoryMBC0(address, value);
@@ -221,27 +234,22 @@ public class Memory {
     private void setMemoryMBC5(int address, char value) {
         if(address < ROM_LIMIT) { //Memory Bank Controller
             if(address < 0x2000) { //RAM ENABLE
-                ramOn = (value & 0b00001111) == 0b0000_1010;
+                ramOn = (value & 0b00001111) == 0b00001010;
             }
-            else if(address < 0x4000) { //ROM Bank Number
-                if(currentRomBank != (value & 0b01111111)) {
-                    currentRomBank = (value & 0b01111111);
-                    loadRomBank(currentRomBank);
-                }
+            else if(address < 0x3000) { //8 least significant bits of ROM bank number
+                currentRomBank &= value;
+                loadRomBank(currentRomBank);
             }
-            else if(address < 0x6000) { //RAM
-                currentRamBank = (value & 0b0000_0011);
-
+            else if(address < 0x4000) { //9 bit of ROM bank number
+                currentRomBank &= (value & 0x1) << 8;
+                loadRomBank(currentRomBank);
             }
-            else { //ROM/RAM Select
-                memoryModel = (value & 0x1) == 1 ? 1 : 0;
+            else if(address < 0x6000) {
+                currentRamBank = (value & 0b00000011);
+                saveRamBank(currentRamBank);
             }
-        } else if(ramOn) {
-            if(memoryModel == 0) {
-
-            } else {
-
-            }
+        } else {
+            setMemoryMBC0(address, value);
         }
     }
 

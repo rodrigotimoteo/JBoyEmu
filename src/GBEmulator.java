@@ -23,7 +23,6 @@ public class GBEmulator extends Thread{
     }
 
     private void gameLoop() throws InterruptedException {
-        System.out.println(System.nanoTime());
         cpu.cycle();
         ppu.cycle();
         oldTime = System.nanoTime();
