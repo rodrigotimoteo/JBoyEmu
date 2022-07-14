@@ -1,4 +1,4 @@
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 
 public class GBEmulator extends Thread{
@@ -16,7 +16,7 @@ public class GBEmulator extends Thread{
 //        return sleepTime;
 //    }
 
-    public GBEmulator() throws FileNotFoundException, InterruptedException {
+    public GBEmulator() throws IOException, InterruptedException {
         cpu = new CPU();
         ppu = cpu.getPPU();
         latch.await();
@@ -43,7 +43,7 @@ public class GBEmulator extends Thread{
         }
     }
 
-    public static void main(String[] args) throws FileNotFoundException, InterruptedException {
+    public static void main(String[] args) throws IOException, InterruptedException {
         System.setProperty("apple.laf.useScreenMenuBar", "true");
         System.setProperty("com.apple.mrj.application.apple.menu.about.name", "JBoyEmu");
         GBEmulator emulator = new GBEmulator();
