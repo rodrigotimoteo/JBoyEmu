@@ -48,6 +48,7 @@ public class ROM {
             int ramSizeInt = romContent[RAM_SIZE_REGISTER];
 
             memory.setCartridgeType(cartridgeType);
+            System.out.println(cartridgeType);
 
             switch (cartridgeType) {
                 case 0 -> {
