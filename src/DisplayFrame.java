@@ -130,6 +130,7 @@ public class DisplayFrame extends JFrame implements KeyListener, ActionListener 
     public File chooseFile() {
         FileDialog fileChooser = new FileDialog(this, "Choose a ROM");
         fileChooser.setVisible(true);
+        memory.setGameFileName(fileChooser.getFile());
         return new File(fileChooser.getDirectory() + fileChooser.getFile());
     }
 

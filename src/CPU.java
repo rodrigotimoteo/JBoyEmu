@@ -1,4 +1,4 @@
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Arrays;
 
@@ -212,7 +212,7 @@ public class CPU {
 
     //Constructor
 
-    public CPU() throws FileNotFoundException {
+    public CPU() throws IOException {
         clearRegisters();
         memory = new Memory(this);
         ppu = new PPU(memory, this);

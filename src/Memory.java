@@ -1,6 +1,13 @@
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Arrays;
 
 public class Memory {
+
+    private String gameFileName;
 
     private final char[] memory = new char[0x10000];
     private char[][] romBank;   //Only used when MBC's are needed
@@ -40,6 +47,12 @@ public class Memory {
 
     public void setCartridgeType(int cartridgeType) {
         this.cartridgeType = cartridgeType;
+
+        try {
+            loadRam();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void setHasBattery(boolean state) {
@@ -64,6 +77,10 @@ public class Memory {
 
     public void setPpuMode(int value) {
         ppuMode = value;
+    }
+
+    public void setGameFileName(String name) {
+        gameFileName = name;
     }
 
     //Writing to Memory
@@ -192,6 +209,13 @@ public class Memory {
         if(address < ROM_LIMIT) { //Memory Bank Controller
             if(address < 0x2000) { //RAM ENABLE
                 ramOn = (value & 0b1111) == 0b1010;
+                if(!ramOn) {
+                    try {
+                        saveRam();
+                    } catch (FileNotFoundException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
             }
             else if(address < 0x4000) { //ROM Bank Number
                 if(currentRomBank != (value & 0b01111111)) {
@@ -395,8 +419,27 @@ public class Memory {
         cpu.increaseStackPointer(-2);
     }
 
+    private void saveRam() throws FileNotFoundException {
+        byte[] save = new byte[ramBank[currentRamBank].length];
+        for(int i = 0; i < ramBank[currentRamBank].length; i++) save[i] = (byte) ramBank[currentRamBank][i];
+        File file = new File(gameFileName + ".sav");
+        try(FileOutputStream fileOutputStream = new FileOutputStream(file)) {
+            fileOutputStream.write(save);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void loadRam() throws IOException {
+        byte[] save;
+        File saveFile = new File(gameFileName + ".sav");
+        if(!saveFile.exists()) return;
+        save = Files.readAllBytes(saveFile.toPath());
+        for(int i = 0; i < 0x2000; i++) memory[0xa000 + i] = (char) save[i];
+    }
+
     //Constructor
-    public Memory(CPU cpu) {
+    public Memory(CPU cpu) throws IOException {
         this.cpu = cpu;
         resetMemory();
         init();
