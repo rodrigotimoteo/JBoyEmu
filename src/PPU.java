@@ -24,6 +24,9 @@ public class PPU {
     private final int SCROLL_X_REGISTER = 0xff43;
     private final int LY_REGISTER = 0xff44;
     private final int LYC_REGISTER = 0xff45;
+    private final int BG_PALETTE = 0xff47;
+    private final int OBJECT_PALETTE_0 = 0xff48;
+    private final int OBJECT_PALETTE_1 = 0xff49;
     private final int WINDOW_Y_REGISTER = 0xff4a;
     private final int WINDOW_X_REGISTER = 0xff4b;
 
@@ -300,7 +303,9 @@ public class PPU {
             } else tileLine = tileDataAddress + ((tile & 0xff) * 0x10) + ((currentLine % 8) * 2);
 
             int offset = 7 - (tempX % 8);
-            painting[x][currentLine] = (byte) (((memory.getMemoryPriv(tileLine) & (1 << offset)) >> offset) + (((memory.getMemoryPriv(tileLine + 1) & (1 << offset)) >> offset) * 2));
+            int color_num = (byte) (((memory.getMemoryPriv(tileLine) & (1 << offset)) >> offset) + (((memory.getMemoryPriv(tileLine + 1) & (1 << offset)) >> offset) * 2));
+            byte color = decodeColor(color_num, memory.getMemoryPriv(BG_PALETTE));
+            painting[x][currentLine] = color;
         }
     }
 
@@ -330,47 +335,78 @@ public class PPU {
             } else tileLine = tileDataAddress + ((tile & 0xff) * 0x10) + ((currentLine % 8) * 2);
 
             int offset = 7 - (tempX % 8);
-            painting[x][currentLine] = (byte) (((memory.getMemoryPriv(tileLine) & (1 << offset)) >> offset) + (((memory.getMemoryPriv(tileLine + 1) & (1 << offset)) >> offset) * 2));
+            int color_num = (byte) (((memory.getMemoryPriv(tileLine) & (1 << offset)) >> offset) + (((memory.getMemoryPriv(tileLine + 1) & (1 << offset)) >> offset) * 2));
+            byte color = decodeColor(color_num, memory.getMemoryPriv(BG_PALETTE));
+            painting[x][currentLine] = color;
         }
 
         currentLineWindow++;
     }
 
     private void drawSprite() {
-        int tempY, tempX, spriteLocation, spriteAttributes;
-        int drawnSprites = 0;
-        for (int spriteNumber = 0; spriteNumber < 40; spriteNumber++) {
+        int tempY, tempX, tile, attributesAddress;
+        int[] drawnX = new int[10];
 
+        int drawnSprites = 0;
+        int spriteOffset = this.spriteSize ? 16 : 8;
+
+        for (int spriteNumber = 0; spriteNumber < 40 && drawnSprites < 10; spriteNumber++) {
             tempY = memory.getMemoryPriv(OAM_START + (spriteNumber * 4)) - 16;
             tempX = memory.getMemoryPriv(OAM_START + (spriteNumber * 4) + 1) - 8;
-            spriteLocation = memory.getMemoryPriv(OAM_START + (spriteNumber * 4) + 2);
-            spriteAttributes = memory.getMemoryPriv(OAM_START + (spriteNumber * 4) + 3);
+            tile = memory.getMemoryPriv(OAM_START + (spriteNumber * 4) + 2);
 
-            boolean yFlipped = ((spriteAttributes & 0x40) >> 6) == 1;
-            boolean xFlipped = ((spriteAttributes & 0x20) >> 5) == 1;
+            boolean quit = false;
+            if(drawnSprites > 1) for (int x : drawnX) if (x == tempX) quit = true;
+            if(quit) continue;
 
-            int spriteSize = this.spriteSize ? 16 : 8;
+            if(spriteOffset == 16) tile &= 0xfe;
 
-            if(currentLine >= tempY && currentLine < (tempY + spriteSize) && drawnSprites < 10) {
+            attributesAddress = OAM_START + (spriteNumber * 4) + 3;
+
+            if((currentLine >= tempY) && (currentLine < (tempY + spriteOffset)) && (tempX != -8) && (tempX < 168)) {
+                boolean priority = memory.testBit(attributesAddress,7);
+                boolean yFlipped = memory.testBit(attributesAddress,6);
+                boolean xFlipped = memory.testBit(attributesAddress,5);
+                int paletteAddress = memory.testBit(attributesAddress, 4) ? OBJECT_PALETTE_1 : OBJECT_PALETTE_0;
+                int palette = memory.getMemoryPriv(paletteAddress);
+
+                int tileLine = spriteOffset - (currentLine - tempY);
+
                 int offset;
-                drawnSprites++;
+                if (!yFlipped) offset = 2 * (currentLine - tempY);
+                else offset = 2 * (tileLine - 1);
 
-                if (yFlipped) offset = 2 * (currentLine - 1);
-                else offset = 2 * (currentLine - tempY);
+                int pixelDataAddress = TILE_DATA_0 + tile * 16 + offset;
 
-                int pixelData0 = memory.getMemoryPriv((TILE_DATA_0 + spriteLocation * 16) + offset);
-                int pixelData1 = memory.getMemoryPriv((TILE_DATA_0 + spriteLocation * 16) + offset + 1);
+                for (int pixelPrinted = 0; pixelPrinted < 8; pixelPrinted++) {
+                    if(tempX + pixelPrinted < 0) continue;
+                    if(priority && painting[tempX + pixelPrinted][currentLine] > 0) continue;
 
-                for (int x = 0; x < 8; x++) {
-                    int col_index = xFlipped ? x : 7 - x;
-                    int color_num = ((pixelData0 & (1 << col_index)) >> col_index) + (((pixelData1 & (1 << col_index)) >> col_index) * 2);
-                    if ((tempX + x < 160) && (tempX + x >= 0) && color_num != 0) {
-                        painting[tempX + x][currentLine] = (byte) color_num;
+                    int x = xFlipped ? pixelPrinted : 7 - pixelPrinted;
+                    int color_num = ((memory.getMemoryPriv(pixelDataAddress) & (1 << x)) >> x) + (((memory.getMemoryPriv(pixelDataAddress + 1) & (1 << x)) >> x) * 2);
+                    byte color = decodeColor(color_num, palette);
+
+                    if ((tempX + pixelPrinted < 160) && (tempX + pixelPrinted >= 0) && (color != 0)) {
+                        painting[tempX + pixelPrinted][currentLine] = color;
                     }
                 }
+
+                drawnX[drawnSprites] = tempX;
+                drawnSprites++;
             }
         }
     }
+
+    private byte decodeColor(int index, int palette) {
+        byte[] colors = new byte[4];
+        colors[3] = (byte) (((palette & 0x80) >> 6) + ((palette & 0x40) >> 6));
+        colors[2] = (byte) (((palette & 0x20) >> 4) + ((palette & 0x10) >> 4));
+        colors[1] = (byte) (((palette & 0x08) >> 2) + ((palette & 0x04) >> 2));
+        colors[0] = (byte) ((palette & 0x02) + (palette & 0x01));
+
+        return colors[index];
+    }
+
 
     public void requestRepaint() {
         if(!lcdOn) display.drawBlankImage();
