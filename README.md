@@ -10,12 +10,12 @@ And that's how JBoyEmu came to be!
 
 ### The Goals for this Project
 The main goal for this project was building an emulator that could emulate my favorite games, Pokemon Red and Blue, but appart from that,
-- [ ] - Cycle Accurate *enough*
+- [X] - Cycle Accurate *enough*
 - [ ] - Support all non obscure functions
 - [ ] - Implement external Joypads Support
 - [ ] - Implement a Save State function
 - [ ] - Implement a Rewind function
-- [ ] - Being able to boot and play to the end Pokemon Red
+- [X] - Being able to boot and play to the end Pokemon Red
 
 ### Extras
 - [ ] - GameBoyColor functions
