@@ -74,23 +74,12 @@ public class DisplayPanel extends JPanel {
     }
 
     private Color getColor(byte pixelNumber) {
-        int palette = (memory.getMemory(BACK_WINDOW_PALLETE) & 0xff);
-        int colorSelect;
-        Color color;
-
-        colorSelect = switch (pixelNumber) {
-            case 0 -> (palette & 0x3);
-            case 1 -> (palette >> 2) & 0x3;
-            case 2 -> (palette >> 4) & 0x3;
-            case 3 -> (palette >> 6) & 0x3;
-            default -> 0;
-        };
-        color = switch (colorSelect & 0x3) {
+        return switch (pixelNumber) {
+            case 0 -> new Color(0xffffff);
             case 1 -> new Color(0xcccccc);
             case 2 -> new Color(0x777777);
             case 3 -> new Color(0x000000);
-            default -> new Color(0xffffff);
+            default -> Color.RED;
         };
-        return color;
     }
 }

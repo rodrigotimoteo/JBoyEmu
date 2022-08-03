@@ -283,7 +283,8 @@ public class PPU {
     }
 
     private void drawBackground(int tileMapAddress, int tileDataAddress) {
-        int tempY = (currentLine + scrollY) % 0x100;
+        int tempY = (currentLine + scrollY) & 0xff;
+        System.out.println(currentLine + "  " + tempY);
 
         for (int x = 0; x < 160; x++) {
             int tempX = (scrollX + x) % 0x100;
@@ -297,10 +298,11 @@ public class PPU {
             }
 
             int tileLine;
+            int i = tileDataAddress + ((tile & 0xff) * 0x10) + ((tempY % 8) * 2);
             if(negativeTiles) {
-                if(((tile & 0x80) >> 7) == 0) tileLine = tileDataAddress + ((tile & 0xff) * 0x10) + ((currentLine % 8) * 2);
-                else tileLine = TILE_DATA_1 + (((tile & 0xff) - 128) * 0x10) + ((currentLine % 8) * 2);
-            } else tileLine = tileDataAddress + ((tile & 0xff) * 0x10) + ((currentLine % 8) * 2);
+                if(((tile & 0x80) >> 7) == 0) tileLine = i;
+                else tileLine = TILE_DATA_1 + (((tile & 0xff) - 128) * 0x10) + ((tempY % 8) * 2);
+            } else tileLine = i;
 
             int offset = 7 - (tempX % 8);
             int color_num = (byte) (((memory.getMemoryPriv(tileLine) & (1 << offset)) >> offset) + (((memory.getMemoryPriv(tileLine + 1) & (1 << offset)) >> offset) * 2));
@@ -363,7 +365,7 @@ public class PPU {
 
             attributesAddress = OAM_START + (spriteNumber * 4) + 3;
 
-            if((currentLine >= tempY) && (currentLine < (tempY + spriteOffset)) && (tempX != -8) && (tempX < 168)) {
+            if((currentLine >= tempY) && (currentLine < (tempY + spriteOffset))) {
                 boolean priority = memory.testBit(attributesAddress,7);
                 boolean yFlipped = memory.testBit(attributesAddress,6);
                 boolean xFlipped = memory.testBit(attributesAddress,5);
@@ -379,14 +381,14 @@ public class PPU {
                 int pixelDataAddress = TILE_DATA_0 + tile * 16 + offset;
 
                 for (int pixelPrinted = 0; pixelPrinted < 8; pixelPrinted++) {
-                    if(tempX + pixelPrinted < 0) continue;
+                    if(tempX + pixelPrinted < 0 || tempX + pixelPrinted >= 160) continue;
                     if(priority && painting[tempX + pixelPrinted][currentLine] > 0) continue;
 
                     int x = xFlipped ? pixelPrinted : 7 - pixelPrinted;
                     int color_num = ((memory.getMemoryPriv(pixelDataAddress) & (1 << x)) >> x) + (((memory.getMemoryPriv(pixelDataAddress + 1) & (1 << x)) >> x) * 2);
                     byte color = decodeColor(color_num, palette);
 
-                    if ((tempX + pixelPrinted < 160) && (tempX + pixelPrinted >= 0) && (color != 0)) {
+                    if ((tempX + pixelPrinted < 160) && (tempX + pixelPrinted >= 0) && (color_num != 0) ) {
                         painting[tempX + pixelPrinted][currentLine] = color;
                     }
                 }
