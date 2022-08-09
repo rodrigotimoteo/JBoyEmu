@@ -56,6 +56,7 @@ public class PPU {
     private boolean backgroundTileMap;
     private boolean spriteSize;
     private boolean spriteOn;
+    private boolean cgb = false;
 
 
     private boolean negativeTiles;
@@ -82,6 +83,11 @@ public class PPU {
 
     public void setDisplayPanel(DisplayPanel display) {
         this.display = display;
+    }
+
+    public void setCgbMode() {
+        cgb = true;
+        display.setCgbMode();
     }
 
     public void setScrolls() {

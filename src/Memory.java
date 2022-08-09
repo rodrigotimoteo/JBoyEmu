@@ -13,6 +13,9 @@ public class Memory {
     private char[][] romBank;   //Only used when MBC's are needed
     private char[][] ramBank;
 
+    private char[][] cgbWorkRamBank;
+    private char[][] cgbVramBank;
+
     private final int DIV = 0xff04;
     private final int TIMA = 0xff05;
     private final int TAC = 0xff07;
@@ -23,12 +26,16 @@ public class Memory {
     private boolean hasBattery = false;
     private boolean hasTimer = false;
     private boolean lcdOn = false;
+    private boolean cgb;
 
     private int memoryModel = 0; //ROM = 0 RAM = 1
     private int ppuMode = 0;
     private int latchReg = 0;
     private int currentRomBank;
     private int currentRamBank;
+
+    private int currentCgbVramBank = 0;
+    private int currentCgbWorkRamBank = 1;
 
     private final int ROM_LIMIT = 0x8000;
 
@@ -83,6 +90,15 @@ public class Memory {
         gameFileName = name;
     }
 
+    public void setCgbMode() {
+        cgbVramBank = new char[2][0x2000];
+        cgbWorkRamBank = new char[7][0x1000];
+
+        cpu.setCgbMode();
+
+        cgb = true;
+    }
+
     //Writing to Memory
 
     public void writePriv(int address, char value) {
@@ -117,6 +133,9 @@ public class Memory {
             if(value != 0) memory[address] = 0xff;
             else memory[address] = 0;
         }
+        else if(address == 0x0143 && !cgb) {
+            setCgbMode();
+        }
         else if(address == 0xff46) {
             doDMA(value);
         }
@@ -129,6 +148,16 @@ public class Memory {
         else if(address >= 0xc000 && address <= 0xde00) { //Check Ram Echo
             memory[address] = (char) (value & 0xff);
             memory[address + 0x2000] = (char) (value & 0xff);
+        }
+        else if(cgb && address == 0xff4f) {
+            if((value & 0x1) != currentCgbVramBank) {
+                loadVRamBank(value & 0x1);
+            }
+        }
+        else if(cgb && address == 0xff70) {
+            if((value & 0x7) != currentCgbWorkRamBank) {
+                loadWorkRamBank(value & 0x7);
+            }
         }
 //        else if(address >= 0x8000 && address <= 0x9fff) {
 //            if(!lcdOn || ppuMode == 3) return;
@@ -308,6 +337,24 @@ public class Memory {
     private void loadRomBank(int bankNumber) {
         System.arraycopy(romBank[bankNumber], 0, memory, 0x4000, 0x4000);
     }
+
+    private void loadVRamBank(int bankNumber) {
+        System.arraycopy(memory, 0x8000, cgbVramBank[currentCgbVramBank], 0, 0x2000);
+        System.arraycopy(cgbVramBank[bankNumber], 0, memory, 0x8000, 0x2000);
+
+        currentCgbVramBank = bankNumber;
+    }
+
+    private void loadWorkRamBank(int bankNumber) {
+        if(bankNumber == 0) loadWorkRamBank(1);
+        else {
+            System.arraycopy(memory, 0xc000, cgbWorkRamBank[currentCgbWorkRamBank], 0, 0x1000);
+            System.arraycopy(cgbWorkRamBank[bankNumber], 0, memory, 0xd000, 0x1000);
+
+            currentCgbWorkRamBank = bankNumber;
+        }
+    }
+
 
     //Store Big ROM's
     public void storeCartridge(byte[] cartridge) {

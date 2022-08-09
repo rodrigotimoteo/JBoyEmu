@@ -15,6 +15,8 @@ public class DisplayPanel extends JPanel {
     private final int WIDTH;
     private final int HEIGHT;
 
+    private boolean cgb = false;
+
     //Constructor
 
     public DisplayPanel(Memory memory, PPU ppu, DisplayFrame displayFrame) {
@@ -25,6 +27,10 @@ public class DisplayPanel extends JPanel {
 
         WIDTH = displayFrame.getWidth();
         HEIGHT = displayFrame.getHeight();
+    }
+
+    public void setCgbMode() {
+        cgb = true;
     }
 
     public void drawImage(byte[][] painting) {
@@ -74,12 +80,17 @@ public class DisplayPanel extends JPanel {
     }
 
     private Color getColor(byte pixelNumber) {
-        return switch (pixelNumber) {
-            case 0 -> new Color(0xffffff);
-            case 1 -> new Color(0xcccccc);
-            case 2 -> new Color(0x777777);
-            case 3 -> new Color(0x000000);
-            default -> Color.RED;
-        };
+        if (cgb) {
+
+        } else {
+            return switch (pixelNumber) {
+                case 0 -> new Color(0xffffff);
+                case 1 -> new Color(0xcccccc);
+                case 2 -> new Color(0x777777);
+                case 3 -> new Color(0x000000);
+                default -> Color.RED;
+            };
+        }
+        return null;
     }
 }

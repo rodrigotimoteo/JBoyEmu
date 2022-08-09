@@ -26,6 +26,8 @@ public class CPU {
     private char programCounter = 0x100;
     private char stackPointer = 0xFFFE;
 
+    private boolean cgb;
+
     private int counter = 0;
     private int haltCounter = 0;
     private int divClockCounter = 0;
@@ -122,6 +124,13 @@ public class CPU {
     public void setRegister(int index, char value) {
         registers[index] = value;
     }
+
+    public void setCgbMode() {
+        cgb = true;
+
+        ppu.setCgbMode();
+    }
+
 
     //Increments a value to the CPU Cycle Counter
     public void increaseCounter(int amount) {
