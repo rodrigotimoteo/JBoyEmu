@@ -43,7 +43,7 @@ public class CPU {
     private boolean changeInterrupt = false;
     private boolean haltBug = false;
 
-    private final boolean debugText = false;
+    private final boolean debugText = true;
     PrintStream debug;
 
     Memory memory;
@@ -228,14 +228,16 @@ public class CPU {
         displayFrame = new DisplayFrame(memory, ppu, this);
         memory.setDisplayFrame(displayFrame);
 
-        if(debugText) {
-            debug = new PrintStream("A.txt");
-            PrintStream console = System.out;
-            System.setOut(debug);
-        }
+//        if(debugText) {
+//            debug = new PrintStream("A.txt");
+//            PrintStream console = System.out;
+//            System.setOut(debug);
+//        }
 
         CPUInstructions.setCpu(this);
         CPUInstructions.setMem(memory);
+
+        //memory.dumpMemory();
 
         init();
     }
@@ -349,6 +351,16 @@ public class CPU {
     }
 
     public void cycle() throws InterruptedException {
+//        if(counter >= 0x10000) {
+//            memory.dumpMemory();
+//            System.exit(0);
+//        }
+
+//        CPUInstructions.show();
+//        CPUInstructions.dumpRegisters();
+//        if(counter >= 0x10000)
+//            System.exit(0);
+
         if (!getIsStopped()) {
             if(!getIsHalted()) {
                 fetchOperationCodes();
@@ -495,7 +507,7 @@ public class CPU {
     }
 
     private void decodeOperationCodes() {
-        //System.out.println(operationCode);
+//        System.out.println(operationCode);
 
 //        System.out.println(counter);
 
@@ -507,7 +519,7 @@ public class CPU {
 //            CPUInstructions.dumpRegisters();
 //            CPUInstructions.show();
 //        }
-//
+////
 //        if(counter >= 366125) {
 //            System.exit(1);
 //        }

@@ -38,6 +38,7 @@ public class GBEmulator extends Thread{
                     for(int i = 0; i < (cpu.getCounter() - cpuCounter); i++) ppu.cycle();
                 }
             } catch (InterruptedException e) {
+                e.printStackTrace();
                 System.exit(-1);
             }
         }
