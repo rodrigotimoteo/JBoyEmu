@@ -290,7 +290,7 @@ public class PPU {
 
     private void drawBackground(int tileMapAddress, int tileDataAddress) {
         int tempY = (currentLine + scrollY) & 0xff;
-        System.out.println(currentLine + "  " + tempY);
+        //System.out.println(currentLine + "  " + tempY);
 
         for (int x = 0; x < 160; x++) {
             int tempX = (scrollX + x) % 0x100;

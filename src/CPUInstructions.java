@@ -751,7 +751,7 @@ public class CPUInstructions {
         int temp = memory.getMemory(cpu.getProgramCounter() + 1);
         if(((temp & 0x80) >> 7) == 1) temp = (temp & 0x7f) - 0x80;
 
-        cpu.setHalfCarryFlag((((cpu.getStackPointer() & 0xf) + (memory.getMemory(cpu.getProgramCounter() + 1) & 0xf) & 0x10) == 0x10));
+        cpu.setHalfCarryFlag((((cpu.getStackPointer() & 0xf) + (1 & 0xf) & 0x10) == 0x10));
         cpu.setCarryFlag((((cpu.getStackPointer() & 0xff) + memory.getMemory(cpu.getProgramCounter() + 1)) & 0x100) == 0x100);
 
 
