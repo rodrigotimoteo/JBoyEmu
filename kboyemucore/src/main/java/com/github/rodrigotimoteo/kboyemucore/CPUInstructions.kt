@@ -1,21 +1,11 @@
-package com.github.rodrigotimoteo.kboyemu.domain
+package com.github.rodrigotimoteo.kboyemucore
 
-import com.github.rodrigotimoteo.kboyemu.kotlin.Memory
-
-class CPUInstructions {
+class CPUInstructions(
+    private val cpu: CPU,
+    private val memory: Memory
+) {
 
     val DIVIDER_REGISTER: Int = 0xff04
-
-    var cpu: CPU? = null
-    var memory: Memory? = null
-
-    fun setCpu(cpuIn: CPU) {
-        cpu = cpuIn
-    }
-
-    fun setMem(memoryIn: Memory) {
-        memory = memoryIn
-    }
 
 
     //Reset
