@@ -21,4 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "KBoyEmu"
 include(":app")
- 
+include(":kboyemucore")

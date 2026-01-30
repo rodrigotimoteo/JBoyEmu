@@ -1,0 +1,28 @@
+name: Detekt
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  detekt:
+    name: Run Detekt
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Cache Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Run Detekt
+        run: ./gradlew detekt --no-daemon
+        
