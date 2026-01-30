@@ -1,10 +1,5 @@
-package com.github.rodrigotimoteo.kboyemu.domain
+package com.github.rodrigotimoteo.kboyemucore
 
-import com.github.rodrigotimoteo.kboyemu.kotlin.CPU
-import com.github.rodrigotimoteo.kboyemu.kotlin.CPUInstructions
-import com.github.rodrigotimoteo.kboyemu.kotlin.DisplayFrame
-import com.github.rodrigotimoteo.kboyemu.kotlin.Memory
-import com.github.rodrigotimoteo.kboyemu.kotlin.PPU
 import java.io.IOException
 import java.io.PrintStream
 import java.util.Arrays

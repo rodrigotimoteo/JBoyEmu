@@ -1,43 +1,42 @@
-package com.github.rodrigotimoteo.kboyemu.domain
+package com.github.rodrigotimoteo.kboyemucore
 
-import com.github.rodrigotimoteo.kboyemu.kotlin.DisplayFrame
-import com.github.rodrigotimoteo.kboyemu.kotlin.DisplayPanel
-import com.github.rodrigotimoteo.kboyemu.kotlin.Memory
+import kotlin.and
 
-class PPU {
+class PPU(
+    private val cpu: CPU,
+    private val memory: Memory,
+) {
 
-    private val memory: Memory? = null
-    private val cpu: CPU? = null
     private var displayFrame: DisplayFrame? = null
     private var display: DisplayPanel? = null
 
-    private const val HBLANK = 0
-    private const val VBLANK = 1
-    private const val OAM = 2
-    private const val PIXEL_TRANSFER = 3
+    private val HBLANK = 0
+    private val VBLANK = 1
+    private val OAM = 2
+    private val PIXEL_TRANSFER = 3
 
-    private const val TILE_DATA_0 = 0x8000
-    private const val TILE_DATA_1 = 0x8800
-    private const val TILE_DATA_2 = 0x9000
+    private val TILE_DATA_0 = 0x8000
+    private val TILE_DATA_1 = 0x8800
+    private val TILE_DATA_2 = 0x9000
 
-    private const val TILE_MAP_0 = 0x9800
-    private const val TILE_MAP_1 = 0x9c00
+    private val TILE_MAP_0 = 0x9800
+    private val TILE_MAP_1 = 0x9c00
 
-    private const val OAM_START = 0xfe00
-    private const val LCDC_CONTROL = 0xff40
-    private const val LCDC_STATUS = 0xff41
-    private const val SCROLL_Y_REGISTER = 0xff42
-    private const val SCROLL_X_REGISTER = 0xff43
-    private const val LY_REGISTER = 0xff44
-    private const val LYC_REGISTER = 0xff45
-    private const val BG_PALETTE = 0xff47
-    private const val OBJECT_PALETTE_0 = 0xff48
-    private const val OBJECT_PALETTE_1 = 0xff49
-    private const val WINDOW_Y_REGISTER = 0xff4a
-    private const val WINDOW_X_REGISTER = 0xff4b
+    private val OAM_START = 0xfe00
+    private val LCDC_CONTROL = 0xff40
+    private val LCDC_STATUS = 0xff41
+    private val SCROLL_Y_REGISTER = 0xff42
+    private val SCROLL_X_REGISTER = 0xff43
+    private val LY_REGISTER = 0xff44
+    private val LYC_REGISTER = 0xff45
+    private val BG_PALETTE = 0xff47
+    private val OBJECT_PALETTE_0 = 0xff48
+    private val OBJECT_PALETTE_1 = 0xff49
+    private val WINDOW_Y_REGISTER = 0xff4a
+    private val WINDOW_X_REGISTER = 0xff4b
 
-    private const val VBLANK_INTERRUPT = 0
-    private const val STAT_INTERRUPT = 1
+    private val VBLANK_INTERRUPT = 0
+    private val STAT_INTERRUPT = 1
 
     private var counter = 0
 
@@ -103,15 +102,6 @@ class PPU {
 
     fun reset() {
         counter = 0
-    }
-
-    fun PPU(memory: Memory, cpu: CPU) {
-        this.memory = memory
-        this.cpu = cpu
-
-        counter = 0
-        lcdOn = false
-        windowOn = false
     }
 
     fun cycle() {
