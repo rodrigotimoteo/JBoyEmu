@@ -1,5 +1,9 @@
-package com.github.rodrigotimoteo.kboyemucore
+package com.github.rodrigotimoteo.kboyemucore.ppu
 
+import com.github.rodrigotimoteo.kboyemucore.DisplayFrame
+import com.github.rodrigotimoteo.kboyemucore.DisplayPanel
+import com.github.rodrigotimoteo.kboyemucore.cpu.CPU
+import com.github.rodrigotimoteo.kboyemucore.memory.Memory
 import kotlin.and
 
 class PPU(

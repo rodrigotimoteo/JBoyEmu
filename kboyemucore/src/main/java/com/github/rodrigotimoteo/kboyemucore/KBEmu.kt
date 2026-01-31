@@ -1,9 +1,12 @@
 package com.github.rodrigotimoteo.kboyemucore
 
-class KBEmu {
-    class GBEmulator : java.lang.Thread() {
+import com.github.rodrigotimoteo.kboyemucore.cpu.CPU
+import com.github.rodrigotimoteo.kboyemucore.ppu.PPU
 
-        private var oldTime: kotlin.Long = 0
+class KBEmu {
+    class GBEmulator : Thread() {
+
+        private var oldTime: Long = 0
 
         private val cpu: CPU
         private val ppu: PPU
@@ -16,16 +19,17 @@ class KBEmu {
         init {
             cpu = CPU()
             ppu = cpu.getPPU()
-            GBEmulator.Companion.latch.await()
+            latch.await()
         }
 
-        @kotlin.Throws(java.lang.InterruptedException::class) private fun gameLoop() {
+        @Throws(InterruptedException::class)
+        private fun gameLoop() {
             cpu.cycle()
             ppu.cycle()
-            oldTime = java.lang.System.nanoTime()
+            oldTime = System.nanoTime()
             while (true) {
                 try {
-                    val cpuCounter: kotlin.Int = cpu.getCounter()
+                    val cpuCounter: Int = cpu.getCounter()
                     //                if(ppu.isGetToSleep()) Thread.sleep(getSleepTime(oldTime));
                     if (!ppu.getLcdOn()) {
                         cpu.cycle()
@@ -34,9 +38,9 @@ class KBEmu {
                         cpu.cycle()
                         for (i in 0 ..< (cpu.getCounter() - cpuCounter)) ppu.cycle()
                     }
-                }catch (e: java.lang.InterruptedException) {
+                }catch (e: InterruptedException) {
                     e.printStackTrace()
-                    java.lang.System.exit(-1)
+                    System.exit(-1)
                 }
             }
         }
@@ -44,13 +48,11 @@ class KBEmu {
         companion object {
             val latch: java.util.concurrent.CountDownLatch = java.util.concurrent.CountDownLatch(1)
 
-            @kotlin.Throws(java.io.IOException::class, java.lang.InterruptedException::class) @kotlin.jvm.JvmStatic fun main(args: kotlin.Array<kotlin.String>) {
-                java.lang.System.setProperty("apple.laf.useScreenMenuBar", "true")
-                java.lang.System.setProperty("com.apple.mrj.application.apple.menu.about.name", "JBoyEmu")
+            @Throws(java.io.IOException::class, InterruptedException::class) @JvmStatic fun main(args: Array<String>) {
+                System.setProperty("apple.laf.useScreenMenuBar", "true")
+                System.setProperty("com.apple.mrj.application.apple.menu.about.name", "JBoyEmu")
                 val emulator: GBEmulator = GBEmulator()
                 emulator.gameLoop()
             }
         }}
-
-
 }

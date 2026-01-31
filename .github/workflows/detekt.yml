@@ -25,4 +25,3 @@ jobs:
 
       - name: Run Detekt
         run: ./gradlew detekt --no-daemon
-        

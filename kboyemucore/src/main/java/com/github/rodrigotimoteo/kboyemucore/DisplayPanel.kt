@@ -1,5 +1,8 @@
 package com.github.rodrigotimoteo.kboyemucore
 
+import com.github.rodrigotimoteo.kboyemucore.memory.Memory
+import com.github.rodrigotimoteo.kboyemucore.ppu.PPU
+
 class DisplayPanel {
 
     private var tempImage: android.media.Image? = null
@@ -20,7 +23,7 @@ class DisplayPanel {
     fun DisplayPanel(
         memory: Memory?,
         ppu: PPU,
-        displayFrame: com.github.rodrigotimoteo.kboyemu.kotlin.DisplayFrame
+        displayFrame: DisplayFrame
     ) {
         this.memory = memory
         this.ppu = ppu

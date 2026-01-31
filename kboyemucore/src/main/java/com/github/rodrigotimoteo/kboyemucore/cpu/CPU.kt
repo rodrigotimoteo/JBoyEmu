@@ -1,16 +1,14 @@
-package com.github.rodrigotimoteo.kboyemucore
+package com.github.rodrigotimoteo.kboyemucore.cpu
 
+import com.github.rodrigotimoteo.kboyemucore.DisplayFrame
+import com.github.rodrigotimoteo.kboyemucore.memory.Memory
+import com.github.rodrigotimoteo.kboyemucore.memory.ReservedAddresses
+import com.github.rodrigotimoteo.kboyemucore.ppu.PPU
 import java.io.IOException
 import java.io.PrintStream
 import java.util.Arrays
 
 class CPU {
-    private val DIV = 0xff04
-    private val TIMA = 0xff05
-    private val TMA = 0xff06
-    private val IF = 0xff0f
-    private val IE = 0xffff
-
     private val TIMER_INTERRUPT = 2
 
     var registers: CharArray = CharArray(8) //AF, BC, DE and HL can be 16 bits if paired together
@@ -381,17 +379,17 @@ class CPU {
 
     fun setInterrupt(interrupt: Int) {
         when (interrupt) {
-            0 -> memory!!.setBit(IF, 0)
-            1 -> memory!!.setBit(IF, 1)
-            2 -> memory!!.setBit(IF, 2)
-            3 -> memory!!.setBit(IF, 3)
-            4 -> memory!!.setBit(IF, 4)
+            0 -> memory!!.setBit(ReservedAddresses.IF.memoryAddress, 0)
+            1 -> memory!!.setBit(ReservedAddresses.IF.memoryAddress, 1)
+            2 -> memory!!.setBit(ReservedAddresses.IF.memoryAddress, 2)
+            3 -> memory!!.setBit(ReservedAddresses.IF.memoryAddress, 3)
+            4 -> memory!!.setBit(ReservedAddresses.IF.memoryAddress, 4)
         }
     }
 
     private fun handleInterrupts() {
         if (interruptMasterEnable) {
-            val interrupt = (memory!!.getMemory(IF).code and memory!!.getMemory(IE).code).toChar()
+            val interrupt = (memory!!.getMemory(ReservedAddresses.IF.memoryAddress).code and memory!!.getMemory(ReservedAddresses.IE.memoryAddress).code).toChar()
             if (interrupt.code > 0) {
                 if (isHalted) setIsHalted(false)
 
@@ -401,28 +399,28 @@ class CPU {
                 val vBlank = interrupt.code and 0x1
                 if (vBlank == 1) {
                     setProgramCounter(0x40.toChar())
-                    memory!!.resetBit(IF, 0)
+                    memory!!.resetBit(ReservedAddresses.IF.memoryAddress, 0)
                     return
                 }
 
                 val LCDCStatus = (interrupt.code and 0x2) shr 1
                 if (LCDCStatus == 1) {
                     setProgramCounter(0x48.toChar())
-                    memory!!.resetBit(IF, 1)
+                    memory!!.resetBit(ReservedAddresses.IF.memoryAddress, 1)
                     return
                 }
 
                 val timerOverflow = (interrupt.code and 0x4) shr 2
                 if (timerOverflow == 1) {
                     setProgramCounter(0x50.toChar())
-                    memory!!.resetBit(IF, 2)
+                    memory!!.resetBit(ReservedAddresses.IF.memoryAddress, 2)
                     return
                 }
 
                 val serialTransfer = (interrupt.code and 0x8) shr 3
                 if (serialTransfer == 1) {
                     setProgramCounter(0x58.toChar())
-                    memory!!.resetBit(IF, 3)
+                    memory!!.resetBit(ReservedAddresses.IF.memoryAddress, 3)
                     return
                 }
 
@@ -432,11 +430,11 @@ class CPU {
                         isStopped = false
                     }
                     setProgramCounter(0x60.toChar())
-                    memory!!.resetBit(IF, 4)
+                    memory!!.resetBit(ReservedAddresses.IF.memoryAddress, 4)
                 }
             }
         } else if (isHalted) {
-            if ((memory!!.getMemory(IF).code and memory!!.getMemory(IE).code and 0x1f) > 0) {
+            if ((memory!!.getMemory(ReservedAddresses.IF.memoryAddress).code and memory!!.getMemory(ReservedAddresses.IE.memoryAddress).code and 0x1f) > 0) {
                 isHalted = false
                 if (haltCounter == counter) haltBug = true
             }
@@ -447,14 +445,16 @@ class CPU {
         val divUsed = timerFrequency == 256
 
         if (divUsed && timerEnabled) {
-            if (memory!!.testBit(DIV, 1)) memory!!.setMemory(
-                TIMA,
-                (memory!!.getMemory(TIMA).code + 1).toChar()
-            )
+            if (memory!!.testBit(ReservedAddresses.DIV.memoryAddress, 1)) {
+                memory!!.setMemory(
+                    ReservedAddresses.TIMA.memoryAddress,
+                    (memory!!.getMemory(ReservedAddresses.TIMA.memoryAddress).code + 1).toChar()
+                )
+            }
         } else if (timerEnabled) {
             if (totalDiv == 0) memory!!.setMemory(
-                TIMA,
-                (memory!!.getMemory(TIMA).code + 1).toChar()
+                ReservedAddresses.TIMA.memoryAddress,
+                (memory!!.getMemory(ReservedAddresses.TIMA.memoryAddress).code + 1).toChar()
             )
         }
 
@@ -476,9 +476,9 @@ class CPU {
         totalDiv++
         while (divClockCounter >= 64) {
             divClockCounter -= 64
-            var div_counter = memory!!.getMemory(DIV).code
+            var div_counter = memory!!.getMemory(ReservedAddresses.DIV.memoryAddress).code
             div_counter = (div_counter + 1) and 0xff
-            memory!!.writePriv(DIV, div_counter.toChar())
+            memory!!.writePriv(ReservedAddresses.DIV.memoryAddress, div_counter.toChar())
         }
         if (totalDiv >= timerFrequency) totalDiv = 0
     }
@@ -486,7 +486,8 @@ class CPU {
     private fun handleTimer() {
         CPUInstructions.readTAC()
         if (handleOverflow) {
-            memory!!.setMemory(TIMA, memory!!.getMemory(TMA))
+            memory!!.setMemory(ReservedAddresses.TIMA.memoryAddress, memory!!.getMemory(
+                ReservedAddresses.TMA.memoryAddress))
             setInterrupt(TIMER_INTERRUPT)
             handleOverflow = false
         }
@@ -494,12 +495,12 @@ class CPU {
             timerClockCounter++
             while (timerClockCounter >= timerFrequency) {
                 timerClockCounter -= timerFrequency
-                if (memory!!.getMemory(TIMA).code == 0xff) {
+                if (memory!!.getMemory(ReservedAddresses.TIMA.memoryAddress).code == 0xff) {
                     handleOverflow = true
                 } else {
                     memory!!.setMemory(
-                        TIMA,
-                        (((memory!!.getMemory(TIMA).code and 0xff) + 1) and 0xff).toChar()
+                        ReservedAddresses.TIMA.memoryAddress,
+                        (((memory!!.getMemory(ReservedAddresses.TIMA.memoryAddress).code and 0xff) + 1) and 0xff).toChar()
                     )
                 }
             }
