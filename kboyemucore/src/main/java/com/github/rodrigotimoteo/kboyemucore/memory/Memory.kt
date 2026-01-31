@@ -1,6 +1,7 @@
-package com.github.rodrigotimoteo.kboyemucore
+package com.github.rodrigotimoteo.kboyemucore.memory
 
-import com.github.rodrigotimoteo.kboyemu.kotlin.DisplayFrame
+import com.github.rodrigotimoteo.kboyemucore.DisplayFrame
+import com.github.rodrigotimoteo.kboyemucore.cpu.CPU
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.FileOutputStream
@@ -8,7 +9,9 @@ import java.io.IOException
 import java.nio.file.Files
 import java.util.Arrays
 
-class Memory {
+class Memory(
+    private val cpu: CPU
+) {
 
 
     private var gameFileName: String? = null
@@ -43,11 +46,9 @@ class Memory {
 
     private const val ROM_LIMIT = 0x8000
 
-    private val cpu: CPU? = null
     var displayFrame: DisplayFrame? = null
 
     private var cartridgeType = 0
-
 
     //Resets
     private fun resetMemory() {
