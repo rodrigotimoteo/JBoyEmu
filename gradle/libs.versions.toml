@@ -1,16 +1,22 @@
 [versions]
 agp = "8.13.2"
-kotlin = "2.0.21"
+kotlin = "2.3.0"
 coreKtx = "1.17.0"
 junit = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
 lifecycleRuntimeKtx = "2.10.0"
-activityCompose = "1.12.2"
-composeBom = "2024.09.00"
+activityCompose = "1.12.3"
+composeBom = "2026.01.01"
 detekt = "1.23.8"
-jetbrainsKotlinJvm = "2.0.21"
-junitJupiter = "5.8.1"
+jetbrainsKotlinJvm = "2.3.0"
+junitJupiter = "6.0.2"
+turbine = "1.2.1"
+mockk = "1.14.9"
+timber = "5.0.1"
+koin = "4.1.1"
+koin-annotations = "2.3.1"
+coroutines = "1.10.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -28,6 +34,18 @@ androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-
 androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter", version.ref = "junitJupiter" }
+turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine"}
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+mockk_android = { group = "io.mockk", name = "mockk-android", version.ref = "mockk" }
+timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
+koin = { group = "io.insert-koin" , name = "koin-android", version.ref = "koin" }
+koin_test = { group = "io.insert-koin", name = "koin-test", version.ref = "koin" }
+koin_test_junit4 = { group = "io.insert-koin", name = "koin-test-junit4", version.ref = "koin" }
+koin_annotations = { group = "io.insert-koin", name = "koin-annotations", version.ref = "koin-annotations" }
+koin_annotations_ksp = { group = "io.insert-koin", name = "koin-ksp-compiler", version.ref = "koin-annotations" }
+coroutines_core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core" ,version.ref = "coroutines" }
+coroutines_android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android" ,version.ref = "coroutines" }
+coroutines_test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

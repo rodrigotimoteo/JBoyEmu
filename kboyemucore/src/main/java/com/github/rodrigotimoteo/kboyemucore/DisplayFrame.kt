@@ -1,7 +1,10 @@
 package com.github.rodrigotimoteo.kboyemucore
 
 import androidx.compose.ui.input.key.KeyEvent.nativeKeyEvent
-import com.github.rodrigotimoteo.kboyemu.kotlin.DisplayPanel
+import com.github.rodrigotimoteo.kboyemucore.cpu.CPU
+import com.github.rodrigotimoteo.kboyemucore.memory.Memory
+import com.github.rodrigotimoteo.kboyemucore.memory.rom.ROM
+import com.github.rodrigotimoteo.kboyemucore.ppu.PPU
 import java.io.File
 
 class DisplayFrame {
@@ -16,12 +19,9 @@ class DisplayFrame {
 
     private const val HI_LO_INTERRUPT = 4
 
-    private static
     var WIDTH: Int = 160
-    private static
     var HEIGHT: Int = 144
 
-    private static
     var joypad: Int = 0xff
 
     fun getWidth(): Int {
