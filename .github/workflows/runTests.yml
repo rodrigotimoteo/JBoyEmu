@@ -22,7 +22,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Run core unit tests
-        run: ./gradlew kboyemucore:testDebugUnitTest
+        run: ./gradlew kboyemucore:test
 
       - name: Run app unit tests
         run: ./gradlew app:testDebugUnitTest
