@@ -3,8 +3,6 @@ package com.github.rodrigotimoteo.kboyemucore.cpu.instructions
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.cpu.CPU
 import com.github.rodrigotimoteo.kboyemucore.cpu.registers.RegisterNames
-import kotlin.math.sin
-import kotlin.system.exitProcess
 
 /**
  * Class responsible for decoding instructions based on program counter and executing them with the
@@ -13,8 +11,8 @@ import kotlin.system.exitProcess
  * @author rodrigotimoteo
  **/
 class Decoder(
+    private val bus: Bus,
     private val cpu: CPU,
-    private val bus: Bus
 ) {
 
     /**
@@ -63,990 +61,359 @@ class Decoder(
      * statement
      */
     private val regularOperations: Array<() -> Unit> = Array(256) {
-        ::invalidOperation
+        { control.nop() }
     }
 
     /**
      * Holds all CB operations this makes it easier to access instead of using a giant when statement
      */
     private val cbOperations: Array<() -> Unit> = Array(256) {
-        ::invalidOperation
+        { control.nop() }
     }
 
     init {
         regularOperations[0x00] = { control.nop() } // NOP
         regularOperations[0x01] = { load16Bit.ld16bit(0) } // LD BC, u16
         regularOperations[0x02] = { load8Bit.ldTwoRegisters(cpu.registers.getBC()) } // LD (BC), A
-        regularOperations[0x03] = { alu.incR(cpu.registers.getBC()) }
-//
-//        0x03 ->  // INC BC
-//        alu.incR(BusConstants.GET_BC, BusConstants.SET_BC)
-//
-//        0x04 ->  // INC B
-//        alu.inc(RegisterNames.B)
-//
-//        0x05 ->  // DEC B
-//        alu.dec(RegisterNames.B)
-//
-//        0x06 ->  // LD B,u8
-//        load8Bit.ldNRegister(RegisterNames.B)
-//
-//        0x07 ->  // RLCA
-//        rotateShift.rlca()
-//
-//        0x08 ->  // LD (u16),SP
-//        load16Bit.ldNNSP()
-//
-//        0x09 ->  // ADD HL,BC
-//        alu.addHL(BusConstants.GET_BC)
-//
-//        0x0A ->  // LD A,(BC)
-//        load8Bit.ldTwoRegistersIntoA(BusConstants.GET_BC)
-//
-//        0x0B ->  // DEC BC
-//        alu.decR(BusConstants.GET_BC, BusConstants.SET_BC)
-//
-//        0x0C ->  // INC C
-//        alu.inc(RegisterNames.C)
-//
-//        0x0D ->  // DEC C
-//        alu.dec(RegisterNames.C)
-//
-//        0x0E ->  // LD C,u8
-//        load8Bit.ldNRegister(RegisterNames.C)
-//
-//        0x0F ->  // RRCA
-//        rotateShift.rrca()
-
+        regularOperations[0x03] = { alu.incR(BusConstants.GET_BC, BusConstants.SET_BC) } // INC BC
+        regularOperations[0x04] = { alu.inc(RegisterNames.B) } // INC B
+        regularOperations[0x05] = { alu.dec(RegisterNames.B) } // DEC B
+        regularOperations[0x06] = { load8Bit.ldNRegister(RegisterNames.B) } // LD B, u8
+        regularOperations[0x07] = { rotateShift.rlca() } // RLCA
+        regularOperations[0x08] = { load16Bit.ldNNSP() } // LD (u16), SP
+        regularOperations[0x09] = { alu.addHL(BusConstants.GET_BC) } // ADD HL, BC
+        regularOperations[0x0A] =
+            { load8Bit.ldTwoRegistersIntoA(cpu.registers.getBC()) } // LD A, (BC)
+        regularOperations[0x0B] = { alu.decR(BusConstants.GET_BC, BusConstants.SET_BC) } // DEC BC
+        regularOperations[0x0C] = { alu.inc(RegisterNames.C) } // INC C
+        regularOperations[0x0D] = { alu.dec(RegisterNames.C) } // DEC C
+        regularOperations[0x0E] = { load8Bit.ldNRegister(RegisterNames.C) } // LD C, u8
+        regularOperations[0x0F] = { rotateShift.rrca() } // RRCA
         regularOperations[0x10] = { control.stop() } // STOP
-
-//        regularOperations[0x11] = { load16Bit.ld16bit(1) } // LD DE, u16
-//
-//        0x12 ->  // LD (DE),A
-//        load8Bit.ldTwoRegisters(BusConstants.GET_DE)
-//
-//        0x13 ->  // INC DE
-//        alu.incR(BusConstants.GET_DE, BusConstants.SET_DE)
-//
-//        0x14 ->  // INC D
-//        alu.inc(RegisterNames.D)
-//
-//        0x15 ->  // DEC D
-//        alu.dec(RegisterNames.D)
-//
-//        0x16 ->  // LD D,u8
-//        load8Bit.ldNRegister(RegisterNames.D)
-//
-//        0x17 ->  // RLA
-//        rotateShift.rla()
-//
-//        0x18 ->  // JR i8
-//        jump.jr()
-//
-//        0x19 ->  // ADD HL,DE
-//        alu.addHL(BusConstants.GET_DE)
-//
-//        0x1A ->  // LD A,(DE)
-//        load8Bit.ldTwoRegistersIntoA(BusConstants.GET_DE)
-//
-//        0x1B ->  // DEC DE
-//        alu.decR(BusConstants.GET_DE, BusConstants.SET_DE)
-//
-//        0x1C ->  // INC E
-//        alu.inc(RegisterNames.E)
-//
-//        0x1D ->  // DEC E
-//        alu.dec(RegisterNames.E)
-//
-//        0x1E ->  // LD E,u8
-//        load8Bit.ldNRegister(RegisterNames.E)
-//
-//        0x1F ->  // RRA
-//        rotateShift.rra()
-//
-//        0x20 ->  // JR NZ,i8
-//        jump.jrCond(JumpConstants.NZ)
-//
-//        regularOperations[0x21] = { load16Bit.ld16bit(2) } // LD HL, u16
-//
-//        0x22 ->  // LDI (HL),A
-//        load8Bit.ldi(true)
-//
-//        0x23 ->  // INC HL
-//        alu.incR(BusConstants.GET_HL, BusConstants.SET_HL)
-//
-//        0x24 ->  // INC H
-//        alu.inc(RegisterNames.H)
-//
-//        0x25 ->  // DEC H
-//        alu.dec(RegisterNames.H)
-//
-//        0x26 ->  // LD H,u8
-//        load8Bit.ldNRegister(RegisterNames.H)
-//
-//        0x27 ->  // DAA
-//        alu.daa()
-//
-//        0x28 ->  // JR Z,u8
-//        jump.jrCond(JumpConstants.Z)
-//
-//        0x29 ->  // ADD HL, HL
-//        alu.addHL(BusConstants.GET_HL)
-//
-//        0x2A ->  // LDI A,(HL)
-//        load8Bit.ldi(false)
-//
-//        0x2B ->  // DEC HL
-//        alu.decR(BusConstants.GET_HL, BusConstants.SET_HL)
-//
-//        0x2C ->  // INC L
-//        alu.inc(RegisterNames.L)
-//
-//        0x2D ->  // DEC L
-//        alu.dec(RegisterNames.L)
-//
-//        0x2E ->  // LD L,u8
-//        load8Bit.ldNRegister(RegisterNames.L)
-//
-//        0x2F ->  // CPL
-//        alu.cpl()
-//
-//        0x30 ->  // JR NC,u8
-//        jump.jrCond(JumpConstants.NC)
-//
-//        0x31 ->  // LD SP,u16
-//        load16Bit.ldSPUU()
-//
-//        0x32 ->  // LDD (HL),A
-//        load8Bit.ldd(true)
-//
-//        0x33 ->  // INC SP
-//        alu.incSP()
-//
-//        0x34 ->  // INC (HL)
-//        alu.incSpecial(bus.getFromCPU(BusConstants.GET_HL, Bus.EMPTY_ARGUMENTS) as Int)
-//
-//        0x35 ->  // INC (HL)
-//        alu.decSpecial(bus.getFromCPU(BusConstants.GET_HL, Bus.EMPTY_ARGUMENTS) as Int)
-//
-//        0x36 ->  // LD (HL), n
-//        load8Bit.ldNHL()
-
+        regularOperations[0x11] = { load16Bit.ld16bit(1) } // LD DE, u16
+        regularOperations[0x12] = { load8Bit.ldTwoRegisters(cpu.registers.getDE()) } // LD (DE), A
+        regularOperations[0x13] = { alu.incR(BusConstants.GET_DE, BusConstants.SET_DE) } // INC DE
+        regularOperations[0x14] = { alu.inc(RegisterNames.D) } // INC D
+        regularOperations[0x15] = { alu.dec(RegisterNames.D) } // DEC D
+        regularOperations[0x16] = { load8Bit.ldNRegister(RegisterNames.D) } // LD D, u8
+        regularOperations[0x17] = { rotateShift.rla() } // RLA
+        regularOperations[0x18] = { jump.jr() } // JR i8
+        regularOperations[0x19] = { alu.addHL(BusConstants.GET_DE) } // ADD HL, DE
+        regularOperations[0x1A] =
+            { load8Bit.ldTwoRegistersIntoA(cpu.registers.getDE()) } // LD A, (DE)
+        regularOperations[0x1B] = { alu.decR(BusConstants.GET_DE, BusConstants.SET_DE) } // DEC DE
+        regularOperations[0x1C] = { alu.inc(RegisterNames.E) } // INC E
+        regularOperations[0x1D] = { alu.dec(RegisterNames.E) } // DEC E
+        regularOperations[0x1E] = { load8Bit.ldNRegister(RegisterNames.E) } // LD E, u8
+        regularOperations[0x1F] = { rotateShift.rra() } // RRA
+        regularOperations[0x20] = { jump.jrCond(JumpConstants.NZ) } // JR NZ, i8
+        regularOperations[0x21] = { load16Bit.ld16bit(2) } // LD HL, u16
+        regularOperations[0x22] = { load8Bit.ldi(true) } // LDI (HL), A
+        regularOperations[0x23] = { alu.incR(BusConstants.GET_HL, BusConstants.GET_HL) } // INC HL
+        regularOperations[0x24] = { alu.inc(RegisterNames.H) } // INC H
+        regularOperations[0x25] = { alu.dec(RegisterNames.H) } // DEC H
+        regularOperations[0x26] = { load8Bit.ldNRegister(RegisterNames.H) } // LD H, u8
+        regularOperations[0x27] = { alu.daa() } // DAA
+        regularOperations[0x28] = { jump.jrCond(JumpConstants.Z) } // JR Z, u8
+        regularOperations[0x28] = { alu.addHL(BusConstants.GET_HL) } // ADD HL, HL
+        regularOperations[0x2A] = { load8Bit.ldi(false) } // LDI A, (HL)
+        regularOperations[0x2B] = { alu.decR(BusConstants.GET_HL, BusConstants.GET_HL) } // DEC HL
+        regularOperations[0x2C] = { alu.inc(RegisterNames.L) } // INC L
+        regularOperations[0x2D] = { alu.dec(RegisterNames.L) } // DEC L
+        regularOperations[0x2E] = { load8Bit.ldNRegister(RegisterNames.L) } // LD L, u8
+        regularOperations[0x2F] = { alu.cpl() } // CPL
+        regularOperations[0x30] = { jump.jrCond(JumpConstants.NC) } // JR NC, u8
+        regularOperations[0x31] = { load16Bit.ldSPUU() } // LD SP, u16
+        regularOperations[0x32] = { load8Bit.ldd(true) } // LDD (HL), A
+        regularOperations[0x33] = { alu.incSP() } // INC SP
+        regularOperations[0x33] = { alu.incSP() } // INC SP
+        regularOperations[0x34] = { alu.incSpecial(cpu.registers.getHL()) } // INC (HL)
+        regularOperations[0x35] = { alu.decSpecial(cpu.registers.getHL()) } // DEC (HL)
+        regularOperations[0x36] = { load8Bit.ldNHL() } // LD (HL), n
         regularOperations[0x37] = { control.scf() } // SCF
-
-//        0x38 ->  // JR C,u8
-//        jump.jrCond(JumpConstants.C)
-//
-//        0x39 ->  // ADD HL,SP
-//        alu.addHLSP()
-//
-//        0x3A ->  // LDD A,(HL)
-//        load8Bit.ldd(false)
-//
-//        0x3B ->  // DEC SP
-//        alu.decSP()
-//
-//        0x3C ->  // INC A
-//        alu.inc(RegisterNames.A)
-//
-//        0x3D ->  // DEC A
-//        alu.dec(RegisterNames.A)
-//
-//        0x3E ->  // LD A,u8
-//        load8Bit.ldNRegister(RegisterNames.A)
-
+        regularOperations[0x38] = { jump.jrCond(JumpConstants.C) } // JR C, u8
+        regularOperations[0x39] = { alu.addHLSP() } // ADD HL, SP
+        regularOperations[0x3A] = { load8Bit.ldd(false) } // LDD A, (HL)
+        regularOperations[0x3B] = { alu.decSP() } // DEC SP
+        regularOperations[0x3C] = { alu.inc(RegisterNames.A) } // INC A
+        regularOperations[0x3D] = { alu.dec(RegisterNames.A) } // DEC A
+        regularOperations[0x3E] = { load8Bit.ldNRegister(RegisterNames.A) } // LD A, u8
         regularOperations[0x3F] = { control.ccf() } // CCF
-
-//        0x40 ->  // LD B,B
-//        load8Bit.ld(RegisterNames.B, RegisterNames.B)
-//
-//        0x41 ->  // LD B,C
-//        load8Bit.ld(RegisterNames.B, RegisterNames.C)
-//
-//        0x42 ->  // LD B,D
-//        load8Bit.ld(RegisterNames.B, RegisterNames.D)
-//
-//        0x43 ->  // LD B,E
-//        load8Bit.ld(RegisterNames.B, RegisterNames.E)
-//
-//        0x44 ->  // LD B,H
-//        load8Bit.ld(RegisterNames.B, RegisterNames.H)
-//
-//        0x45 ->  // LD B,L
-//        load8Bit.ld(RegisterNames.B, RegisterNames.L)
-//
-//        0x46 ->  // LD B,(HL)
-//        load8Bit.ldHLtoRegister(RegisterNames.B)
-//
-//        0x47 ->  // LD B,A
-//        load8Bit.ld(RegisterNames.B, RegisterNames.A)
-//
-//        0x48 ->  // LD C,B
-//        load8Bit.ld(RegisterNames.C, RegisterNames.B)
-//
-//        0x49 ->  // LD C,C
-//        load8Bit.ld(RegisterNames.C, RegisterNames.C)
-//
-//        0x4A ->  // LD C,D
-//        load8Bit.ld(RegisterNames.C, RegisterNames.D)
-//
-//        0x4B ->  // LD C,E
-//        load8Bit.ld(RegisterNames.C, RegisterNames.E)
-//
-//        0x4C ->  // LD C,H
-//        load8Bit.ld(RegisterNames.C, RegisterNames.H)
-//
-//        0x4D ->  // LD C,L
-//        load8Bit.ld(RegisterNames.C, RegisterNames.L)
-//
-//        0x4E ->  // LD C,(HL)
-//        load8Bit.ldHLtoRegister(RegisterNames.C)
-//
-//        0x4F ->  // LD C,A
-//        load8Bit.ld(RegisterNames.C, RegisterNames.A)
-//
-//        0x50 ->  // LD D,B
-//        load8Bit.ld(RegisterNames.D, RegisterNames.B)
-//
-//        0x51 ->  // LD D,C
-//        load8Bit.ld(RegisterNames.D, RegisterNames.C)
-//
-//        0x52 ->  // LD D,D
-//        load8Bit.ld(RegisterNames.D, RegisterNames.D)
-//
-//        0x53 ->  // LD D,E
-//        load8Bit.ld(RegisterNames.D, RegisterNames.E)
-//
-//        0x54 ->  // LD D,H
-//        load8Bit.ld(RegisterNames.D, RegisterNames.H)
-//
-//        0x55 ->  // LD D,L
-//        load8Bit.ld(RegisterNames.D, RegisterNames.L)
-//
-//        0x56 ->  // LD D,(HL)
-//        load8Bit.ldHLtoRegister(RegisterNames.D)
-//
-//        0x57 ->  // LD D,A
-//        load8Bit.ld(RegisterNames.D, RegisterNames.A)
-//
-//        0x58 ->  // LD E,B
-//        load8Bit.ld(RegisterNames.E, RegisterNames.B)
-//
-//        0x59 ->  // LD E,C
-//        load8Bit.ld(RegisterNames.E, RegisterNames.C)
-//
-//        0x5A ->  // LD E,D
-//        load8Bit.ld(RegisterNames.E, RegisterNames.D)
-//
-//        0x5B ->  // LD E,E
-//        load8Bit.ld(RegisterNames.E, RegisterNames.E)
-//
-//        0x5C ->  // LD E,H
-//        load8Bit.ld(RegisterNames.E, RegisterNames.H)
-//
-//        0x5D ->  // LD E,L
-//        load8Bit.ld(RegisterNames.E, RegisterNames.L)
-//
-//        0x5E ->  // LD E,(HL)
-//        load8Bit.ldHLtoRegister(RegisterNames.E)
-//
-//        0x5F ->  // LD E,A
-//        load8Bit.ld(RegisterNames.E, RegisterNames.A)
-//
-//        0x60 ->  // LD H,B
-//        load8Bit.ld(RegisterNames.H, RegisterNames.B)
-//
-//        0x61 ->  // LD H,C
-//        load8Bit.ld(RegisterNames.H, RegisterNames.C)
-//
-//        0x62 ->  // LD H,D
-//        load8Bit.ld(RegisterNames.H, RegisterNames.D)
-//
-//        0x63 ->  // LD H,E
-//        load8Bit.ld(RegisterNames.H, RegisterNames.E)
-//
-//        0x64 ->  // LD H,H
-//        load8Bit.ld(RegisterNames.H, RegisterNames.H)
-//
-//        0x65 ->  // LD H,L
-//        load8Bit.ld(RegisterNames.H, RegisterNames.L)
-//
-//        0x66 ->  // LD H,(HL)
-//        load8Bit.ldHLtoRegister(RegisterNames.H)
-//
-//        0x67 ->  // LD H,A
-//        load8Bit.ld(RegisterNames.H, RegisterNames.A)
-//
-//        0x68 ->  // LD L,B
-//        load8Bit.ld(RegisterNames.L, RegisterNames.B)
-//
-//        0x69 ->  // LD L,C
-//        load8Bit.ld(RegisterNames.L, RegisterNames.C)
-//
-//        0x6A ->  // LD L,D
-//        load8Bit.ld(RegisterNames.L, RegisterNames.D)
-//
-//        0x6B ->  // LD L,E
-//        load8Bit.ld(RegisterNames.L, RegisterNames.E)
-//
-//        0x6C ->  // LD L,H
-//        load8Bit.ld(RegisterNames.L, RegisterNames.H)
-//
-//        0x6D ->  // LD L,L
-//        load8Bit.ld(RegisterNames.L, RegisterNames.L)
-//
-//        0x6E ->  // LD L,(HL)
-//        load8Bit.ldHLtoRegister(RegisterNames.L)
-//
-//        0x6F ->  // LD L,A
-//        load8Bit.ld(RegisterNames.L, RegisterNames.A)
-//
-//        0x70 ->  // LD (HL),B
-//        load8Bit.ldRtoHL(RegisterNames.B)
-//
-//        0x71 ->  // LD (HL),C
-//        load8Bit.ldRtoHL(RegisterNames.C)
-//
-//        0x72 ->  // LD (HL),D
-//        load8Bit.ldRtoHL(RegisterNames.D)
-//
-//        0x73 ->  // LD (HL),E
-//        load8Bit.ldRtoHL(RegisterNames.E)
-//
-//        0x74 ->  // LD (HL),H
-//        load8Bit.ldRtoHL(RegisterNames.H)
-//
-//        0x75 ->  // LD (HL),L
-//        load8Bit.ldRtoHL(RegisterNames.L)
-
+        regularOperations[0x40] = { load8Bit.ld(RegisterNames.B, RegisterNames.B) } // LD B, B
+        regularOperations[0x41] = { load8Bit.ld(RegisterNames.B, RegisterNames.C) } // LD B, C
+        regularOperations[0x42] = { load8Bit.ld(RegisterNames.B, RegisterNames.D) } // LD B, D
+        regularOperations[0x43] = { load8Bit.ld(RegisterNames.B, RegisterNames.E) } // LD B, E
+        regularOperations[0x44] = { load8Bit.ld(RegisterNames.B, RegisterNames.H) } // LD B, H
+        regularOperations[0x45] = { load8Bit.ld(RegisterNames.B, RegisterNames.L) } // LD B, L
+        regularOperations[0x46] = { load8Bit.ldHLtoRegister(RegisterNames.B) } // LD B, (HL)
+        regularOperations[0x47] = { load8Bit.ld(RegisterNames.B, RegisterNames.A) } // LD C, A
+        regularOperations[0x48] = { load8Bit.ld(RegisterNames.C, RegisterNames.B) } // LD C, B
+        regularOperations[0x49] = { load8Bit.ld(RegisterNames.C, RegisterNames.C) } // LD C, C
+        regularOperations[0x4A] = { load8Bit.ld(RegisterNames.C, RegisterNames.D) } // LD C, D
+        regularOperations[0x4B] = { load8Bit.ld(RegisterNames.C, RegisterNames.E) } // LD C, E
+        regularOperations[0x4C] = { load8Bit.ld(RegisterNames.C, RegisterNames.H) } // LD C, H
+        regularOperations[0x4D] = { load8Bit.ld(RegisterNames.C, RegisterNames.L) } // LD C, L
+        regularOperations[0x4E] = { load8Bit.ldHLtoRegister(RegisterNames.C) } // LD C, (HL)
+        regularOperations[0x4F] = { load8Bit.ld(RegisterNames.C, RegisterNames.A) } // LD C, A
+        regularOperations[0x50] = { load8Bit.ld(RegisterNames.D, RegisterNames.B) } // LD D, B
+        regularOperations[0x51] = { load8Bit.ld(RegisterNames.D, RegisterNames.C) } // LD D, C
+        regularOperations[0x52] = { load8Bit.ld(RegisterNames.D, RegisterNames.D) } // LD D, D
+        regularOperations[0x53] = { load8Bit.ld(RegisterNames.D, RegisterNames.E) } // LD D, E
+        regularOperations[0x54] = { load8Bit.ld(RegisterNames.D, RegisterNames.H) } // LD D, H
+        regularOperations[0x55] = { load8Bit.ld(RegisterNames.D, RegisterNames.L) } // LD D, L
+        regularOperations[0x56] = { load8Bit.ldHLtoRegister(RegisterNames.D) } // LD D, (HL)
+        regularOperations[0x57] = { load8Bit.ld(RegisterNames.D, RegisterNames.A) } // LD D, A
+        regularOperations[0x58] = { load8Bit.ld(RegisterNames.E, RegisterNames.B) } // LD E, B
+        regularOperations[0x59] = { load8Bit.ld(RegisterNames.E, RegisterNames.C) } // LD E, C
+        regularOperations[0x5A] = { load8Bit.ld(RegisterNames.E, RegisterNames.D) } // LD E, D
+        regularOperations[0x5B] = { load8Bit.ld(RegisterNames.E, RegisterNames.E) } // LD E, E
+        regularOperations[0x5C] = { load8Bit.ld(RegisterNames.E, RegisterNames.H) } // LD E, H
+        regularOperations[0x5D] = { load8Bit.ld(RegisterNames.E, RegisterNames.L) } // LD E, L
+        regularOperations[0x5E] = { load8Bit.ldHLtoRegister(RegisterNames.E) } // LD E, (HL)
+        regularOperations[0x5F] = { load8Bit.ld(RegisterNames.E, RegisterNames.A) } // LD E, A
+        regularOperations[0x60] = { load8Bit.ld(RegisterNames.H, RegisterNames.B) } // LD H, B
+        regularOperations[0x61] = { load8Bit.ld(RegisterNames.H, RegisterNames.C) } // LD H, C
+        regularOperations[0x62] = { load8Bit.ld(RegisterNames.H, RegisterNames.D) } // LD H, D
+        regularOperations[0x63] = { load8Bit.ld(RegisterNames.H, RegisterNames.E) } // LD H, E
+        regularOperations[0x64] = { load8Bit.ld(RegisterNames.H, RegisterNames.H) } // LD H, H
+        regularOperations[0x65] = { load8Bit.ld(RegisterNames.H, RegisterNames.L) } // LD H, L
+        regularOperations[0x66] = { load8Bit.ldHLtoRegister(RegisterNames.H) } // LD H, (HL)
+        regularOperations[0x67] = { load8Bit.ld(RegisterNames.H, RegisterNames.A) } // LD H, A
+        regularOperations[0x68] = { load8Bit.ld(RegisterNames.L, RegisterNames.B) } // LD L, B
+        regularOperations[0x69] = { load8Bit.ld(RegisterNames.L, RegisterNames.C) } // LD L, C
+        regularOperations[0x6A] = { load8Bit.ld(RegisterNames.L, RegisterNames.D) } // LD L, D
+        regularOperations[0x6B] = { load8Bit.ld(RegisterNames.L, RegisterNames.E) } // LD L, E
+        regularOperations[0x6C] = { load8Bit.ld(RegisterNames.L, RegisterNames.H) } // LD L, H
+        regularOperations[0x6D] = { load8Bit.ld(RegisterNames.L, RegisterNames.L) } // LD L, L
+        regularOperations[0x6E] = { load8Bit.ldHLtoRegister(RegisterNames.L) } // LD L, (HL)
+        regularOperations[0x6F] = { load8Bit.ld(RegisterNames.L, RegisterNames.A) } // LD L, A
+        regularOperations[0x70] = { load8Bit.ldRtoHL(RegisterNames.B) } // LD (HL), B
+        regularOperations[0x71] = { load8Bit.ldRtoHL(RegisterNames.C) } // LD (HL), C
+        regularOperations[0x72] = { load8Bit.ldRtoHL(RegisterNames.D) } // LD (HL), D
+        regularOperations[0x73] = { load8Bit.ldRtoHL(RegisterNames.E) } // LD (HL), E
+        regularOperations[0x74] = { load8Bit.ldRtoHL(RegisterNames.H) } // LD (HL), H
+        regularOperations[0x75] = { load8Bit.ldRtoHL(RegisterNames.L) } // LD (HL), L
         regularOperations[0x76] = { control.halt() } // HALT
-
-//
-//        0x77 ->  // LD (HL),A
-//        load8Bit.ldTwoRegisters(BusConstants.GET_HL)
-//
-//        0x78 ->  // LD A,B
-//        load8Bit.ld(RegisterNames.A, RegisterNames.B)
-//
-//        0x79 ->  // LD A,C
-//        load8Bit.ld(RegisterNames.A, RegisterNames.C)
-//
-//        0x7A ->  // LD A,D
-//        load8Bit.ld(RegisterNames.A, RegisterNames.D)
-//
-//        0x7B ->  // LD A,E
-//        load8Bit.ld(RegisterNames.A, RegisterNames.E)
-//
-//        0x7C ->  // LD A,H
-//        load8Bit.ld(RegisterNames.A, RegisterNames.H)
-//
-//        0x7D ->  // LD A,L
-//        load8Bit.ld(RegisterNames.A, RegisterNames.L)
-//
-//        0x7E ->  // LD A,(HL)
-//        load8Bit.ldTwoRegistersIntoA(BusConstants.GET_HL)
-//
-//        0x7F ->  // LD A,A
-//        load8Bit.ld(RegisterNames.A, RegisterNames.A)
-//
-//        0x80 ->  // ADD A,B
-//        alu.add(RegisterNames.B)
-//
-//        0x81 ->  // ADD A,C
-//        alu.add(RegisterNames.C)
-//
-//        0x82 ->  // ADD A,D
-//        alu.add(RegisterNames.D)
-//
-//        0x83 ->  // ADD A,E
-//        alu.add(RegisterNames.E)
-//
-//        0x84 ->  // ADD A, H
-//        alu.add(RegisterNames.H)
-//
-//        0x85 ->  // ADD A,L
-//        alu.add(RegisterNames.L)
-//
-//        0x86 ->  // ADD A,(HL)
-//        alu.addSpecial(
-//            (bus.getFromCPU(BusConstants.GET_HL, Bus.EMPTY_ARGUMENTS) as Int),
-//            true
-//        )
-//
-//        0x87 ->  // ADD A,A
-//        alu.add(RegisterNames.A)
-//
-//        0x88 ->  // ADC A,B
-//        alu.adc(RegisterNames.B)
-//
-//        0x89 ->  // ADC A,C
-//        alu.adc(RegisterNames.C)
-//
-//        0x8A ->  // ADC A,D
-//        alu.adc(RegisterNames.D)
-//
-//        0x8B ->  // ADC A,E
-//        alu.adc(RegisterNames.E)
-//
-//        0x8C ->  // ADC A,H
-//        alu.adc(RegisterNames.H)
-//
-//        0x8D ->  // ADC A,L
-//        alu.adc(RegisterNames.L)
-//
-//        0x8E ->  // ADC A,(HL)
-//        alu.adcSpecial(
-//            bus.getFromCPU(BusConstants.GET_HL, Bus.EMPTY_ARGUMENTS) as Int,
-//            true
-//        )
-//
-//        0x8F ->  // ADC A,A
-//        alu.adc(RegisterNames.A)
-//
-//        0x90 ->  // SUB A,B
-//        alu.sub(RegisterNames.B)
-//
-//        0x91 ->  // SUB A,C
-//        alu.sub(RegisterNames.C)
-//
-//        0x92 ->  // SUB A,D
-//        alu.sub(RegisterNames.D)
-//
-//        0x93 ->  // SUB A,E
-//        alu.sub(RegisterNames.E)
-//
-//        0x94 ->  // SUB A,H
-//        alu.sub(RegisterNames.H)
-//
-//        0x95 ->  // SUB A,L
-//        alu.sub(RegisterNames.L)
-//
-//        0x96 ->  // SUB A, (HL)
-//        alu.subSpecial(
-//            bus.getFromCPU(BusConstants.GET_HL, Bus.EMPTY_ARGUMENTS) as Int,
-//            true
-//        )
-//
-//        0x97 ->  // SUB A,A
-//        alu.sub(RegisterNames.A)
-//
-//        0x98 ->  // SBC A,B
-//        alu.sbc(RegisterNames.B)
-//
-//        0x99 ->  // SBC A,C
-//        alu.sbc(RegisterNames.C)
-//
-//        0x9A ->  // SBC A,D
-//        alu.sbc(RegisterNames.D)
-//
-//        0x9B ->  // SBC A,E
-//        alu.sbc(RegisterNames.E)
-//
-//        0x9C ->  // SBC A,H
-//        alu.sbc(RegisterNames.H)
-//
-//        0x9D ->  // SBC A,L
-//        alu.sbc(RegisterNames.L)
-//
-//        0x9E ->  // SBC A, (HL)
-//        alu.sbcSpecial(
-//            bus.getFromCPU(BusConstants.GET_HL, Bus.EMPTY_ARGUMENTS) as Int,
-//            true
-//        )
-//
-//        0x9F ->  // SBC A,A
-//        alu.sbc(RegisterNames.A)
-//
-//        0xA0 ->  // AND A,B
-//        alu.and(RegisterNames.B)
-//
-//        0xA1 ->  // AND A,C
-//        alu.and(RegisterNames.C)
-//
-//        0xA2 ->  // AND A,D
-//        alu.and(RegisterNames.D)
-//
-//        0xA3 ->  // AND A,E
-//        alu.and(RegisterNames.E)
-//
-//        0xA4 ->  // AND A,H
-//        alu.and(RegisterNames.H)
-//
-//        0xA5 ->  // AND A,L
-//        alu.and(RegisterNames.L)
-//
-//        0xA6 ->  // AND A,(HL)
-//        alu.andSpecial(
-//            bus.getFromCPU(BusConstants.GET_HL, Bus.EMPTY_ARGUMENTS) as Int,
-//            true
-//        )
-//
-//        0xA7 ->  // AND A,A
-//        alu.and(RegisterNames.A)
-//
-//        0xA8 ->  // XOR A,B
-//        alu.xor(RegisterNames.B)
-//
-//        0xA9 ->  // XOR A,C
-//        alu.xor(RegisterNames.C)
-//
-//        0xAA ->  // XOR A,D
-//        alu.xor(RegisterNames.D)
-//
-//        0xAB ->  // XOR A,E
-//        alu.xor(RegisterNames.E)
-//
-//        0xAC ->  // XOR A,H
-//        alu.xor(RegisterNames.H)
-//
-//        0xAD ->  // XOR A,L
-//        alu.xor(RegisterNames.L)
-//
-//        0xAE ->  // XOR A,(HL)
-//        alu.xorSpecial(
-//            bus.getFromCPU(BusConstants.GET_HL, Bus.EMPTY_ARGUMENTS) as Int,
-//            true
-//        )
-//
-//        0xAF ->  // XOR A,A
-//        alu.xor(RegisterNames.A)
-//
-//        0xB0 ->  // OR A,B
-//        alu.or(RegisterNames.B)
-//
-//        0xB1 ->  // OR A,C
-//        alu.or(RegisterNames.C)
-//
-//        0xB2 ->  // OR A,D
-//        alu.or(RegisterNames.D)
-//
-//        0xB3 ->  // OR A,E
-//        alu.or(RegisterNames.E)
-//
-//        0xB4 ->  // OR A,H
-//        alu.or(RegisterNames.H)
-//
-//        0xB5 ->  // OR A,L
-//        alu.or(RegisterNames.L)
-//
-//        0xB6 ->  // OR A,(HL)
-//        alu.orSpecial(bus.getFromCPU(BusConstants.GET_HL, Bus.EMPTY_ARGUMENTS) as Int, true)
-//
-//        0xB7 ->  // OR A,A
-//        alu.or(RegisterNames.A)
-//
-//        0xB8 ->  // CP A,B
-//        alu.cp(RegisterNames.B)
-//
-//        0xB9 ->  // CP A,C
-//        alu.cp(RegisterNames.C)
-//
-//        0xBA ->  // CP A,D
-//        alu.cp(RegisterNames.D)
-//
-//        0xBB ->  // CP A,E
-//        alu.cp(RegisterNames.E)
-//
-//        0xBC ->  // CP A,H
-//        alu.cp(RegisterNames.H)
-//
-//        0xBD ->  // CP A,L
-//        alu.cp(RegisterNames.L)
-//
-//        0xBE ->  // CP A,(HL)
-//        alu.cpSpecial(bus.getFromCPU(BusConstants.GET_HL, Bus.EMPTY_ARGUMENTS) as Int, true)
-//
-//        0xBF ->  // CP A,A
-//        alu.cp(RegisterNames.A)
-//
-//        0xC0 ->  // RET NZ
-//        jump.retCond(JumpConstants.NZ)
-//
-//        0xC1 ->  // POP BC
-//        load16Bit.pop(1)
-//
-//        0xC2 ->  // JP NZ,u16
-//        jump.jpCond(JumpConstants.NZ)
-//
-//        0xC3 ->  // JP u16
-//        jump.jp()
-//
-//        0xC4 ->  // CALL NZ, nn
-//        jump.callCond(JumpConstants.NZ)
-//
-//        0xC5 ->  // PUSH BC
-//        load16Bit.push(1)
-//
-//        0xC6 ->  // ADD A,#
-//        alu.addSpecial(
-//            bus.getFromCPU(BusConstants.GET_PC, Bus.EMPTY_ARGUMENTS) as Int + 1,
-//            false
-//        )
-//
-//        0xC7 ->  // RST 00H
-//        jump.rst(0x00)
-//
-//        0xC8 ->  // RET Z
-//        jump.retCond(JumpConstants.Z)
-//
-//        0xC9 ->  // RET
-//        jump.ret()
-//
-//        0xCA ->  // JP Z,u16
-//        jump.jpCond(JumpConstants.Z)
-//
-//        0xCB -> {
-//            cbInstruction = true
-//            bus.executeFromCPU(BusConstants.INCR_PC, arrayOf<String>("1"))
-//            decode(
-//                bus.getValue(
-//                    (bus.getFromCPU(
-//                        BusConstants.GET_PC,
-//                        Bus.EMPTY_ARGUMENTS
-//                    ) as Int)
-//                )
-//            )
-//        }
-//
-//        0xCC ->  // CALL Z,nn
-//        jump.callCond(JumpConstants.Z)
-//
-//        0xCD ->  // CALL u16
-//        jump.call()
-//
-//        0xCE ->  // ADC A,#
-//        alu.adcSpecial(
-//            bus.getFromCPU(BusConstants.GET_PC, Bus.EMPTY_ARGUMENTS) as Int + 1,
-//            false
-//        )
-//
-//        0xCF ->  // RST 08H
-//        jump.rst(0x08)
-//
-//        0xD0 ->  // RET NC
-//        jump.retCond(JumpConstants.NC)
-//
-//        0xD1 ->  // POP DE
-//        load16Bit.pop(2)
-//
-//        0xD2 ->  // JP NC,u16
-//        jump.jpCond(JumpConstants.NC)
-//
-//        0xD4 ->  // CALL NC,nn
-//        jump.callCond(JumpConstants.NC)
-//
-//        0xD5 ->  // PUSH DE
-//        load16Bit.push(2)
-//
-//        0xD6 ->  // SUB A, #
-//        alu.subSpecial(
-//            bus.getFromCPU(BusConstants.GET_PC, Bus.EMPTY_ARGUMENTS) as Int + 1,
-//            false
-//        )
-//
-//        0xD7 ->  // RST 10H
-//        jump.rst(0x10)
-//
-//        0xD8 ->  // RET C
-//        jump.retCond(JumpConstants.C)
-//
-//        0xD9 ->  // RETI
-//        jump.reti()
-//
-//        0xDA ->  // JP C,u16
-//        jump.jpCond(JumpConstants.C)
-//
-//        0xDC ->  // CALL C,nn
-//        jump.callCond(JumpConstants.C)
-//
-//        0xDE ->  // SBC A,#
-//        alu.sbcSpecial(
-//            bus.getFromCPU(BusConstants.GET_PC, Bus.EMPTY_ARGUMENTS) as Int + 1,
-//            false
-//        )
-//
-//        0xDF ->  // RST 18H
-//        jump.rst(0x18)
-//
-//        0xE0 ->  // LD (FF00+u8),A
-//        load8Bit.ldh(true)
-//
-//        0xE1 ->  // POP (HL)
-//        load16Bit.pop(3)
-//
-//        0xE2 ->  // LD (C), A
-//        load8Bit.ldAC(true)
-//
-//        0xE5 ->  // PUSH HL
-//        load16Bit.push(3)
-//
-//        0xE6 ->  // AND #
-//        alu.andSpecial(
-//            bus.getFromCPU(BusConstants.GET_PC, Bus.EMPTY_ARGUMENTS) as Int + 1,
-//            false
-//        )
-//
-//        0xE7 ->  // RST 20H
-//        jump.rst(0x20)
-//
-//        0xE8 ->  // ADD SP,n
-//        alu.addSP(bus.getFromCPU(BusConstants.GET_PC, Bus.EMPTY_ARGUMENTS) as Int + 1)
-//
-//        0xE9 ->  // JP (HL)
-//        jump.jpHL()
-//
-//        0xEA ->  // LD (nn),A
-//        load8Bit.ldNN()
-//
-//        0xEE ->  // XOR #
-//        alu.xorSpecial(
-//            bus.getFromCPU(BusConstants.GET_PC, Bus.EMPTY_ARGUMENTS) as Int + 1,
-//            false
-//        )
-//
-//        0xEF ->  // RST 28H
-//        jump.rst(0x28)
-//
-//        0xF0 ->  // LD A,(FF00+u8)
-//        load8Bit.ldh(false)
-//
-//        0xF1 ->  // POP AF
-//        load16Bit.pop(0)
-//
-//        0xF2 ->  // LD A,(C)
-//        load8Bit.ldAC(false)
-
+        regularOperations[0x77] = { load8Bit.ldRtoHL(RegisterNames.A) } // LD (HL), A
+        regularOperations[0x78] = { load8Bit.ld(RegisterNames.A, RegisterNames.B) } // LD A, B
+        regularOperations[0x79] = { load8Bit.ld(RegisterNames.A, RegisterNames.C) } // LD A, C
+        regularOperations[0x7A] = { load8Bit.ld(RegisterNames.A, RegisterNames.D) } // LD A, D
+        regularOperations[0x7B] = { load8Bit.ld(RegisterNames.A, RegisterNames.E) } // LD A, E
+        regularOperations[0x7C] = { load8Bit.ld(RegisterNames.A, RegisterNames.H) } // LD A, H
+        regularOperations[0x7D] = { load8Bit.ld(RegisterNames.A, RegisterNames.L) } // LD A, L
+        regularOperations[0x7E] = { load8Bit.ldHLtoRegister(RegisterNames.L) } // LD A, (HL)
+        regularOperations[0x7F] = { load8Bit.ld(RegisterNames.A, RegisterNames.A) } // LD A, A
+        regularOperations[0x80] = { alu.add(RegisterNames.B) } // ADD A, B
+        regularOperations[0x81] = { alu.add(RegisterNames.C) } // ADD A, C
+        regularOperations[0x82] = { alu.add(RegisterNames.D) } // ADD A, D
+        regularOperations[0x83] = { alu.add(RegisterNames.E) } // ADD A, E
+        regularOperations[0x84] = { alu.add(RegisterNames.H) } // ADD A, H
+        regularOperations[0x85] = { alu.add(RegisterNames.L) } // ADD A, L
+        regularOperations[0x86] = {
+            alu.addSpecial(cpu.registers.getHL(), true)
+        } // ADD A, (HL)
+        regularOperations[0x87] = { alu.add(RegisterNames.A) } // ADD A, A
+        regularOperations[0x88] = { alu.adc(RegisterNames.B) } // ADC A, B
+        regularOperations[0x89] = { alu.adc(RegisterNames.C) } // ADC A, C
+        regularOperations[0x8A] = { alu.adc(RegisterNames.D) } // ADC A, D
+        regularOperations[0x8B] = { alu.adc(RegisterNames.E) } // ADC A, E
+        regularOperations[0x8C] = { alu.adc(RegisterNames.H) } // ADC A, H
+        regularOperations[0x8D] = { alu.adc(RegisterNames.L) } // ADC A, L
+        regularOperations[0x8E] = {
+            alu.adcSpecial(cpu.registers.getHL(), true)
+        } // ADC A, (HL)
+        regularOperations[0x8F] = { alu.adc(RegisterNames.A) } // ADC A, A
+        regularOperations[0x90] = { alu.sub(RegisterNames.B) } // SUB A, B
+        regularOperations[0x91] = { alu.sub(RegisterNames.C) } // SUB A, C
+        regularOperations[0x92] = { alu.sub(RegisterNames.D) } // SUB A, D
+        regularOperations[0x93] = { alu.sub(RegisterNames.E) } // SUB A, E
+        regularOperations[0x94] = { alu.sub(RegisterNames.H) } // SUB A, H
+        regularOperations[0x95] = { alu.sub(RegisterNames.L) } // SUB A, L
+        regularOperations[0x96] = {
+            alu.subSpecial(cpu.registers.getHL(), true)
+        } // SUB A, (HL)
+        regularOperations[0x97] = { alu.sub(RegisterNames.A) } // SUB A, A
+        regularOperations[0x98] = { alu.sbc(RegisterNames.B) } // SBC A, B
+        regularOperations[0x99] = { alu.sbc(RegisterNames.C) } // SBC A, C
+        regularOperations[0x9A] = { alu.sbc(RegisterNames.D) } // SBC A, D
+        regularOperations[0x9B] = { alu.sbc(RegisterNames.E) } // SBC A, E
+        regularOperations[0x9C] = { alu.sbc(RegisterNames.H) } // SBC A, H
+        regularOperations[0x9D] = { alu.sbc(RegisterNames.L) } // SBC A, L
+        regularOperations[0x9E] = {
+            alu.sbcSpecial(cpu.registers.getHL(), true)
+        } // SBC A, (HL)
+        regularOperations[0x9F] = { alu.sbc(RegisterNames.A) } // SBC A, A
+        regularOperations[0xA0] = { alu.and(RegisterNames.B) } // AND A, B
+        regularOperations[0xA1] = { alu.and(RegisterNames.C) } // AND A, C
+        regularOperations[0xA2] = { alu.and(RegisterNames.D) } // AND A, D
+        regularOperations[0xA3] = { alu.and(RegisterNames.E) } // AND A, E
+        regularOperations[0xA4] = { alu.and(RegisterNames.H) } // AND A, H
+        regularOperations[0xA5] = { alu.and(RegisterNames.L) } // AND A, L
+        regularOperations[0xA6] = {
+            alu.andSpecial(cpu.registers.getHL(), true)
+        } // AND A, (HL)
+        regularOperations[0xA7] = { alu.and(RegisterNames.A) } // AND A, A
+        regularOperations[0xA8] = { alu.xor(RegisterNames.B) } // XOR A, B
+        regularOperations[0xA9] = { alu.xor(RegisterNames.C) } // XOR A, C
+        regularOperations[0xAA] = { alu.xor(RegisterNames.D) } // XOR A, D
+        regularOperations[0xAB] = { alu.xor(RegisterNames.E) } // XOR A, E
+        regularOperations[0xAC] = { alu.xor(RegisterNames.H) } // XOR A, H
+        regularOperations[0xAD] = { alu.xor(RegisterNames.L) } // XOR A, L
+        regularOperations[0xAE] = {
+            alu.xorSpecial(cpu.registers.getHL(), true)
+        } // XOR A, (HL)
+        regularOperations[0xAF] = { alu.xor(RegisterNames.A) } // XOR A, A
+        regularOperations[0xB0] = { alu.or(RegisterNames.B) } // OR A, B
+        regularOperations[0xB1] = { alu.or(RegisterNames.C) } // OR A, C
+        regularOperations[0xB2] = { alu.or(RegisterNames.D) } // OR A, D
+        regularOperations[0xB3] = { alu.or(RegisterNames.E) } // OR A, E
+        regularOperations[0xB4] = { alu.or(RegisterNames.H) } // OR A, H
+        regularOperations[0xB5] = { alu.or(RegisterNames.L) } // OR A, L
+        regularOperations[0xB6] = {
+            alu.orSpecial(cpu.registers.getHL(), true)
+        } // OR A, (HL)
+        regularOperations[0xB7] = { alu.or(RegisterNames.A) } // OR A, A
+        regularOperations[0xB8] = { alu.cp(RegisterNames.B) } // CP A, B
+        regularOperations[0xB9] = { alu.cp(RegisterNames.C) } // CP A, C
+        regularOperations[0xBA] = { alu.cp(RegisterNames.D) } // CP A, D
+        regularOperations[0xBB] = { alu.cp(RegisterNames.E) } // CP A, E
+        regularOperations[0xBC] = { alu.cp(RegisterNames.H) } // CP A, H
+        regularOperations[0xBD] = { alu.cp(RegisterNames.L) } // CP A, L
+        regularOperations[0xBE] = {
+            alu.cpSpecial(cpu.registers.getHL(), true)
+        } // CP A, (HL)
+        regularOperations[0xBF] = { alu.cp(RegisterNames.A) } // CP A, A
+        regularOperations[0xC0] = { jump.retCond(JumpConstants.NZ) } // RET NZ
+        regularOperations[0xC1] = { load16Bit.pop(1) } // POP BC
+        regularOperations[0xC2] = { jump.jpCond(JumpConstants.NZ) } // JP NZ, u16
+        regularOperations[0xC3] = { jump.jp() } // JP u16
+        regularOperations[0xC4] = { jump.callCond(JumpConstants.NZ) } // CALL NZ, u16
+        regularOperations[0xC5] = { load16Bit.push(1) } // PUSH BC
+        regularOperations[0xC6] =
+            { alu.addSpecial(cpu.registers.getProgramCounter() + 1, false) } // ADD A, #
+        regularOperations[0xC7] = { jump.rst(0x00) } // RST 00H
+        regularOperations[0xC8] = { jump.retCond(JumpConstants.Z) } // RET Z
+        regularOperations[0xC9] = { jump.ret() } // RET
+        regularOperations[0xCA] = { jump.jpCond(JumpConstants.Z) } // JP Z, u16
+        regularOperations[0xCB] = {
+            cbInstruction = true
+            cpu.registers.incrementProgramCounter(1)
+            decode(bus.getValue(cpu.registers.getProgramCounter()).toInt())
+        }
+        regularOperations[0xCC] = { jump.callCond(JumpConstants.Z) } // CALL Z, nn
+        regularOperations[0xCD] = { jump.call() } // CALL u16
+        regularOperations[0xCE] =
+            { alu.adcSpecial(cpu.registers.getProgramCounter() + 1, false) } // ADC A, #
+        regularOperations[0xCF] = { jump.rst(0x08) } // RST 08H
+        regularOperations[0xD0] = { jump.retCond(JumpConstants.NC) } // RET NC
+        regularOperations[0xD1] = { load16Bit.pop(2) } // POP DE
+        regularOperations[0xD2] = { jump.jpCond(JumpConstants.NC) } // JP NC,u16
+        regularOperations[0xD4] = { jump.callCond(JumpConstants.NC) } // CALL NC,nn
+        regularOperations[0xD5] = { load16Bit.push(2) } // PUSH DE
+        regularOperations[0xD6] =
+            { alu.subSpecial(cpu.registers.getProgramCounter() + 1, false) } // SUB A, #
+        regularOperations[0xD7] = { jump.rst(0x10) } // RST 10H
+        regularOperations[0xD8] = { jump.retCond(JumpConstants.C) } // RET C
+        regularOperations[0xD9] = { jump.reti() } // RETI
+        regularOperations[0xDA] = { jump.jpCond(JumpConstants.C) } // JP C, u16
+        regularOperations[0xDC] = { jump.callCond(JumpConstants.C) } // CALL C, nn
+        regularOperations[0xDE] =
+            { alu.sbcSpecial(cpu.registers.getProgramCounter() + 1, false) } // SBC A, #
+        regularOperations[0xDF] = { jump.rst(0x18) } // RST 18H
+        regularOperations[0xE0] = { load8Bit.ldh(true) } // LD (FF00+u8), A
+        regularOperations[0xE1] = { load16Bit.pop(3) } // POP (HL)
+        regularOperations[0xE2] = { load8Bit.ldAC(true) } // LD (C), A
+        regularOperations[0xE5] = { load16Bit.push(3) } // PUSH HL
+        regularOperations[0xE6] =
+            { alu.andSpecial(cpu.registers.getProgramCounter() + 1, false) } // AND #
+        regularOperations[0xE7] = { jump.rst(0x20) } // RST 20H
+        regularOperations[0xE8] = { alu.addSP(cpu.registers.getProgramCounter() + 1) } // ADD SP, n
+        regularOperations[0xE9] = { jump.jpHL() } // JP (HL)
+        regularOperations[0xEA] = { load8Bit.ldNN() } // LD (nn), A
+        regularOperations[0xEE] =
+            { alu.xorSpecial(cpu.registers.getProgramCounter() + 1, false) } // XOR #
+        regularOperations[0xEF] = { jump.rst(0x28) } // RST 28H
+        regularOperations[0xF0] = { load8Bit.ldh(false) } // LD A, (FF00+u8)
+        regularOperations[0xE1] = { load16Bit.pop(0) } // POP AF
+        regularOperations[0xF2] = { load8Bit.ldAC(false) } // LD A, (C)
         regularOperations[0xF3] = { control.di() } // DI
-
-//        0xF5 ->  // PUSH AF
-//        load16Bit.push(0)
-//
-//        0xF6 ->  // OR #
-//        alu.orSpecial(
-//            bus.getFromCPU(BusConstants.GET_PC, Bus.EMPTY_ARGUMENTS) as Int + 1,
-//            false
-//        )
-//
-//        0xF7 ->  // RST 30H
-//        jump.rst(0x30)
-//
-//        0xF8 ->  // LDHL SP,n
-//        load16Bit.ldHL()
-//
-//        0xF9 ->  // LD SP,HL
-//        load16Bit.ldSPHL()
-//
-//        0xFA ->  // LD A,(nn)
-//        load8Bit.ldNNIntoA()
-
+        regularOperations[0xF5] = { load16Bit.push(0) } // PUSH AF
+        regularOperations[0xF6] =
+            { alu.orSpecial(cpu.registers.getProgramCounter() + 1, false) } // OR #
+        regularOperations[0xF7] = { jump.rst(0x30) } // RST 30H
+        regularOperations[0xF8] = { load16Bit.ldHL() } // LDHL SP, n
+        regularOperations[0xF9] = { load16Bit.ldSPHL() } // LD SP, HL
+        regularOperations[0xFA] = { load8Bit.ldNNIntoA() } // LD A, (nn)
         regularOperations[0xFB] = { control.ei() } // EI
-
-//        0xFE ->  // CP A,u8
-//        alu.cpSpecial(
-//            bus.getFromCPU(BusConstants.GET_PC, Bus.EMPTY_ARGUMENTS) as Int + 1,
-//            false
-//        )
-//
-//        0xFF ->  // RST 38H
-//        jump.rst(0x38)
-//
-//        else -> {
-//            println("No OPCode or Lacks Implementation")
-//            exitProcess(0)
-//        }
-
-        0x00 ->  // RLC B
-        rotateShift.rlc(RegisterNames.B)
-
-        0x01 ->  // RLC C
-        rotateShift.rlc(RegisterNames.C)
-
-        0x02 ->  // RLC D
-        rotateShift.rlc(RegisterNames.D)
-
-        0x03 ->  // RLC E
-        rotateShift.rlc(RegisterNames.E)
-
-        0x04 ->  // RLC H
-        rotateShift.rlc(RegisterNames.H)
-
-        0x05 ->  // RLC L
-        rotateShift.rlc(RegisterNames.L)
-
-        0x06 ->  // RLC HL
-        rotateShift.rlcHL(bus.getFromCPU(BusConstants.GET_HL, Bus.EMPTY_ARGUMENTS) as Int)
-
-        0x07 ->  // RLC A
-        rotateShift.rlc(RegisterNames.A)
-
-        0x08 ->  // RRC B
-        rotateShift.rrc(RegisterNames.B)
-
-        0x09 ->  // RRC C
-        rotateShift.rrc(RegisterNames.C)
-
-        0x0A ->  // RRC D
-        rotateShift.rrc(RegisterNames.D)
-
-        0x0B ->  // RRC E
-        rotateShift.rrc(RegisterNames.E)
-
-        0x0C ->  // RRC H
-        rotateShift.rrc(RegisterNames.H)
-
-        0x0D ->  // RRC L
-        rotateShift.rrc(RegisterNames.L)
-
-        0x0E ->  // RRC (HL)
-        rotateShift.rrcHL(bus.getFromCPU(BusConstants.GET_HL, Bus.EMPTY_ARGUMENTS) as Int)
-
-        0x0F ->  // RRC A
-        rotateShift.rrc(RegisterNames.A)
-
-        0x10 ->  // RL B
-        rotateShift.rl(RegisterNames.B)
-
-        0x11 ->  // RL C
-        rotateShift.rl(RegisterNames.C)
-
-        0x12 ->  // RL D
-        rotateShift.rl(RegisterNames.D)
-
-        0x13 ->  // RL E
-        rotateShift.rl(RegisterNames.E)
-
-        0x14 ->  // RL H
-        rotateShift.rl(RegisterNames.H)
-
-        0x15 ->  // RL L
-        rotateShift.rl(RegisterNames.L)
-
-        0x16 ->  // RL (HL)
-        rotateShift.rlHL(bus.getFromCPU(BusConstants.GET_HL, Bus.EMPTY_ARGUMENTS) as Int)
-
-        0x17 ->  // RL A
-        rotateShift.rl(RegisterNames.A)
-
-        0x18 ->  // RR B
-        rotateShift.rr(RegisterNames.B)
-
-        0x19 ->  // RR C
-        rotateShift.rr(RegisterNames.C)
-
-        0x1A ->  // RR D
-        rotateShift.rr(RegisterNames.D)
-
-        0x1B ->  // RR E
-        rotateShift.rr(RegisterNames.E)
-
-        0x1C ->  // RR H
-        rotateShift.rr(RegisterNames.H)
-
-        0x1D ->  // RR L
-        rotateShift.rr(RegisterNames.L)
-
-        0x1E ->  // RR (HL)
-        rotateShift.rrHL(bus.getFromCPU(BusConstants.GET_HL, Bus.EMPTY_ARGUMENTS) as Int)
-
-        0x1F ->  // RR A
-        rotateShift.rr(RegisterNames.A)
-
-        0x20 ->  // SLA B
-        rotateShift.sla(RegisterNames.B)
-
-        0x21 ->  // SLA C
-        rotateShift.sla(RegisterNames.C)
-
-        0x22 ->  // SLA D
-        rotateShift.sla(RegisterNames.D)
-
-        0x23 ->  // SLA E
-        rotateShift.sla(RegisterNames.E)
-
-        0x24 ->  // SLA H
-        rotateShift.sla(RegisterNames.H)
-
-        0x25 ->  // SLA L
-        rotateShift.sla(RegisterNames.L)
-
-        0x26 ->  // SLA (HL)
-        rotateShift.slaHL(bus.getFromCPU(BusConstants.GET_HL, Bus.EMPTY_ARGUMENTS) as Int)
-
-        0x27 ->  // SLA A
-        rotateShift.sla(RegisterNames.A)
-
-        0x28 ->  // SRA B
-        rotateShift.sra(RegisterNames.B)
-
-        0x29 ->  // SRA C
-        rotateShift.sra(RegisterNames.C)
-
-        0x2A ->  // SRA D
-        rotateShift.sra(RegisterNames.D)
-
-        0x2B ->  // SRA E
-        rotateShift.sra(RegisterNames.E)
-
-        0x2C ->  // SRA H
-        rotateShift.sra(RegisterNames.H)
-
-        0x2D ->  // SRA L
-        rotateShift.sra(RegisterNames.L)
-
-        0x2E ->  // SRA (HL)
-        rotateShift.sraHL(bus.getFromCPU(BusConstants.GET_HL, Bus.EMPTY_ARGUMENTS) as Int)
-
-        0x2F ->  // SRA A
-        rotateShift.sra(RegisterNames.A)
-
-        0x30 ->  // SWAP B
-        rotateShift.swap(RegisterNames.B)
-
-        0x31 ->  // SWAP C
-        rotateShift.swap(RegisterNames.C)
-
-        0x32 ->  // SWAP D
-        rotateShift.swap(RegisterNames.D)
-
-        0x33 ->  // SWAP E
-        rotateShift.swap(RegisterNames.E)
-
-        0x34 ->  // SWAP H
-        rotateShift.swap(RegisterNames.H)
-
-        0x35 ->  // SWAP L
-        rotateShift.swap(RegisterNames.L)
-
-        0x36 ->  // SWAP (HL)
-        rotateShift.swapHL(bus.getFromCPU(BusConstants.GET_HL, Bus.EMPTY_ARGUMENTS) as Int)
-
-        0x37 ->  // SWAP A
-        rotateShift.swap(RegisterNames.A)
-
-        0x38 ->  // SRL B
-        rotateShift.srl(RegisterNames.B)
-
-        0x39 ->  // SRL C
-        rotateShift.srl(RegisterNames.C)
-
-        0x3A ->  // SRL D
-        rotateShift.srl(RegisterNames.D)
-
-        0x3B ->  // SRL E
-        rotateShift.srl(RegisterNames.E)
-
-        0x3C ->  // SRL H
-        rotateShift.srl(RegisterNames.H)
-
-        0x3D ->  // SRL L
-        rotateShift.srl(RegisterNames.L)
-
-        0x3E ->  // SRL (HL)
-        rotateShift.srlHL(bus.getFromCPU(BusConstants.GET_HL, Bus.EMPTY_ARGUMENTS) as Int)
-
-        0x3F ->  // SRL A
-        rotateShift.srl(RegisterNames.A)
-
+        regularOperations[0xFE] =
+            { alu.cpSpecial(cpu.registers.getProgramCounter() + 1, false) } // CP A, u8
+        regularOperations[0xFF] = { jump.rst(0x38) } // RST 38H
+
+        // CB Operations assignment
+        cbOperations[0x00] = { rotateShift.rlc(RegisterNames.B) } // RLC B
+        cbOperations[0x01] = { rotateShift.rlc(RegisterNames.C) } // RLC C
+        cbOperations[0x02] = { rotateShift.rlc(RegisterNames.D) } // RLC D
+        cbOperations[0x03] = { rotateShift.rlc(RegisterNames.E) } // RLC E
+        cbOperations[0x04] = { rotateShift.rlc(RegisterNames.H) } // RLC H
+        cbOperations[0x05] = { rotateShift.rlc(RegisterNames.L) } // RLC L
+        cbOperations[0x06] = { rotateShift.rlcHL(cpu.registers.getHL()) } // RLC (HL)
+        cbOperations[0x07] = { rotateShift.rlc(RegisterNames.A) } // RLC A
+        cbOperations[0x08] = { rotateShift.rrc(RegisterNames.B) } // RRC B
+        cbOperations[0x09] = { rotateShift.rrc(RegisterNames.C) } // RRC C
+        cbOperations[0x0A] = { rotateShift.rrc(RegisterNames.D) } // RRC D
+        cbOperations[0x0B] = { rotateShift.rrc(RegisterNames.E) } // RRC E
+        cbOperations[0x0C] = { rotateShift.rrc(RegisterNames.H) } // RRC H
+        cbOperations[0x0D] = { rotateShift.rrc(RegisterNames.L) } // RRC L
+        cbOperations[0x0E] = { rotateShift.rrcHL(cpu.registers.getHL()) } // RRC (HL)
+        cbOperations[0x0F] = { rotateShift.rrc(RegisterNames.A) } // RRC A
+        cbOperations[0x10] = { rotateShift.rl(RegisterNames.B) } // RL B
+        cbOperations[0x11] = { rotateShift.rl(RegisterNames.C) } // RL C
+        cbOperations[0x12] = { rotateShift.rl(RegisterNames.D) } // RL D
+        cbOperations[0x13] = { rotateShift.rl(RegisterNames.E) } // RL E
+        cbOperations[0x14] = { rotateShift.rl(RegisterNames.H) } // RL H
+        cbOperations[0x15] = { rotateShift.rl(RegisterNames.L) } // RL L
+        cbOperations[0x16] = { rotateShift.rlHL(cpu.registers.getHL()) } // RL (HL)
+        cbOperations[0x17] = { rotateShift.rl(RegisterNames.A) } // RL A
+        cbOperations[0x18] = { rotateShift.rr(RegisterNames.B) } // RR B
+        cbOperations[0x19] = { rotateShift.rr(RegisterNames.C) } // RR C
+        cbOperations[0x1A] = { rotateShift.rr(RegisterNames.D) } // RR D
+        cbOperations[0x1B] = { rotateShift.rr(RegisterNames.E) } // RR E
+        cbOperations[0x1C] = { rotateShift.rr(RegisterNames.H) } // RR H
+        cbOperations[0x1D] = { rotateShift.rr(RegisterNames.L) } // RR L
+        cbOperations[0x1E] = { rotateShift.rrHL(cpu.registers.getHL()) } // RR (HL)
+        cbOperations[0x1F] = { rotateShift.rr(RegisterNames.A) } // RR A
+        cbOperations[0x20] = { rotateShift.sla(RegisterNames.B) } // SLA B
+        cbOperations[0x21] = { rotateShift.sla(RegisterNames.C) } // SLA C
+        cbOperations[0x22] = { rotateShift.sla(RegisterNames.D) } // SLA D
+        cbOperations[0x23] = { rotateShift.sla(RegisterNames.E) } // SLA E
+        cbOperations[0x24] = { rotateShift.sla(RegisterNames.H) } // SLA H
+        cbOperations[0x25] = { rotateShift.sla(RegisterNames.L) } // SLA L
+        cbOperations[0x26] = { rotateShift.slaHL(cpu.registers.getHL()) } // SLA (HL)
+        cbOperations[0x27] = { rotateShift.sla(RegisterNames.A) } // SLA A
+        cbOperations[0x28] = { rotateShift.sra(RegisterNames.B) } // SRA B
+        cbOperations[0x29] = { rotateShift.sra(RegisterNames.C) } // SRA C
+        cbOperations[0x2A] = { rotateShift.sra(RegisterNames.D) } // SRA D
+        cbOperations[0x2B] = { rotateShift.sra(RegisterNames.E) } // SRA E
+        cbOperations[0x2C] = { rotateShift.sra(RegisterNames.H) } // SRA H
+        cbOperations[0x2D] = { rotateShift.sra(RegisterNames.L) } // SRA L
+        cbOperations[0x2E] = { rotateShift.sraHL(cpu.registers.getHL()) } // SRA (HL)
+        cbOperations[0x2F] = { rotateShift.sra(RegisterNames.A) } // SRA A
+        cbOperations[0x30] = { rotateShift.swap(RegisterNames.B) } // SWAP B
+        cbOperations[0x31] = { rotateShift.swap(RegisterNames.C) } // SWAP C
+        cbOperations[0x32] = { rotateShift.swap(RegisterNames.D) } // SWAP D
+        cbOperations[0x33] = { rotateShift.swap(RegisterNames.E) } // SWAP E
+        cbOperations[0x34] = { rotateShift.swap(RegisterNames.H) } // SWAP H
+        cbOperations[0x35] = { rotateShift.swap(RegisterNames.L) } // SWAP L
+        cbOperations[0x36] = { rotateShift.swapHL(cpu.registers.getHL()) } // SWAP (HL)
+        cbOperations[0x37] = { rotateShift.swap(RegisterNames.A) } // SWAP A
+        cbOperations[0x38] = { rotateShift.srl(RegisterNames.B) } // SRL B
+        cbOperations[0x39] = { rotateShift.srl(RegisterNames.C) } // SRL C
+        cbOperations[0x3A] = { rotateShift.srl(RegisterNames.D) } // SRL D
+        cbOperations[0x3B] = { rotateShift.srl(RegisterNames.E) } // SRL E
+        cbOperations[0x3C] = { rotateShift.srl(RegisterNames.H) } // SRL H
+        cbOperations[0x3D] = { rotateShift.srl(RegisterNames.L) } // SRL L
+        cbOperations[0x3E] = { rotateShift.srlHL(cpu.registers.getHL()) } // SRL (HL)
+        cbOperations[0x3F] = { rotateShift.srl(RegisterNames.A) } // SRL A
         cbOperations[0x40] = { singleBit.bit(0, RegisterNames.B) } // BIT 0, B
         cbOperations[0x41] = { singleBit.bit(0, RegisterNames.C) } // BIT 0, C
         cbOperations[0x42] = { singleBit.bit(0, RegisterNames.D) } // BIT 0, D
@@ -1255,15 +622,5 @@ class Decoder(
             cbOperations[operationCode].invoke()
             cbInstruction = false
         }
-    }
-
-    /**
-     * This method exists as a default value for all instructions therefore if its not overridden
-     * then the instruction is invalid
-     *
-     * @throws IllegalArgumentException when executed (should not be executed default value only)
-     */
-    private fun invalidOperation() {
-        throw IllegalArgumentException("This instruction doesn't exist")
     }
 }
