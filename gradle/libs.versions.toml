@@ -39,6 +39,7 @@ mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 mockk_android = { group = "io.mockk", name = "mockk-android", version.ref = "mockk" }
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
 koin = { group = "io.insert-koin" , name = "koin-android", version.ref = "koin" }
+koin_compose = { group = "io.insert-koin", name = "koin-androidx-compose", version.ref = "koin" }
 koin_test = { group = "io.insert-koin", name = "koin-test", version.ref = "koin" }
 koin_test_junit4 = { group = "io.insert-koin", name = "koin-test-junit4", version.ref = "koin" }
 koin_annotations = { group = "io.insert-koin", name = "koin-annotations", version.ref = "koin-annotations" }

@@ -94,7 +94,7 @@ class Interrupts(
     private fun checkInterruptTypes(availableInterrupts: Int) {
         InterruptNames.entries.forEachIndexed { index, interrupt ->
             if (availableInterrupts.toUByte().testBit(interrupt.testBit)) {
-                cpu.CPURegisters.setProgramCounter(0x40 + 0x8 * index)
+                cpu.cpuRegisters.setProgramCounter(0x40 + 0x8 * index)
                 bus.setValue(
                     ReservedAddresses.IF.memoryAddress,
                     ifRegister.resetBit(interrupt.testBit)

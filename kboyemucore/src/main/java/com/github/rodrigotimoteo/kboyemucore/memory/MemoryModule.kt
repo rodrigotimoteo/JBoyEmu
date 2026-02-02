@@ -92,9 +92,9 @@ open class MemoryModule(
                 val moduleSize = memory[activeBank].size
 
                 if (realIndex >= moduleSize) {
-                    memory[0][realIndex]
-                } else {
                     memory[activeBank][realIndex - moduleSize]
+                } else {
+                    memory[0][realIndex]
                 }
             }
         }

@@ -2,17 +2,26 @@ package com.github.rodrigotimoteo.kboyemucore.bus
 
 import com.github.rodrigotimoteo.kboyemucore.cpu.CPU
 import com.github.rodrigotimoteo.kboyemucore.cpu.interrupts.InterruptNames
+import kotlinx.coroutines.flow.StateFlow
+import com.github.rodrigotimoteo.kboyemucore.api.FrameBuffer
 import com.github.rodrigotimoteo.kboyemucore.memory.MemoryManager
 import com.github.rodrigotimoteo.kboyemucore.memory.MemoryManipulation
 import com.github.rodrigotimoteo.kboyemucore.memory.MemoryModule
 import com.github.rodrigotimoteo.kboyemucore.ppu.PPU
 import com.github.rodrigotimoteo.kboyemucore.util.FILTER_LOWER_BITS
 import com.github.rodrigotimoteo.kboyemucore.util.FILTER_TOP_BITS
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlin.system.exitProcess
 
 class Bus(
     rom: MemoryModule,
     private val isCGB: Boolean
 ) : MemoryManipulation {
+
+    private var runningJob: Job? = null
 
     /**
      * Memory Manager reference
@@ -30,11 +39,45 @@ class Bus(
     private val ppu = PPU(this)
 
     /**
-     * Resets the entire emulator
+     * [StateFlow] of [FrameBuffer] for use in Emulator implementation
      */
-    fun reset() {
-        cpu.reset()
-        ppu.reset()
+    val frameBuffer = ppu.painting
+
+    fun run() {
+        if (runningJob?.isActive == true) {
+            return
+        }
+        runningJob = CoroutineScope(Dispatchers.Default).launch {
+            cpu.tick()
+            ppu.tick()
+//        oldTime = System.nanoTime()
+            while (true) {
+                try {
+                    val cpuCounter: Int = cpu.getCounter()
+//                    if (ppu.isGetToSleep()) Thread.sleep(getSleepTime(oldTime));
+                    if (!ppu.isLCDOn()) {
+                        cpu.tick()
+                        ppu.checkLCDStatus()
+                    } else {
+                        cpu.tick()
+                        for (i in 0..<(cpu.getCounter() - cpuCounter)) {
+                            ppu.tick()
+                        }
+                    }
+                    if (cpuCounter >= 1000000) {
+                        print(memoryManager)
+                        exitProcess(0)
+                    }
+                } catch (e: InterruptedException) {
+                    e.printStackTrace()
+                    exitProcess(-1)
+                }
+            }
+        }
+    }
+
+    fun stop() {
+        runningJob?.cancel()
     }
 
     /**
@@ -52,6 +95,13 @@ class Bus(
         memoryManager.setValue(memoryAddress, value)
     }
 
+    /**
+     * Changes value of specific word based on its memory address without limitation (because PPU
+     * has unrestricted access to every memory address) "I Think" (for now only check bottom registers)
+     *
+     * @param memoryAddress where to change the value
+     * @param value to assign
+     */
     fun setValueFromPPU(memoryAddress: Int, value: UByte) {
         memoryManager.setValueFromPPU(memoryAddress, value)
     }
@@ -70,13 +120,13 @@ class Bus(
      * Stores the program counter in the stack pointer and decreases its pointer by 2
      */
     fun storeProgramCounterInStackPointer() {
-        val stackPointer = cpu.CPURegisters.getStackPointer()
-        val programCounter = cpu.CPURegisters.getProgramCounter()
+        val stackPointer = cpu.cpuRegisters.getStackPointer()
+        val programCounter = cpu.cpuRegisters.getProgramCounter()
 
         setValue(stackPointer - 1, ((programCounter and FILTER_TOP_BITS) shr 8).toUByte())
         setValue(stackPointer - 2, (programCounter and FILTER_LOWER_BITS).toUByte())
 
-        cpu.CPURegisters.incrementStackPointer(-2)
+        cpu.cpuRegisters.incrementStackPointer(-2)
     }
 
     /**
@@ -88,7 +138,7 @@ class Bus(
     fun calculateNN(): Int {
         repeat(2) { cpu.timers.tick() }
 
-        val programCounter = cpu.CPURegisters.getProgramCounter()
+        val programCounter = cpu.cpuRegisters.getProgramCounter()
 
         val lowerAddress = getValue(programCounter + 1).toInt()
         val upperAddress = getValue(programCounter + 2).toInt() shl 8

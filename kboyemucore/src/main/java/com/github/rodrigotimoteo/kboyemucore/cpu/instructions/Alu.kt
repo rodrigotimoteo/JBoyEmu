@@ -76,17 +76,17 @@ class Alu(
      * @param register used to retrieve the value to add
      */
     fun add(register: RegisterNames) {
-        val valueInGivenRegister = cpu.CPURegisters.getRegister(register).value.toInt()
-        val valueInRegisterA = cpu.CPURegisters.getRegister(RegisterNames.A).value.toInt()
+        val valueInGivenRegister = cpu.cpuRegisters.getRegister(register).value.toInt()
+        val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
         val finalValue = valueInGivenRegister + valueInRegisterA
 
         val halfCarry = checkHalfCarryAdd(valueInGivenRegister, valueInRegisterA, 0)
         val carry = checkCarryAdd(finalValue)
         val zero = checkZero(finalValue)
 
-        cpu.CPURegisters.flags.setFlags(zero = zero, subtract = false, half = halfCarry, carry = carry)
-        cpu.CPURegisters.setRegister(RegisterNames.A, finalValue.toUByte())
-        cpu.CPURegisters.incrementProgramCounter(1)
+        cpu.cpuRegisters.flags.setFlags(zero = zero, subtract = false, half = halfCarry, carry = carry)
+        cpu.cpuRegisters.setRegister(RegisterNames.A, finalValue.toUByte())
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -98,7 +98,7 @@ class Alu(
     fun addSpecial(memoryAddress: Int, useHL: Boolean) {
         cpu.timers.tick()
 
-        val valueInRegisterA = cpu.CPURegisters.getRegister(RegisterNames.A).value.toInt()
+        val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
         val valueInAddress = bus.getValue(memoryAddress).toInt()
         val finalValue = valueInAddress + valueInRegisterA
 
@@ -106,13 +106,13 @@ class Alu(
         val carry = checkCarryAdd(finalValue)
         val zero = checkZero(finalValue)
 
-        cpu.CPURegisters.flags.setFlags(zero = zero, subtract = false, half = halfCarry, carry = carry)
-        cpu.CPURegisters.setRegister(RegisterNames.A, finalValue.toUByte())
+        cpu.cpuRegisters.flags.setFlags(zero = zero, subtract = false, half = halfCarry, carry = carry)
+        cpu.cpuRegisters.setRegister(RegisterNames.A, finalValue.toUByte())
 
         if (useHL) {
-            cpu.CPURegisters.incrementProgramCounter(1)
+            cpu.cpuRegisters.incrementProgramCounter(1)
         } else {
-            cpu.CPURegisters.incrementProgramCounter(2)
+            cpu.cpuRegisters.incrementProgramCounter(2)
         }
     }
 
@@ -123,20 +123,20 @@ class Alu(
      * @param register used to retrieve the register to add to register A's value
      */
     fun adc(register: RegisterNames) {
-        val valueInGivenRegister = cpu.CPURegisters.getRegister(register).value.toInt()
-        val valueInRegisterA = cpu.CPURegisters.getRegister(RegisterNames.A).value.toInt()
+        val valueInGivenRegister = cpu.cpuRegisters.getRegister(register).value.toInt()
+        val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
 
-        val carryAsValue = if (cpu.CPURegisters.flags.getCarryFlag()) 1 else 0
+        val carryAsValue = if (cpu.cpuRegisters.flags.getCarryFlag()) 1 else 0
         val finalValue = valueInGivenRegister + valueInRegisterA + carryAsValue
 
         val halfCarry = checkHalfCarryAdd(valueInGivenRegister, valueInRegisterA, carryAsValue)
         val carry = checkCarryAdd(finalValue)
         val zero = checkZero(finalValue)
 
-        cpu.CPURegisters.flags.setFlags(zero = zero, subtract = false, half = halfCarry, carry = carry)
-        cpu.CPURegisters.setRegister(RegisterNames.A, finalValue.toUByte())
+        cpu.cpuRegisters.flags.setFlags(zero = zero, subtract = false, half = halfCarry, carry = carry)
+        cpu.cpuRegisters.setRegister(RegisterNames.A, finalValue.toUByte())
 
-        cpu.CPURegisters.incrementProgramCounter(1)
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -150,23 +150,23 @@ class Alu(
     fun adcSpecial(memoryAddress: Int, useHL: Boolean) {
         cpu.timers.tick()
 
-        val valueInRegisterA = cpu.CPURegisters.getRegister(RegisterNames.A).value.toInt()
+        val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
         val valueInAddress = bus.getValue(memoryAddress).toInt()
 
-        val carryAsValue = if (cpu.CPURegisters.flags.getCarryFlag()) 1 else 0
+        val carryAsValue = if (cpu.cpuRegisters.flags.getCarryFlag()) 1 else 0
         val halfCarry = checkHalfCarryAdd(valueInAddress, valueInRegisterA, carryAsValue)
         val finalValue = valueInAddress + valueInRegisterA + carryAsValue
 
         val carry = checkCarryAdd(finalValue)
         val zero = checkZero(finalValue)
 
-        cpu.CPURegisters.flags.setFlags(zero = zero, subtract = false, half = halfCarry, carry = carry)
-        cpu.CPURegisters.setRegister(RegisterNames.A, finalValue.toUByte())
+        cpu.cpuRegisters.flags.setFlags(zero = zero, subtract = false, half = halfCarry, carry = carry)
+        cpu.cpuRegisters.setRegister(RegisterNames.A, finalValue.toUByte())
 
         if (useHL) {
-            cpu.CPURegisters.incrementProgramCounter(1)
+            cpu.cpuRegisters.incrementProgramCounter(1)
         } else {
-            cpu.CPURegisters.incrementProgramCounter(2)
+            cpu.cpuRegisters.incrementProgramCounter(2)
         }
     }
 
@@ -176,8 +176,8 @@ class Alu(
      * @param register which register to use
      */
     fun sub(register: RegisterNames) {
-        val valueInGivenRegister = cpu.CPURegisters.getRegister(register).value.toInt()
-        val valueInRegisterA = cpu.CPURegisters.getRegister(RegisterNames.A).value.toInt()
+        val valueInGivenRegister = cpu.cpuRegisters.getRegister(register).value.toInt()
+        val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
 
         val halfCarry = checkHalfCarrySub(valueInRegisterA, valueInGivenRegister, 0)
         val finalValue = (valueInRegisterA - valueInGivenRegister)
@@ -185,10 +185,10 @@ class Alu(
         val carry = checkCarrySub(finalValue)
         val zero = checkZero(finalValue)
 
-        cpu.CPURegisters.flags.setFlags(zero = zero, subtract = true, half = halfCarry, carry = carry)
-        cpu.CPURegisters.setRegister(RegisterNames.A, finalValue.toUByte())
+        cpu.cpuRegisters.flags.setFlags(zero = zero, subtract = true, half = halfCarry, carry = carry)
+        cpu.cpuRegisters.setRegister(RegisterNames.A, finalValue.toUByte())
 
-        cpu.CPURegisters.incrementProgramCounter(1)
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -201,7 +201,7 @@ class Alu(
     fun subSpecial(memoryAddress: Int, useHL: Boolean) {
         cpu.timers.tick()
 
-        val valueInRegisterA = cpu.CPURegisters.getRegister(RegisterNames.A).value.toInt()
+        val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
         val valueInAddress = bus.getValue(memoryAddress).toInt()
 
         val halfCarry = checkHalfCarrySub(valueInRegisterA, valueInAddress, 0)
@@ -210,13 +210,13 @@ class Alu(
         val carry = checkCarrySub(finalValue)
         val zero = checkZero(finalValue)
 
-        cpu.CPURegisters.flags.setFlags(zero = zero, subtract = true, half = halfCarry, carry = carry)
-        cpu.CPURegisters.setRegister(RegisterNames.A, finalValue.toUByte())
+        cpu.cpuRegisters.flags.setFlags(zero = zero, subtract = true, half = halfCarry, carry = carry)
+        cpu.cpuRegisters.setRegister(RegisterNames.A, finalValue.toUByte())
 
         if (useHL) {
-            cpu.CPURegisters.incrementProgramCounter(1)
+            cpu.cpuRegisters.incrementProgramCounter(1)
         } else {
-            cpu.CPURegisters.incrementProgramCounter(2)
+            cpu.cpuRegisters.incrementProgramCounter(2)
         }
     }
 
@@ -228,20 +228,20 @@ class Alu(
      * @param register The register to subtract from A.
      */
     fun sbc(register: RegisterNames) {
-        val valueInGivenRegister = cpu.CPURegisters.getRegister(register).value.toInt()
-        val valueInRegisterA = cpu.CPURegisters.getRegister(RegisterNames.A).value.toInt()
+        val valueInGivenRegister = cpu.cpuRegisters.getRegister(register).value.toInt()
+        val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
 
-        val carryAsValue = if (cpu.CPURegisters.flags.getCarryFlag()) 1 else 0
+        val carryAsValue = if (cpu.cpuRegisters.flags.getCarryFlag()) 1 else 0
         val halfCarry = checkHalfCarrySub(valueInRegisterA, valueInGivenRegister, carryAsValue)
         val finalValue = (valueInRegisterA - valueInGivenRegister - carryAsValue)
 
         val carry = checkCarrySub(finalValue)
         val zero = checkZero(finalValue)
 
-        cpu.CPURegisters.flags.setFlags(zero = zero, subtract = true, half = halfCarry, carry = carry)
-        cpu.CPURegisters.setRegister(RegisterNames.A, finalValue.toUByte())
+        cpu.cpuRegisters.flags.setFlags(zero = zero, subtract = true, half = halfCarry, carry = carry)
+        cpu.cpuRegisters.setRegister(RegisterNames.A, finalValue.toUByte())
 
-        cpu.CPURegisters.incrementProgramCounter(1)
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -256,23 +256,23 @@ class Alu(
     fun sbcSpecial(memoryAddress: Int, useHL: Boolean) {
         cpu.timers.tick()
 
-        val valueInRegisterA = cpu.CPURegisters.getRegister(RegisterNames.A).value.toInt()
+        val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
         val valueInAddress = bus.getValue(memoryAddress).toInt()
 
-        val carryAsValue = if (cpu.CPURegisters.flags.getCarryFlag()) 1 else 0
+        val carryAsValue = if (cpu.cpuRegisters.flags.getCarryFlag()) 1 else 0
         val halfCarry = checkHalfCarrySub(valueInRegisterA, valueInAddress, carryAsValue)
         val finalValue = (valueInRegisterA - valueInAddress - carryAsValue)
 
         val carry = checkCarrySub(finalValue)
         val zero = checkZero(finalValue)
 
-        cpu.CPURegisters.flags.setFlags(zero = zero, subtract = true, half = halfCarry, carry = carry)
-        cpu.CPURegisters.setRegister(RegisterNames.A, finalValue.toUByte())
+        cpu.cpuRegisters.flags.setFlags(zero = zero, subtract = true, half = halfCarry, carry = carry)
+        cpu.cpuRegisters.setRegister(RegisterNames.A, finalValue.toUByte())
 
         if (useHL) {
-            cpu.CPURegisters.incrementProgramCounter(1)
+            cpu.cpuRegisters.incrementProgramCounter(1)
         } else {
-            cpu.CPURegisters.incrementProgramCounter(2)
+            cpu.cpuRegisters.incrementProgramCounter(2)
         }
     }
 
@@ -284,16 +284,16 @@ class Alu(
      * @param register The register to AND with A.
      */
     fun and(register: RegisterNames) {
-        val valueInGivenRegister = cpu.CPURegisters.getRegister(register).value.toInt()
-        val valueInRegisterA = cpu.CPURegisters.getRegister(RegisterNames.A).value.toInt()
+        val valueInGivenRegister = cpu.cpuRegisters.getRegister(register).value.toInt()
+        val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
         val finalValue = valueInRegisterA and valueInGivenRegister
 
         val zero = checkZero(finalValue)
 
-        cpu.CPURegisters.flags.setFlags(zero = zero, subtract = false, half = true, carry = false)
-        cpu.CPURegisters.setRegister(RegisterNames.A, finalValue.toUByte())
+        cpu.cpuRegisters.flags.setFlags(zero = zero, subtract = false, half = true, carry = false)
+        cpu.cpuRegisters.setRegister(RegisterNames.A, finalValue.toUByte())
 
-        cpu.CPURegisters.incrementProgramCounter(1)
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -308,19 +308,19 @@ class Alu(
     fun andSpecial(memoryAddress: Int, useHL: Boolean) {
         cpu.timers.tick()
 
-        val valueInRegisterA = cpu.CPURegisters.getRegister(RegisterNames.A).value.toInt()
+        val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
         val valueInAddress = bus.getValue(memoryAddress).toInt()
         val finalValue = valueInRegisterA and valueInAddress
 
         val zero = checkZero(finalValue)
 
-        cpu.CPURegisters.flags.setFlags(zero = zero, subtract = false, half = true, carry = false)
-        cpu.CPURegisters.setRegister(RegisterNames.A, finalValue.toUByte())
+        cpu.cpuRegisters.flags.setFlags(zero = zero, subtract = false, half = true, carry = false)
+        cpu.cpuRegisters.setRegister(RegisterNames.A, finalValue.toUByte())
 
         if (useHL) {
-            cpu.CPURegisters.incrementProgramCounter(1)
+            cpu.cpuRegisters.incrementProgramCounter(1)
         } else {
-            cpu.CPURegisters.incrementProgramCounter(2)
+            cpu.cpuRegisters.incrementProgramCounter(2)
         }
     }
 
@@ -332,16 +332,16 @@ class Alu(
      * @param register The register to OR with A.
      */
     fun or(register: RegisterNames) {
-        val valueInGivenRegister = cpu.CPURegisters.getRegister(register).value.toInt()
-        val valueInRegisterA = cpu.CPURegisters.getRegister(RegisterNames.A).value.toInt()
+        val valueInGivenRegister = cpu.cpuRegisters.getRegister(register).value.toInt()
+        val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
         val finalValue = valueInRegisterA or valueInGivenRegister
 
         val zero = checkZero(finalValue)
 
-        cpu.CPURegisters.flags.setFlags(zero = zero, subtract = false, half = false, carry = false)
-        cpu.CPURegisters.setRegister(RegisterNames.A, finalValue.toUByte())
+        cpu.cpuRegisters.flags.setFlags(zero = zero, subtract = false, half = false, carry = false)
+        cpu.cpuRegisters.setRegister(RegisterNames.A, finalValue.toUByte())
 
-        cpu.CPURegisters.incrementProgramCounter(1)
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -356,19 +356,19 @@ class Alu(
     fun orSpecial(memoryAddress: Int, useHL: Boolean) {
         cpu.timers.tick()
 
-        val valueInRegisterA = cpu.CPURegisters.getRegister(RegisterNames.A).value.toInt()
+        val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
         val valueInAddress = bus.getValue(memoryAddress).toInt()
         val finalValue = valueInRegisterA or valueInAddress
 
         val zero = checkZero(finalValue)
 
-        cpu.CPURegisters.flags.setFlags(zero = zero, subtract = false, half = false, carry = false)
-        cpu.CPURegisters.setRegister(RegisterNames.A, finalValue.toUByte())
+        cpu.cpuRegisters.flags.setFlags(zero = zero, subtract = false, half = false, carry = false)
+        cpu.cpuRegisters.setRegister(RegisterNames.A, finalValue.toUByte())
 
         if (useHL) {
-            cpu.CPURegisters.incrementProgramCounter(1)
+            cpu.cpuRegisters.incrementProgramCounter(1)
         } else {
-            cpu.CPURegisters.incrementProgramCounter(2)
+            cpu.cpuRegisters.incrementProgramCounter(2)
         }
     }
 
@@ -380,15 +380,15 @@ class Alu(
      * @param register The register to XOR with A.
      */
     fun xor(register: RegisterNames) {
-        val valueInGivenRegister = cpu.CPURegisters.getRegister(register).value.toInt()
-        val valueInRegisterA = cpu.CPURegisters.getRegister(RegisterNames.A).value.toInt()
+        val valueInGivenRegister = cpu.cpuRegisters.getRegister(register).value.toInt()
+        val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
         val finalValue = valueInRegisterA xor valueInGivenRegister
 
         val zero = checkZero(finalValue)
 
-        cpu.CPURegisters.flags.setFlags(zero = zero, subtract = false, half = false, carry = false)
-        cpu.CPURegisters.setRegister(RegisterNames.A, finalValue.toUByte())
-        cpu.CPURegisters.incrementProgramCounter(1)
+        cpu.cpuRegisters.flags.setFlags(zero = zero, subtract = false, half = false, carry = false)
+        cpu.cpuRegisters.setRegister(RegisterNames.A, finalValue.toUByte())
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -403,19 +403,19 @@ class Alu(
     fun xorSpecial(memoryAddress: Int, useHL: Boolean) {
         cpu.timers.tick()
 
-        val valueInRegisterA = cpu.CPURegisters.getRegister(RegisterNames.A).value.toInt()
+        val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
         val valueInAddress = bus.getValue(memoryAddress).toInt()
         val finalValue = valueInRegisterA xor valueInAddress
 
         val zero = checkZero(finalValue)
 
-        cpu.CPURegisters.flags.setFlags(zero = zero, subtract = false, half = false, carry = false)
-        cpu.CPURegisters.setRegister(RegisterNames.A, finalValue.toUByte())
+        cpu.cpuRegisters.flags.setFlags(zero = zero, subtract = false, half = false, carry = false)
+        cpu.cpuRegisters.setRegister(RegisterNames.A, finalValue.toUByte())
 
         if (useHL) {
-            cpu.CPURegisters.incrementProgramCounter(1)
+            cpu.cpuRegisters.incrementProgramCounter(1)
         } else {
-            cpu.CPURegisters.incrementProgramCounter(2)
+            cpu.cpuRegisters.incrementProgramCounter(2)
         }
     }
 
@@ -427,16 +427,16 @@ class Alu(
      * @param register The register to compare with A.
      */
     fun cp(register: RegisterNames) {
-        val valueInGivenRegister = cpu.CPURegisters.getRegister(register).value.toInt()
-        val valueInRegisterA = cpu.CPURegisters.getRegister(RegisterNames.A).value.toInt()
+        val valueInGivenRegister = cpu.cpuRegisters.getRegister(register).value.toInt()
+        val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
         val finalValue = valueInGivenRegister - valueInRegisterA
 
         val zero = checkZero(finalValue)
         val halfCarry = checkHalfCarrySub(valueInRegisterA, valueInGivenRegister, 0)
         val carry = checkCarrySub(finalValue)
 
-        cpu.CPURegisters.flags.setFlags(zero = zero, subtract = true, half = halfCarry, carry = carry)
-        cpu.CPURegisters.incrementProgramCounter(1)
+        cpu.cpuRegisters.flags.setFlags(zero = zero, subtract = true, half = halfCarry, carry = carry)
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -452,7 +452,7 @@ class Alu(
     fun cpSpecial(memoryAddress: Int, useHL: Boolean) {
         cpu.timers.tick()
 
-        val valueInRegisterA = cpu.CPURegisters.getRegister(RegisterNames.A).value.toInt()
+        val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
         val valueInAddress = bus.getValue(memoryAddress).toInt()
         val finalValue = valueInAddress - valueInRegisterA
 
@@ -460,11 +460,11 @@ class Alu(
         val halfCarry = checkHalfCarrySub(valueInRegisterA, valueInAddress, 0)
         val carry = checkCarrySub(finalValue)
 
-        cpu.CPURegisters.flags.setFlags(zero = zero, subtract = true, half = halfCarry, carry = carry)
+        cpu.cpuRegisters.flags.setFlags(zero = zero, subtract = true, half = halfCarry, carry = carry)
         if (useHL) {
-            cpu.CPURegisters.incrementProgramCounter(1)
+            cpu.cpuRegisters.incrementProgramCounter(1)
         } else {
-            cpu.CPURegisters.incrementProgramCounter(2)
+            cpu.cpuRegisters.incrementProgramCounter(2)
         }
     }
 
@@ -476,15 +476,15 @@ class Alu(
      * @param register The register to increment.
      */
     fun inc(register: RegisterNames) {
-        val valueInGivenRegister = cpu.CPURegisters.getRegister(register).value.toInt()
+        val valueInGivenRegister = cpu.cpuRegisters.getRegister(register).value.toInt()
         val finalValue = (valueInGivenRegister + 1) and 0xFF
 
         val halfCarry = checkHalfCarryAdd(valueInGivenRegister, 1, 0)
         val zero = checkZero(finalValue)
 
-        cpu.CPURegisters.flags.setFlags(zero = zero, subtract = false, half = halfCarry, carry = null)
-        cpu.CPURegisters.setRegister(register, finalValue.toUByte())
-        cpu.CPURegisters.incrementProgramCounter(1)
+        cpu.cpuRegisters.flags.setFlags(zero = zero, subtract = false, half = halfCarry, carry = null)
+        cpu.cpuRegisters.setRegister(register, finalValue.toUByte())
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -503,10 +503,10 @@ class Alu(
         val halfCarry = checkHalfCarryAdd(valueInAddress, 1, 0)
         val zero = checkZero(finalValue)
 
-        cpu.CPURegisters.flags.setFlags(zero = zero, subtract = false, half = halfCarry, carry = null)
+        cpu.cpuRegisters.flags.setFlags(zero = zero, subtract = false, half = halfCarry, carry = null)
         bus.setValue(memoryAddress, finalValue.toUByte())
         cpu.timers.tick()
-        cpu.CPURegisters.incrementProgramCounter(1)
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -517,15 +517,15 @@ class Alu(
      * @param register The register to decrement.
      */
     fun dec(register: RegisterNames) {
-        val valueInGivenRegister = cpu.CPURegisters.getRegister(register).value.toInt()
+        val valueInGivenRegister = cpu.cpuRegisters.getRegister(register).value.toInt()
         val finalValue = valueInGivenRegister - 1
 
         val halfCarry = checkHalfCarrySub(valueInGivenRegister, 1, 0)
         val zero = checkZero(finalValue)
 
-        cpu.CPURegisters.flags.setFlags(zero = zero, subtract = true, half = halfCarry, carry = null)
-        cpu.CPURegisters.setRegister(register, finalValue.toUByte())
-        cpu.CPURegisters.incrementProgramCounter(1)
+        cpu.cpuRegisters.flags.setFlags(zero = zero, subtract = true, half = halfCarry, carry = null)
+        cpu.cpuRegisters.setRegister(register, finalValue.toUByte())
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -544,9 +544,9 @@ class Alu(
         val halfCarry = checkHalfCarrySub(valueInAddress, 1, 0)
         val zero = checkZero(finalValue)
 
-        cpu.CPURegisters.flags.setFlags(zero = zero, subtract = true, half = halfCarry, carry = null)
+        cpu.cpuRegisters.flags.setFlags(zero = zero, subtract = true, half = halfCarry, carry = null)
         bus.setValue(memoryAddress, finalValue.toUByte())
-        cpu.CPURegisters.incrementProgramCounter(1)
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -560,21 +560,21 @@ class Alu(
         cpu.timers.tick()
 
         val givenRegisterPair = when(type) {
-            0 -> cpu.CPURegisters.getBC()
-            1 -> cpu.CPURegisters.getDE()
-            2 -> cpu.CPURegisters.getHL()
+            0 -> cpu.cpuRegisters.getBC()
+            1 -> cpu.cpuRegisters.getDE()
+            2 -> cpu.cpuRegisters.getHL()
             else -> return
         }
 
-        val valueInHL = cpu.CPURegisters.getHL()
+        val valueInHL = cpu.cpuRegisters.getHL()
 
         val halfCarry = ((valueInHL and 0x0FFF) + (givenRegisterPair and 0x0FFF) and 0x1000) == 0x1000
         val carry = (valueInHL and 0xFFFF) + (givenRegisterPair and 0xFFFF) > 0xFFFF
         val finalValue = ((valueInHL and 0xFFFF) + (givenRegisterPair and 0xFFFF)) and 0xFFFF
 
-        cpu.CPURegisters.flags.setFlags(zero = null, subtract = false, half = halfCarry, carry)
-        cpu.CPURegisters.setHL(finalValue)
-        cpu.CPURegisters.incrementProgramCounter(1)
+        cpu.cpuRegisters.flags.setFlags(zero = null, subtract = false, half = halfCarry, carry)
+        cpu.cpuRegisters.setHL(finalValue)
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -585,16 +585,16 @@ class Alu(
     fun addHLSP() {
         cpu.timers.tick()
 
-        val valueInHL = cpu.CPURegisters.getHL()
-        val stackPointer = cpu.CPURegisters.getStackPointer()
+        val valueInHL = cpu.cpuRegisters.getHL()
+        val stackPointer = cpu.cpuRegisters.getStackPointer()
 
         val halfCarry = ((valueInHL and 0x0FFF) + (stackPointer and 0x0FFF) and 0x1000) == 0x1000
         val carry = (valueInHL and 0xFFFF) + (stackPointer and 0xFFFF) > 0xFFFF
         val finalValue = ((valueInHL and 0xFFFF) + (stackPointer and 0xFFFF)) and 0xFFFF
 
-        cpu.CPURegisters.flags.setFlags(zero = null, subtract = false, half = halfCarry, carry)
-        cpu.CPURegisters.setHL(finalValue)
-        cpu.CPURegisters.incrementProgramCounter(1)
+        cpu.cpuRegisters.flags.setFlags(zero = null, subtract = false, half = halfCarry, carry)
+        cpu.cpuRegisters.setHL(finalValue)
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -607,7 +607,7 @@ class Alu(
     fun addSP(memoryAddress: Int) {
         repeat(3) { cpu.timers.tick() }
 
-        val stackPointer = cpu.CPURegisters.getStackPointer()
+        val stackPointer = cpu.cpuRegisters.getStackPointer()
         val valueInAddress = bus.getValue(memoryAddress)
         val valueSigned = valueInAddress.toByte().toInt()
         val finalValue = (stackPointer + valueSigned) and 0xFFFF
@@ -616,9 +616,9 @@ class Alu(
         val carry =
             (((stackPointer and 0xFF) + (valueInAddress.toInt() and 0xFF)) and 0x100) == 0x100
 
-        cpu.CPURegisters.flags.setFlags(zero = false, subtract = false, half = halfCarry, carry)
-        cpu.CPURegisters.setStackPointer(finalValue)
-        cpu.CPURegisters.incrementProgramCounter(2)
+        cpu.cpuRegisters.flags.setFlags(zero = false, subtract = false, half = halfCarry, carry)
+        cpu.cpuRegisters.setStackPointer(finalValue)
+        cpu.cpuRegisters.incrementProgramCounter(2)
     }
 
     /**
@@ -633,21 +633,21 @@ class Alu(
 
         when (type) {
             0 -> {
-                val finalValue = (cpu.CPURegisters.getBC() + 1) and 0xFFFF
-                cpu.CPURegisters.setBC(finalValue)
+                val finalValue = (cpu.cpuRegisters.getBC() + 1) and 0xFFFF
+                cpu.cpuRegisters.setBC(finalValue)
             }
             1 -> {
-                val finalValue = (cpu.CPURegisters.getDE() + 1) and 0xFFFF
-                cpu.CPURegisters.setDE(finalValue)
+                val finalValue = (cpu.cpuRegisters.getDE() + 1) and 0xFFFF
+                cpu.cpuRegisters.setDE(finalValue)
             }
             2 -> {
-                val finalValue = (cpu.CPURegisters.getHL() + 1) and 0xFFFF
-                cpu.CPURegisters.setHL(finalValue)
+                val finalValue = (cpu.cpuRegisters.getHL() + 1) and 0xFFFF
+                cpu.cpuRegisters.setHL(finalValue)
             }
             else -> return
         }
 
-        cpu.CPURegisters.incrementProgramCounter(1)
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -662,20 +662,20 @@ class Alu(
 
         when (type) {
             0 -> {
-                val finalValue = (cpu.CPURegisters.getBC() - 1) and 0xFFFF
-                cpu.CPURegisters.setBC(finalValue)
+                val finalValue = (cpu.cpuRegisters.getBC() - 1) and 0xFFFF
+                cpu.cpuRegisters.setBC(finalValue)
             }
             1 -> {
-                val finalValue = (cpu.CPURegisters.getDE() - 1) and 0xFFFF
-                cpu.CPURegisters.setDE(finalValue)
+                val finalValue = (cpu.cpuRegisters.getDE() - 1) and 0xFFFF
+                cpu.cpuRegisters.setDE(finalValue)
             }
             2 -> {
-                val finalValue = (cpu.CPURegisters.getHL() - 1) and 0xFFFF
-                cpu.CPURegisters.setHL(finalValue)
+                val finalValue = (cpu.cpuRegisters.getHL() - 1) and 0xFFFF
+                cpu.cpuRegisters.setHL(finalValue)
             }
             else -> return
         }
-        cpu.CPURegisters.incrementProgramCounter(1)
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -685,8 +685,8 @@ class Alu(
      */
     fun incSP() {
         cpu.timers.tick()
-        cpu.CPURegisters.incrementStackPointer(1)
-        cpu.CPURegisters.incrementProgramCounter(1)
+        cpu.cpuRegisters.incrementStackPointer(1)
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -696,8 +696,8 @@ class Alu(
      */
     fun decSP() {
         cpu.timers.tick()
-        cpu.CPURegisters.incrementStackPointer(-1)
-        cpu.CPURegisters.incrementProgramCounter(1)
+        cpu.cpuRegisters.incrementStackPointer(-1)
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -707,33 +707,33 @@ class Alu(
      * Updates flags: Z (zero), H (reset), C (carry). N (subtract) flag remains unchanged.
      */
     fun daa() {
-        val valueInRegisterA = cpu.CPURegisters.getRegister(RegisterNames.A).value.toInt()
+        val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
 
         var offset = 0
         var carry = false
 
-        if ((!cpu.CPURegisters.flags.getSubtractFlag() && (valueInRegisterA and 0x0F) > 0x09) ||
-            cpu.CPURegisters.flags.getHalfCarryFlag()
+        if ((!cpu.cpuRegisters.flags.getSubtractFlag() && (valueInRegisterA and 0x0F) > 0x09) ||
+            cpu.cpuRegisters.flags.getHalfCarryFlag()
         ) {
             offset = offset or 0x06
         }
-        if ((!cpu.CPURegisters.flags.getSubtractFlag() && valueInRegisterA > 0x99) ||
-            cpu.CPURegisters.flags.getCarryFlag()
+        if ((!cpu.cpuRegisters.flags.getSubtractFlag() && valueInRegisterA > 0x99) ||
+            cpu.cpuRegisters.flags.getCarryFlag()
         ) {
             offset = offset or 0x60
             carry = true
         }
 
-        val finalValue = if (cpu.CPURegisters.flags.getSubtractFlag()) {
+        val finalValue = if (cpu.cpuRegisters.flags.getSubtractFlag()) {
             valueInRegisterA - offset
         } else {
             valueInRegisterA + offset
         }
         val zero = checkZero(finalValue and 0xFF)
 
-        cpu.CPURegisters.flags.setFlags(zero = zero, subtract = null, half = false, carry)
-        cpu.CPURegisters.setRegister(RegisterNames.A, finalValue.toUByte())
-        cpu.CPURegisters.incrementProgramCounter(1)
+        cpu.cpuRegisters.flags.setFlags(zero = zero, subtract = null, half = false, carry)
+        cpu.cpuRegisters.setRegister(RegisterNames.A, finalValue.toUByte())
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -742,11 +742,11 @@ class Alu(
      * Sets flags: N (subtract) and H (half-carry) to true. Z (zero) and C (carry) flags are unaffected.
      */
     fun cpl() {
-        val valueInRegisterA = cpu.CPURegisters.getRegister(RegisterNames.A).value.toInt()
+        val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
         val finalValue = (valueInRegisterA.inv() and 0xFF)
 
-        cpu.CPURegisters.setRegister(RegisterNames.A, finalValue.toUByte())
-        cpu.CPURegisters.flags.setFlags(zero = null, subtract = true, half = true, carry = null)
-        cpu.CPURegisters.incrementProgramCounter(1)
+        cpu.cpuRegisters.setRegister(RegisterNames.A, finalValue.toUByte())
+        cpu.cpuRegisters.flags.setFlags(zero = null, subtract = true, half = true, carry = null)
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 }

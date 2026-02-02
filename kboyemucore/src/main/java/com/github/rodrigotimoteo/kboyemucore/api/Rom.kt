@@ -7,5 +7,6 @@ package com.github.rodrigotimoteo.kboyemucore.api
  *
  * @author rodrigotimoteo
  */
+@OptIn(ExperimentalUnsignedTypes::class)
 @JvmInline
-value class Rom(val bytes: ByteArray)
+value class Rom(val bytes: UByteArray)

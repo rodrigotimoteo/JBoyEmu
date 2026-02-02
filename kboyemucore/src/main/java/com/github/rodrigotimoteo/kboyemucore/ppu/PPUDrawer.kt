@@ -5,17 +5,20 @@ import com.github.rodrigotimoteo.kboyemucore.ktx.testBit
 import com.github.rodrigotimoteo.kboyemucore.memory.ReservedAddresses
 import com.github.rodrigotimoteo.kboyemucore.util.HEIGHT
 import com.github.rodrigotimoteo.kboyemucore.util.WIDTH
-import kotlin.collections.set
-import kotlin.text.compareTo
-import kotlin.text.get
 
 class PPUDrawer(
     private val ppu: PPU,
     private val bus: Bus,
 ) {
 
-    private val painting = IntArray(WIDTH * HEIGHT)
+    /**
+     * Holds the temporary [ByteArray] used to update the screen when an update is triggered
+     */
+    private val painting = ByteArray(WIDTH * HEIGHT)
 
+    /**
+     * Draws the background part of the screen based on specification provided by the GameBoy PPU
+     */
     internal fun drawBackground(tileMapAddress: Int, tileDataAddress: Int) {
         val tempY = (ppu.ppuRegisters.currentLine + ppu.ppuRegisters.scrollY) and 0xFF
 
@@ -52,11 +55,14 @@ class PPUDrawer(
                 bus.getValue(ReservedAddresses.BGP.memoryAddress).toInt()
             )
 
-            painting[x * WIDTH][currentLine] = color
+            painting[ppu.ppuRegisters.currentLine * WIDTH + x] = color
         }
     }
 
-    internal fun drawWindow(tileMapAddress: Int, tileDataAddress: Int) {
+    /**
+     * Draws the window part of the screen based on specification provided by the GameBoy PPU
+     */
+    internal fun drawWindow(tileMapAddress: Int, tileDataAddress: Int) { // NOSONAR
         if (ppu.ppuRegisters.windowY < 0 || ppu.ppuRegisters.windowX > 166 ||
             ppu.ppuRegisters.currentLine < ppu.ppuRegisters.windowY
         ) {
@@ -97,13 +103,16 @@ class PPUDrawer(
                 bus.getValue(ReservedAddresses.BGP.memoryAddress).toInt()
             )
 
-            painting[x]!![currentLine] = color
+            painting[ppu.ppuRegisters.currentLine * WIDTH + x] = color
         }
 
         ppu.ppuRegisters.currentLineWindow++
     }
 
-    internal fun drawSprite() {
+    /**
+     * Draws the sprite part of the screen based on specification provided by the GameBoy PPU
+     */
+    internal fun drawSprite() { // NOSONAR
         var tempY: Int
         var tempX: Int
         var tile: Int
@@ -160,7 +169,7 @@ class PPUDrawer(
 
                 for (pixelPrinted in 0..7) {
                     if (tempX + pixelPrinted < 0 || tempX + pixelPrinted >= 160) continue
-                    if (priority && painting[tempX + pixelPrinted]!![currentLine] > 0) continue
+                    if (priority && painting[ppu.ppuRegisters.currentLine * WIDTH + tempX + pixelPrinted] > 0) continue
 
                     val x = if (xFlipped) pixelPrinted else 7 - pixelPrinted
                     val colorNum: Int =
@@ -170,7 +179,7 @@ class PPUDrawer(
                     val color = decodeColor(colorNum, palette)
 
                     if ((tempX + pixelPrinted < 160) && (tempX + pixelPrinted >= 0) && (colorNum != 0)) {
-                        painting[tempX + pixelPrinted]!![currentLine] = color
+                        painting[ppu.ppuRegisters.currentLine * WIDTH + tempX + pixelPrinted] = color
                     }
                 }
 
@@ -191,9 +200,11 @@ class PPUDrawer(
         return colors[index]
     }
 
-
     fun requestRepaint() {
-        ppu.if (!lcdOn) display!!.drawBlankImage()
-        display.repaint()
+        if (!ppu.ppuRegisters.lcdOn) {
+            painting.fill(0)
+        }
+
+        ppu.propagatePaintingUpdate(painting)
     }
 }

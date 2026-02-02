@@ -24,10 +24,10 @@ class Jump(
      */
     private fun getConditionalValue(condition: JumpConstants): Boolean {
         return when (condition) {
-            JumpConstants.NZ -> !cpu.CPURegisters.flags.getZeroFlag()
-            JumpConstants.Z -> cpu.CPURegisters.flags.getZeroFlag()
-            JumpConstants.NC -> !cpu.CPURegisters.flags.getCarryFlag()
-            JumpConstants.C -> cpu.CPURegisters.flags.getCarryFlag()
+            JumpConstants.NZ -> !cpu.cpuRegisters.flags.getZeroFlag()
+            JumpConstants.Z -> cpu.cpuRegisters.flags.getZeroFlag()
+            JumpConstants.NC -> !cpu.cpuRegisters.flags.getCarryFlag()
+            JumpConstants.C -> cpu.cpuRegisters.flags.getCarryFlag()
         }
     }
 
@@ -37,7 +37,7 @@ class Jump(
     fun jp() {
         val jumpAddress = bus.calculateNN()
 
-        cpu.CPURegisters.setProgramCounter(jumpAddress)
+        cpu.cpuRegisters.setProgramCounter(jumpAddress)
         cpu.timers.tick()
     }
 
@@ -52,7 +52,7 @@ class Jump(
 
         if (conditionalValue) jp()
         else {
-            cpu.CPURegisters.incrementProgramCounter(3)
+            cpu.cpuRegisters.incrementProgramCounter(3)
             repeat(2) { cpu.timers.tick() }
         }
     }
@@ -61,7 +61,7 @@ class Jump(
      * Jumps to the address contained inside the HL register
      */
     fun jpHL() {
-        cpu.CPURegisters.setProgramCounter(cpu.CPURegisters.getHL())
+        cpu.cpuRegisters.setProgramCounter(cpu.cpuRegisters.getHL())
     }
 
     /**
@@ -70,16 +70,16 @@ class Jump(
     fun jr() {
         repeat(2) { cpu.timers.tick() }
 
-        val programCounter = cpu.CPURegisters.getProgramCounter()
+        val programCounter = cpu.cpuRegisters.getProgramCounter()
         val checkValue = bus.getValue(programCounter + 1).toInt()
 
         if (checkValue shr 7 == 0) {
-            cpu.CPURegisters.incrementProgramCounter(checkValue and 0x7F)
+            cpu.cpuRegisters.incrementProgramCounter(checkValue and 0x7F)
         } else {
-            cpu.CPURegisters.incrementProgramCounter((checkValue and 0x7F) - 128)
+            cpu.cpuRegisters.incrementProgramCounter((checkValue and 0x7F) - 128)
         }
 
-        cpu.CPURegisters.incrementProgramCounter(2)
+        cpu.cpuRegisters.incrementProgramCounter(2)
     }
 
     /**
@@ -94,7 +94,7 @@ class Jump(
 
         if (conditionalValue) jr()
         else {
-            cpu.CPURegisters.incrementProgramCounter(3)
+            cpu.cpuRegisters.incrementProgramCounter(3)
             cpu.timers.tick()
         }
     }
@@ -105,15 +105,15 @@ class Jump(
     fun call() {
         repeat(3) { cpu.timers.tick() }
 
-        val programCounter = cpu.CPURegisters.getProgramCounter()
-        val stackPointer = cpu.CPURegisters.getStackPointer()
+        val programCounter = cpu.cpuRegisters.getProgramCounter()
+        val stackPointer = cpu.cpuRegisters.getStackPointer()
         val jumpAddress = bus.calculateNN()
 
         bus.setValue(stackPointer - 1, (((programCounter + 3) and 0xFF00) shr 8).toUByte())
         bus.setValue(stackPointer - 2, ((programCounter + 3) and 0x00FF).toUByte())
 
-        cpu.CPURegisters.setProgramCounter(jumpAddress)
-        cpu.CPURegisters.incrementProgramCounter(-2)
+        cpu.cpuRegisters.setProgramCounter(jumpAddress)
+        cpu.cpuRegisters.incrementProgramCounter(-2)
     }
 
     /**
@@ -128,7 +128,7 @@ class Jump(
 
         if (conditionalValue) call()
         else {
-            cpu.CPURegisters.incrementProgramCounter(3)
+            cpu.cpuRegisters.incrementProgramCounter(3)
             repeat(2) { cpu.timers.tick() }
         }
     }
@@ -139,12 +139,12 @@ class Jump(
     fun ret() {
         repeat(3) { cpu.timers.tick() }
 
-        val stackPointer = cpu.CPURegisters.getStackPointer()
+        val stackPointer = cpu.cpuRegisters.getStackPointer()
         val jumpAddress = bus.getValue(stackPointer).toInt() +
                 bus.getValue(stackPointer + 1).toInt() shl 8
 
-        cpu.CPURegisters.setProgramCounter(jumpAddress)
-        cpu.CPURegisters.incrementProgramCounter(2)
+        cpu.cpuRegisters.setProgramCounter(jumpAddress)
+        cpu.cpuRegisters.incrementProgramCounter(2)
     }
 
     /**
@@ -159,7 +159,7 @@ class Jump(
         if (conditionalValue) {
             ret()
         } else {
-            cpu.CPURegisters.incrementProgramCounter(1)
+            cpu.cpuRegisters.incrementProgramCounter(1)
         }
     }
 
@@ -181,13 +181,13 @@ class Jump(
     fun rst(jumpAddress: Int) {
         repeat(3) { cpu.timers.tick() }
 
-        val programCounter = cpu.CPURegisters.getProgramCounter()
-        val stackPointer = cpu.CPURegisters.getStackPointer()
+        val programCounter = cpu.cpuRegisters.getProgramCounter()
+        val stackPointer = cpu.cpuRegisters.getStackPointer()
 
         bus.setValue(stackPointer - 1, (((programCounter + 1) and 0xFF00) shr 8).toUByte())
         bus.setValue(stackPointer - 2, ((programCounter + 1) and 0x00FF).toUByte())
 
-        cpu.CPURegisters.setProgramCounter(jumpAddress)
-        cpu.CPURegisters.incrementProgramCounter(-2)
+        cpu.cpuRegisters.setProgramCounter(jumpAddress)
+        cpu.cpuRegisters.incrementProgramCounter(-2)
     }
 }

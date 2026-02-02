@@ -210,38 +210,38 @@ class CPURegisters(
         val stringBuilder = StringBuilder();
 
         stringBuilder.append(RegisterNames.A).append(": ")
-            .append(String.format("%02X", getRegister(RegisterNames.A).value))
+            .append(String.format("%02X", getRegister(RegisterNames.A).value.toInt()))
             .append(" ");
         stringBuilder.append(RegisterNames.F).append(": ")
-            .append(String.format("%02X", getRegister(RegisterNames.F).value))
+            .append(String.format("%02X", getRegister(RegisterNames.F).value.toInt()))
             .append(" ");
         stringBuilder.append(RegisterNames.B).append(": ")
-            .append(String.format("%02X", getRegister(RegisterNames.B).value))
+            .append(String.format("%02X", getRegister(RegisterNames.B).value.toInt()))
             .append(" ");
         stringBuilder.append(RegisterNames.C).append(": ")
-            .append(String.format("%02X", getRegister(RegisterNames.C).value))
+            .append(String.format("%02X", getRegister(RegisterNames.C).value.toInt()))
             .append(" ");
         stringBuilder.append(RegisterNames.D).append(": ")
-            .append(String.format("%02X", getRegister(RegisterNames.D).value))
+            .append(String.format("%02X", getRegister(RegisterNames.D).value.toInt()))
             .append(" ");
         stringBuilder.append(RegisterNames.E).append(": ")
-            .append(String.format("%02X", getRegister(RegisterNames.E).value))
+            .append(String.format("%02X", getRegister(RegisterNames.E).value.toInt()))
             .append(" ");
         stringBuilder.append(RegisterNames.H).append(": ")
-            .append(String.format("%02X", getRegister(RegisterNames.H).value))
+            .append(String.format("%02X", getRegister(RegisterNames.H).value.toInt()))
             .append(" ");
         stringBuilder.append(RegisterNames.L).append(": ")
-            .append(String.format("%02X", getRegister(RegisterNames.L).value))
+            .append(String.format("%02X", getRegister(RegisterNames.L).value.toInt()))
             .append(" ");
 
         stringBuilder.append("SP: ").append(String.format("%04X", stackPointer)).append(" ");
         stringBuilder.append("PC: 00:").append(String.format("%04X", programCounter)).append(" ");
 
-//        stringBuilder.append("(").append(String.format("%02X", bus.getValue(programCounter)));
-//        stringBuilder.append(" ").append(String.format("%02X", bus.getValue(programCounter + 1)));
-//        stringBuilder.append(" ").append(String.format("%02X", bus.getValue(programCounter + 2)));
-//        stringBuilder.append(" ").append(String.format("%02X", bus.getValue(programCounter + 3)));
-//        stringBuilder.append(")");
+        stringBuilder.append("(").append(String.format("%02X", bus.getValue(programCounter).toInt()));
+        stringBuilder.append(" ").append(String.format("%02X", bus.getValue(programCounter + 1).toInt()));
+        stringBuilder.append(" ").append(String.format("%02X", bus.getValue(programCounter + 2).toInt()));
+        stringBuilder.append(" ").append(String.format("%02X", bus.getValue(programCounter + 3).toInt()));
+        stringBuilder.append(")");
 
         return stringBuilder.toString();
     }

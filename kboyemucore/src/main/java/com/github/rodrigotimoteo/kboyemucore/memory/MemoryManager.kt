@@ -1,6 +1,7 @@
 package com.github.rodrigotimoteo.kboyemucore.memory
 
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
+import com.github.rodrigotimoteo.kboyemucore.memory.rom.RomModule
 
 /**
  * Class responsible for managing everything interacting directly with the
@@ -97,45 +98,41 @@ class MemoryManager(
         bottomRegisters.setValue(ReservedAddresses.OBP1.memoryAddress, 0xFFu)
 
         //Debug Purposes LY
-        bottomRegisters.setValue(ReservedAddresses.LY.memoryAddress, 0x90u)
+//        bottomRegisters.setValue(ReservedAddresses.LY.memoryAddress, 0x90u)
     }
 
     override fun setValue(memoryAddress: Int, value: UByte) = when (memoryAddress) {
-        in 0..ReservedAddresses.SWITCH_ROM_END.memoryAddress -> {
+        in 0 until ReservedAddresses.SWITCH_ROM_END.memoryAddress -> {
             rom.setValue(memoryAddress, value)
         }
 
-        in (ReservedAddresses.SWITCH_ROM_END.memoryAddress + 1)..
-                (ReservedAddresses.VRAM_END.memoryAddress) -> {
+        in ReservedAddresses.SWITCH_ROM_END.memoryAddress until ReservedAddresses.VRAM_END.memoryAddress -> {
             vram.setValue(memoryAddress, value)
         }
 
-        in (ReservedAddresses.VRAM_END.memoryAddress + 1)..
-                (ReservedAddresses.ERAM_END.memoryAddress) -> {
+        in ReservedAddresses.VRAM_END.memoryAddress until ReservedAddresses.ERAM_END.memoryAddress -> {
             eram?.setValue(memoryAddress, value) ?: Unit
         }
 
-        in (ReservedAddresses.ERAM_END.memoryAddress + 1)..
-                (ReservedAddresses.WRAM_END.memoryAddress) -> {
+        in ReservedAddresses.ERAM_END.memoryAddress until ReservedAddresses.WRAM_END.memoryAddress -> {
             wram.setValue(memoryAddress, value)
         }
 
-        in (ReservedAddresses.WRAM_END.memoryAddress + 1)..
-                (ReservedAddresses.OAM_START.memoryAddress) -> {
+        in ReservedAddresses.WRAM_END.memoryAddress until ReservedAddresses.OAM_START.memoryAddress -> {
             // Nothing should be done here its unusable
         }
 
-        in (ReservedAddresses.OAM_START.memoryAddress + 1)..
-                (ReservedAddresses.OAM_END.memoryAddress) -> {
+        in ReservedAddresses.OAM_START.memoryAddress until ReservedAddresses.OAM_END.memoryAddress -> {
             oam.setValue(memoryAddress, value)
         }
 
-        in (ReservedAddresses.OAM_END.memoryAddress + 1)..
-                (ReservedAddresses.JOYP.memoryAddress) -> {
+        in ReservedAddresses.OAM_END.memoryAddress until ReservedAddresses.JOYP.memoryAddress -> {
             // Nothing should be done here its unusable
         }
 
-        else -> handleBottomRegisters(memoryAddress, value)
+        else -> {
+            handleBottomRegisters(memoryAddress, value)
+        }
     }
 
     /**
@@ -146,10 +143,13 @@ class MemoryManager(
      * @param value value to put inside address
      */
     fun setValueFromPPU(memoryAddress: Int, value: UByte) = when (memoryAddress) {
-        in (ReservedAddresses.JOYP.memoryAddress + 1 ..ReservedAddresses.IE.memoryAddress) -> {
+        in ReservedAddresses.JOYP.memoryAddress until ReservedAddresses.IE.memoryAddress -> {
             bottomRegisters.setValue(memoryAddress, value)
         }
-        else -> { /** Nothing needs to be done */ }
+
+        else -> {
+            /** Nothing needs to be done */
+        }
     }
 
     /**
@@ -169,17 +169,15 @@ class MemoryManager(
     }
 
     override fun getValue(memoryAddress: Int): UByte = when (memoryAddress) {
-        in 0..ReservedAddresses.SWITCH_ROM_END.memoryAddress -> {
+        in 0 until ReservedAddresses.SWITCH_ROM_END.memoryAddress -> {
             rom.getValue(memoryAddress)
         }
 
-        in (ReservedAddresses.SWITCH_ROM_END.memoryAddress + 1)..
-                (ReservedAddresses.VRAM_END.memoryAddress) -> {
+        in ReservedAddresses.SWITCH_ROM_END.memoryAddress until ReservedAddresses.VRAM_END.memoryAddress -> {
             vram.getValue(memoryAddress)
         }
 
-        in (ReservedAddresses.VRAM_END.memoryAddress + 1)..
-                (ReservedAddresses.ERAM_END.memoryAddress) -> {
+        in ReservedAddresses.VRAM_END.memoryAddress until ReservedAddresses.ERAM_END.memoryAddress -> {
             if (eram != null && (rom as RomModule).getRamStatus()) {
                 eram.getValue(memoryAddress)
             } else {
@@ -187,23 +185,19 @@ class MemoryManager(
             }
         }
 
-        in (ReservedAddresses.ERAM_END.memoryAddress + 1)..
-                (ReservedAddresses.WRAM_END.memoryAddress) -> {
+        in ReservedAddresses.ERAM_END.memoryAddress until ReservedAddresses.WRAM_END.memoryAddress -> {
             wram.getValue(memoryAddress)
         }
 
-        in (ReservedAddresses.WRAM_END.memoryAddress + 1)..
-                (ReservedAddresses.OAM_START.memoryAddress) -> {
+        in ReservedAddresses.WRAM_END.memoryAddress until ReservedAddresses.OAM_START.memoryAddress -> {
             wram.getValue(memoryAddress - 0x2000)
         }
 
-        in (ReservedAddresses.OAM_START.memoryAddress + 1)..
-                (ReservedAddresses.OAM_END.memoryAddress) -> {
+        in ReservedAddresses.OAM_START.memoryAddress until ReservedAddresses.OAM_END.memoryAddress -> {
             oam.getValue(memoryAddress)
         }
 
-        in (ReservedAddresses.OAM_END.memoryAddress + 1)..
-                (ReservedAddresses.JOYP.memoryAddress) -> {
+        in ReservedAddresses.OAM_END.memoryAddress until ReservedAddresses.JOYP.memoryAddress -> {
             0x00u
         }
 

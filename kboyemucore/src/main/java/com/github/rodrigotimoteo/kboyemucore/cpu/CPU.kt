@@ -9,7 +9,7 @@ class CPU(
     private val bus: Bus
 ) {
 
-    internal val CPURegisters = CPURegisters(bus)
+    internal val cpuRegisters = CPURegisters(bus)
 
     internal val timers = Timers()
 
@@ -27,13 +27,10 @@ class CPU(
      */
     private var isStopped = false
 
-    fun reset() {
-
-    }
-
     fun tick() {
         if (!isStopped) {
             if (!isHalted) {
+//                println(cpuRegisters)
                 fetchOperation()
 
                 val imeChange = interrupts.requestedInterruptChange()
@@ -51,12 +48,17 @@ class CPU(
         }
     }
 
+    /**
+     * Returns the amount of machineCycles that the CPU has executed
+     */
+    fun getCounter() = timers.getMachineCycles()
+
     private fun fetchOperation() {
-        val programCounter = CPURegisters.getProgramCounter()
+        val programCounter = cpuRegisters.getProgramCounter()
 
         if (interrupts.haltBug) {
             decoder.decode(programCounter)
-            CPURegisters.incrementProgramCounter(-1)
+            cpuRegisters.incrementProgramCounter(-1)
             interrupts.disableHaltBug()
         } else {
             decoder.decode(bus.getValue(programCounter).toInt())

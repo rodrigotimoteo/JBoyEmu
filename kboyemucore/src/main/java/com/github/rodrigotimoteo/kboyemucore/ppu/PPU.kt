@@ -1,31 +1,27 @@
 package com.github.rodrigotimoteo.kboyemucore.ppu
 
-import com.github.rodrigotimoteo.kboyemucore.DisplayPanel
 import com.github.rodrigotimoteo.kboyemucore.api.FrameBuffer
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.cpu.interrupts.InterruptNames
 import com.github.rodrigotimoteo.kboyemucore.memory.ReservedAddresses
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import com.github.rodrigotimoteo.kboyemucore.util.HEIGHT
+import com.github.rodrigotimoteo.kboyemucore.util.WIDTH
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 class PPU(
     private val bus: Bus,
 ) {
 
-    private var display: DisplayPanel? = null
+    private val _painting = MutableStateFlow(
+        FrameBuffer(WIDTH, HEIGHT, ByteArray(WIDTH * HEIGHT))
+    )
 
-    private val LCDC_STATUS = 0xff41
-    private val WINDOW_Y_REGISTER = 0xff4a
-    private val WINDOW_X_REGISTER = 0xff4b
+    val painting = _painting.asStateFlow()
 
-    private var mode = PPUModes.HBLANK
-
-    private val _painting = MutableSharedFlow<FrameBuffer>(replay = 1)
-    val painting = _painting.asSharedFlow()
     private var getToSleep = false
 
     private var cgb = false
-
 
     /**
      * Reference to [PPUDrawer]
@@ -37,8 +33,28 @@ class PPU(
      */
     internal val ppuRegisters = PPURegisters(this, bus)
 
-    internal fun propagatePaintingUpdate() {
+    /**
+     * Updates the painting flow providing a new frame to be rendered
+     *
+     * @param painting content to be rendered (Color coded)
+     */
+    internal fun propagatePaintingUpdate(painting: ByteArray) {
+        _painting.value = FrameBuffer(pixels = painting)
+    }
 
+    /**
+     * Returns whether or not the LCD is On
+     *
+     * @return lcdOn
+     */
+    fun isLCDOn(): Boolean = ppuRegisters.lcdOn
+
+    /**
+     * Method used when ppu is offline (lcd is not On) to check if anything changed (instead of
+     * ticking the PPU)
+     */
+    fun checkLCDStatus() {
+        ppuRegisters.readLCDControl()
     }
 
     fun isGetToSleep(): Boolean {
@@ -47,51 +63,17 @@ class PPU(
 
     fun setCgbMode() {
         cgb = true
-        display!!.setCgbMode()
+//        display!!.setCgbMode()
     }
 
-    fun reset() {
-//        ppuRegisters.resetCounter()
-    }
-
-    fun cycle() {
+    fun tick() {
         ppuRegisters.readLCDControl()
-        readLCDStatus()
+        ppuRegisters.readLCDStatus()
         draw()
     }
 
-    private fun readLCDStatus() {
-        val bit: Int
-
-        val LCD: Char = memory.getMemory(LCDC_STATUS)
-        //Read bit 1 and 0
-        bit = LCD.code and 0x03
-        mode = bit
-        memory.setPpuMode(mode)
-    }
-
-    private fun readWindow() {
-        this.windowY = memory.getMemory(WINDOW_Y_REGISTER)
-        this.windowX = memory.getMemory(WINDOW_X_REGISTER) - 7
-    }
-
-
-
-    private fun treatLYC(): Boolean {
-        val lyc = bus.getValue(ReservedAddresses.LYC.memoryAddress).toInt()
-
-        if (currentLine == lyc) {
-            memory.setBit(LCDC_STATUS, 2)
-            return (memory.getMemory(LCDC_STATUS) and 0x40) !== 0
-        } else {
-            memory.resetBit(LCDC_STATUS, 2)
-        }
-
-        return false
-    }
-
     private fun changeMode(mode: PPUModes) {
-        var lcdStatus: Int = bus.getValue(LCDC_STATUS).toInt() and 0xFC
+        var lcdStatus: Int = bus.getValue(ReservedAddresses.LCDC.memoryAddress).toInt() and 0xFC
         var requestInterrupt = false
 
         when (mode) {
@@ -116,7 +98,7 @@ class PPU(
 
         bus.setValueFromPPU(ReservedAddresses.LCDC.memoryAddress, lcdStatus.toUByte())
         //System.out.println(currentLine + "   " + Integer.toHexString(memory.getMemory(LYC_REGISTER)));
-        val lycInterrupt = treatLYC()
+        val lycInterrupt = ppuRegisters.treatLYC()
         if (requestInterrupt || lycInterrupt) {
             bus.triggerInterrupt(InterruptNames.STAT_INT)
         }
@@ -126,7 +108,7 @@ class PPU(
         ppuRegisters.counter++
         ppuRegisters.readLY()
 
-        when (mode) {
+        when (ppuRegisters.mode) {
             PPUModes.HBLANK -> hBlank()
             PPUModes.VBLANK -> vBlank()
             PPUModes.OAM -> oam()
@@ -143,8 +125,7 @@ class PPU(
                 ppuRegisters.currentLine.toUByte()
             )
             if (ppuRegisters.currentLine > 143) {
-                display!!.drawImage(painting)
-                requestRepaint()
+                ppuDrawer.requestRepaint()
                 changeMode(PPUModes.VBLANK)
                 bus.triggerInterrupt(InterruptNames.VBLANK_INT)
             } else {
@@ -210,7 +191,7 @@ class PPU(
 //                    System.out.println(scrollX + " " + scrollY + "  " + cpu.getIsHalted());
 
             ppuRegisters.setScrolls()
-            readWindow()
+            ppuRegisters.readWindow()
             if (ppuRegisters.backgroundOn) {
                 ppuDrawer.drawBackground(backgroundMapAddress, tileDataAddress)
             }
