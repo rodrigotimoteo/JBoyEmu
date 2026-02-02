@@ -15,6 +15,6 @@ object KBoyEmulatorFactory {
      * @return a [KBoyEmulator] to be used by a consumer
      */
     operator fun invoke(): KBoyEmulator {
-        return KBoyEmulatorFactory()
+        return KBoyEmulatorImpl()
     }
 }

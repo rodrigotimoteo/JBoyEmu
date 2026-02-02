@@ -4,15 +4,19 @@ import com.github.rodrigotimoteo.kboyemucore.api.Button
 import com.github.rodrigotimoteo.kboyemucore.api.FrameBuffer
 import com.github.rodrigotimoteo.kboyemucore.api.KBoyEmulator
 import com.github.rodrigotimoteo.kboyemucore.api.Rom
+import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import kotlinx.coroutines.flow.Flow
 
 class KBoyEmulatorImpl: KBoyEmulator {
+
+    private lateinit var bus: Bus
+
     override fun loadRom(rom: Rom) {
-        TODO("Not yet implemented")
+
     }
 
     override fun reset() {
-        TODO("Not yet implemented")
+        bus.reset()
     }
 
     override fun press(button: Button) {

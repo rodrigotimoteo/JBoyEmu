@@ -1,9 +1,11 @@
 package com.github.rodrigotimoteo.kboyemucore.bus
 
 import com.github.rodrigotimoteo.kboyemucore.cpu.CPU
+import com.github.rodrigotimoteo.kboyemucore.cpu.interrupts.InterruptNames
 import com.github.rodrigotimoteo.kboyemucore.memory.MemoryManager
 import com.github.rodrigotimoteo.kboyemucore.memory.MemoryManipulation
 import com.github.rodrigotimoteo.kboyemucore.memory.MemoryModule
+import com.github.rodrigotimoteo.kboyemucore.ppu.PPU
 import com.github.rodrigotimoteo.kboyemucore.util.FILTER_LOWER_BITS
 import com.github.rodrigotimoteo.kboyemucore.util.FILTER_TOP_BITS
 
@@ -23,6 +25,19 @@ class Bus(
     private val cpu = CPU(this)
 
     /**
+     * PPU reference
+     */
+    private val ppu = PPU(this)
+
+    /**
+     * Resets the entire emulator
+     */
+    fun reset() {
+        cpu.reset()
+        ppu.reset()
+    }
+
+    /**
      * Returns whether or not the current rom is from Color Game Boy or not
      */
     fun isCGB() = isCGB
@@ -35,6 +50,10 @@ class Bus(
      */
     override fun setValue(memoryAddress: Int, value: UByte) {
         memoryManager.setValue(memoryAddress, value)
+    }
+
+    fun setValueFromPPU(memoryAddress: Int, value: UByte) {
+        memoryManager.setValueFromPPU(memoryAddress, value)
     }
 
     /**
@@ -51,68 +70,13 @@ class Bus(
      * Stores the program counter in the stack pointer and decreases its pointer by 2
      */
     fun storeProgramCounterInStackPointer() {
-        val stackPointer = cpu.registers.getStackPointer()
-        val programCounter = cpu.registers.getProgramCounter()
+        val stackPointer = cpu.CPURegisters.getStackPointer()
+        val programCounter = cpu.CPURegisters.getProgramCounter()
 
-        setValue(stackPointer - 1, (programCounter and FILTER_TOP_BITS) shr 8)
-        setValue(stackPointer - 2, programCounter and FILTER_LOWER_BITS)
+        setValue(stackPointer - 1, ((programCounter and FILTER_TOP_BITS) shr 8).toUByte())
+        setValue(stackPointer - 2, (programCounter and FILTER_LOWER_BITS).toUByte())
 
-        cpu.registers.incrementStackPointer(-2)
-    }
-
-    /**
-     * Executes an action on the CPU of the Game Boy based on predifined options
-     *
-     * @param action which action to perform
-     * @param parameters to use
-     */
-    @Suppress("CyclomaticComplexMethod")
-    fun executeFromCPU(action: BusConstants, parameters: Any) {
-        when (action) {
-            BusConstants.TICK_TIMERS -> cpu.timers.tick()
-            BusConstants.SET_REGISTER -> (parameters as Array<*>).let {
-                cpu.registers.setRegister(it[0] as RegisterNames, it[1] as Int)
-            }
-            BusConstants.INCR_PC -> cpu.registers.incrementProgramCounter(parameters as Int)
-            BusConstants.SET_PC -> cpu.registers.setProgramCounter(parameters as Int)
-            BusConstants.INCR_SP -> cpu.registers.incrementStackPointer(parameters as Int)
-            BusConstants.SET_SP -> cpu.registers.setStackPointer(parameters as Int)
-            BusConstants.SET_AF -> cpu.registers.setAF(parameters as Int)
-            BusConstants.SET_BC -> cpu.registers.setBC(parameters as Int)
-            BusConstants.SET_DE -> cpu.registers.setDE(parameters as Int)
-            BusConstants.SET_HL -> cpu.registers.setHL(parameters as Int)
-            BusConstants.DISABLE_INT -> cpu.interrupts.setInterruptChange(false)
-            BusConstants.ENABLE_INT -> cpu.interrupts.setInterruptChange(true)
-            BusConstants.REQUEST_INT -> cpu.interrupts.requestInterrupt(parameters as Int)
-            BusConstants.HALT -> cpu.setHalted(true)
-            BusConstants.UNHALT -> cpu.setHalted(false)
-            BusConstants.STOP -> cpu.setStopped(true)
-            else -> Logger.getGlobal().log(Level.SEVERE, "Executing invalid action! Needs fix!")
-        }
-    }
-
-    /**
-     * Gets values from the CPU from any part of the architecure
-     *
-     * @param action which value to get
-     * @param parameters to use
-     */
-    fun getFromCPU(action: BusConstants, parameters: Any): Any {
-        return when (action) {
-            BusConstants.GET_FLAGS -> cpu.registers.flags
-            BusConstants.GET_REGISTER -> cpu.registers.getRegister(parameters as RegisterNames)
-            BusConstants.GET_AF -> cpu.registers.getAF()
-            BusConstants.GET_BC -> cpu.registers.getBC()
-            BusConstants.GET_DE -> cpu.registers.getDE()
-            BusConstants.GET_HL -> cpu.registers.getHL()
-            BusConstants.GET_PC -> cpu.registers.getProgramCounter()
-            BusConstants.GET_SP -> cpu.registers.getStackPointer()
-            BusConstants.GET_HALTED -> cpu.isHalted()
-            BusConstants.GET_STOPPED -> cpu.isStopped()
-            BusConstants.GET_MC -> cpu.timers.getMachineCycles()
-            BusConstants.GET_HALT_MC -> cpu.timers.getHaltCycleCounter()
-            else -> error("Unexpected value! $action")
-        }
+        cpu.CPURegisters.incrementStackPointer(-2)
     }
 
     /**
@@ -124,11 +88,20 @@ class Bus(
     fun calculateNN(): Int {
         repeat(2) { cpu.timers.tick() }
 
-        val programCounter = cpu.registers.getProgramCounter()
+        val programCounter = cpu.CPURegisters.getProgramCounter()
 
         val lowerAddress = getValue(programCounter + 1).toInt()
         val upperAddress = getValue(programCounter + 2).toInt() shl 8
 
         return lowerAddress + upperAddress
+    }
+
+    /**
+     * Sets a specific bit in Interrupts based on the provided interrupt
+     *
+     * @param interrupt which type of interrupt to request
+     */
+    fun triggerInterrupt(interrupt: InterruptNames) {
+        cpu.interrupts.requestInterrupt(interrupt.testBit)
     }
 }

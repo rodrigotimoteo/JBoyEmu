@@ -19,7 +19,7 @@ import com.github.rodrigotimoteo.kboyemucore.util.STACK_POINTER_INITIAL_VALUE
  * @author rodrigotimoteo
  **/
 @Suppress("TooManyFunctions")
-class Registers(
+class CPURegisters(
     private val bus: Bus
 ) {
     /**

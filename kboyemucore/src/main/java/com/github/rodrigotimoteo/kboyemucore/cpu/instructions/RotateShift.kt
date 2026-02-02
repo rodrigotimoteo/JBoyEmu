@@ -22,62 +22,62 @@ class RotateShift(
      * Rotates A to the left and the 8th bit is used to set/reset the carry flag
      */
     fun rlca() {
-        val valueInRegisterA = cpu.registers.getRegister(RegisterNames.A).value.toInt()
+        val valueInRegisterA = cpu.CPURegisters.getRegister(RegisterNames.A).value.toInt()
 
         val carry = (valueInRegisterA and 0xFF) == 0xFF
         val finalValue = ((valueInRegisterA shl 1) and 0xFF) or ((valueInRegisterA and 0xFF) shr 7)
 
-        cpu.registers.flags.setFlags(zero = false, subtract = false, half = false, carry = carry)
+        cpu.CPURegisters.flags.setFlags(zero = false, subtract = false, half = false, carry = carry)
 
-        cpu.registers.setRegister(RegisterNames.A, finalValue.toUByte())
-        cpu.registers.incrementProgramCounter(1)
+        cpu.CPURegisters.setRegister(RegisterNames.A, finalValue.toUByte())
+        cpu.CPURegisters.incrementProgramCounter(1)
     }
 
     /**
      * Rotates A to the left through the carry flag
      */
     fun rla() {
-        val valueInRegisterA = cpu.registers.getRegister(RegisterNames.A).value.toInt()
+        val valueInRegisterA = cpu.CPURegisters.getRegister(RegisterNames.A).value.toInt()
 
         val carry = ((valueInRegisterA and 0xFF) == 0xFF)
         val finalValue = ((valueInRegisterA shl 1) and 0xFF) or
-                if (cpu.registers.flags.getCarryFlag()) 1 else 0
+                if (cpu.CPURegisters.flags.getCarryFlag()) 1 else 0
 
-        cpu.registers.flags.setFlags(zero = false, subtract = false, half = false, carry = carry)
+        cpu.CPURegisters.flags.setFlags(zero = false, subtract = false, half = false, carry = carry)
 
-        cpu.registers.setRegister(RegisterNames.A, finalValue.toUByte())
-        cpu.registers.incrementProgramCounter(1)
+        cpu.CPURegisters.setRegister(RegisterNames.A, finalValue.toUByte())
+        cpu.CPURegisters.incrementProgramCounter(1)
     }
 
     /**
      * Rotate A to the right and the 0 bit is used to set or reset the carry flag
      */
     fun rrca() {
-        val valueInRegisterA = cpu.registers.getRegister(RegisterNames.A).value.toInt()
+        val valueInRegisterA = cpu.CPURegisters.getRegister(RegisterNames.A).value.toInt()
 
         val carry = (valueInRegisterA and 0x01) == 0x01
         val finalValue = ((valueInRegisterA shr 1) and 0xFF) or ((valueInRegisterA and 0x01) shl 7)
 
-        cpu.registers.flags.setFlags(zero = false, subtract = false, half = false, carry = carry)
+        cpu.CPURegisters.flags.setFlags(zero = false, subtract = false, half = false, carry = carry)
 
-        cpu.registers.setRegister(RegisterNames.A, finalValue.toUByte())
-        cpu.registers.incrementProgramCounter(1)
+        cpu.CPURegisters.setRegister(RegisterNames.A, finalValue.toUByte())
+        cpu.CPURegisters.incrementProgramCounter(1)
     }
 
     /**
      * Rotates A to the right through the carry flag
      */
     fun rra() {
-        val valueInRegisterA = cpu.registers.getRegister(RegisterNames.A).value.toInt()
+        val valueInRegisterA = cpu.CPURegisters.getRegister(RegisterNames.A).value.toInt()
 
         val carry = (valueInRegisterA and 0x01) == 0x01
         val finalValue = (((valueInRegisterA shr 1) and 0xFF)
-                or ((if (cpu.registers.flags.getCarryFlag()) 1 else 0) shl 7)) and 0xFF
+                or ((if (cpu.CPURegisters.flags.getCarryFlag()) 1 else 0) shl 7)) and 0xFF
 
-        cpu.registers.flags.setFlags(zero = false, subtract = false, half = false, carry = carry)
+        cpu.CPURegisters.flags.setFlags(zero = false, subtract = false, half = false, carry = carry)
 
-        cpu.registers.setRegister(RegisterNames.A, finalValue.toUByte())
-        cpu.registers.incrementProgramCounter(1)
+        cpu.CPURegisters.setRegister(RegisterNames.A, finalValue.toUByte())
+        cpu.CPURegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -86,21 +86,21 @@ class RotateShift(
      * @param register which register to rotate left
      */
     fun rlc(register: RegisterNames) {
-        val valueInRegister = cpu.registers.getRegister(register).value.toInt()
+        val valueInRegister = cpu.CPURegisters.getRegister(register).value.toInt()
 
         val carry = (valueInRegister and 0xFF) == 0xFF
         val finalValue =
             (((valueInRegister shl 1) and 0xFF) or ((valueInRegister and 0xFF) shr 7)) and 0xFF
 
-        cpu.registers.flags.setFlags(
+        cpu.CPURegisters.flags.setFlags(
             zero = finalValue == 0x00,
             subtract = false,
             half = false,
             carry = carry
         )
 
-        cpu.registers.setRegister(register, finalValue.toUByte())
-        cpu.registers.incrementProgramCounter(1)
+        cpu.CPURegisters.setRegister(register, finalValue.toUByte())
+        cpu.CPURegisters.incrementProgramCounter(1)
     }
 
 
@@ -116,7 +116,7 @@ class RotateShift(
         val carry = (givenValue and 0xFF) == 0xFF
         val finalValue = (((givenValue shl 1) and 0xFF) or ((givenValue and 0xFF) shr 7)) and 0xFF
 
-        cpu.registers.flags.setFlags(
+        cpu.CPURegisters.flags.setFlags(
             zero = finalValue == 0x00,
             subtract = false,
             half = false,
@@ -124,7 +124,7 @@ class RotateShift(
         )
 
         bus.setValue(memoryAddress, finalValue.toUByte())
-        cpu.registers.incrementProgramCounter(1)
+        cpu.CPURegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -133,20 +133,20 @@ class RotateShift(
      * @param register which register to rotate left
      */
     fun rl(register: RegisterNames) {
-        val valueInRegister = cpu.registers.getRegister(register).value.toInt()
+        val valueInRegister = cpu.CPURegisters.getRegister(register).value.toInt()
         val carry = (valueInRegister and 0xFF) == 0xFF
         val finalValue = (((valueInRegister shl 1) and 0xFF)
-                or (if (cpu.registers.flags.getCarryFlag()) 1 else 0)) and 0xFF
+                or (if (cpu.CPURegisters.flags.getCarryFlag()) 1 else 0)) and 0xFF
 
-        cpu.registers.flags.setFlags(
+        cpu.CPURegisters.flags.setFlags(
             zero = finalValue == 0x00,
             subtract = false,
             half = false,
             carry = carry
         )
 
-        cpu.registers.setRegister(register, finalValue.toUByte())
-        cpu.registers.incrementProgramCounter(1)
+        cpu.CPURegisters.setRegister(register, finalValue.toUByte())
+        cpu.CPURegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -160,9 +160,9 @@ class RotateShift(
         val givenValue = bus.getValue(memoryAddress).toInt()
         val carry = (givenValue and 0xFF) == 0xFF
         val finalValue = (((givenValue shl 1) and 0xFF)
-                or (if (cpu.registers.flags.getCarryFlag()) 1 else 0)) and 0xFF
+                or (if (cpu.CPURegisters.flags.getCarryFlag()) 1 else 0)) and 0xFF
 
-        cpu.registers.flags.setFlags(
+        cpu.CPURegisters.flags.setFlags(
             zero = finalValue == 0x00,
             subtract = false,
             half = false,
@@ -170,7 +170,7 @@ class RotateShift(
         )
 
         bus.setValue(memoryAddress, finalValue.toUByte())
-        cpu.registers.incrementProgramCounter(1)
+        cpu.CPURegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -180,20 +180,20 @@ class RotateShift(
      * @param register which register to rotate right
      */
     fun rrc(register: RegisterNames) {
-        val valueInRegister = cpu.registers.getRegister(register).value.toInt()
+        val valueInRegister = cpu.CPURegisters.getRegister(register).value.toInt()
         val carry = (valueInRegister and 0x01) == 0x01
         val finalValue =
             (((valueInRegister shr 1) and 0xff) or ((valueInRegister and 0x01) shl 7)) and 0xff
 
-        cpu.registers.flags.setFlags(
+        cpu.CPURegisters.flags.setFlags(
             zero = finalValue == 0x00,
             subtract = false,
             half = false,
             carry = carry
         )
 
-        cpu.registers.setRegister(register, finalValue.toUByte())
-        cpu.registers.incrementProgramCounter(1)
+        cpu.CPURegisters.setRegister(register, finalValue.toUByte())
+        cpu.CPURegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -209,7 +209,7 @@ class RotateShift(
         val carry = (givenValue and 0x01) == 0x01
         val finalValue = (((givenValue shr 1) and 0xFF) or ((givenValue and 0x01) shl 7)) and 0xFF
 
-        cpu.registers.flags.setFlags(
+        cpu.CPURegisters.flags.setFlags(
             zero = finalValue == 0x00,
             subtract = false,
             half = false,
@@ -217,7 +217,7 @@ class RotateShift(
         )
 
         bus.setValue(memoryAddress, finalValue.toUByte())
-        cpu.registers.incrementProgramCounter(1)
+        cpu.CPURegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -226,20 +226,20 @@ class RotateShift(
      * @param register which register to rotate right
      */
     fun rr(register: RegisterNames) {
-        val valueInRegister = cpu.registers.getRegister(register).value.toInt()
+        val valueInRegister = cpu.CPURegisters.getRegister(register).value.toInt()
         val carry = (valueInRegister and 0x01) == 0x01
         val finalValue = (((valueInRegister shr 1) and 0xFF)
-                or ((if (cpu.registers.flags.getCarryFlag()) 1 else 0) shl 7)) and 0xFF
+                or ((if (cpu.CPURegisters.flags.getCarryFlag()) 1 else 0) shl 7)) and 0xFF
 
-        cpu.registers.flags.setFlags(
+        cpu.CPURegisters.flags.setFlags(
             zero = finalValue == 0x00,
             subtract = false,
             half = false,
             carry = carry
         )
 
-        cpu.registers.setRegister(register, finalValue.toUByte())
-        cpu.registers.incrementProgramCounter(1)
+        cpu.CPURegisters.setRegister(register, finalValue.toUByte())
+        cpu.CPURegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -253,9 +253,9 @@ class RotateShift(
         val givenValue = bus.getValue(memoryAddress).toInt()
         val carry = (givenValue and 0x01) == 0x01
         val finalValue = (((givenValue shr 1) and 0xFF)
-                or ((if (cpu.registers.flags.getCarryFlag()) 1 else 0) shl 7)) and 0xFF
+                or ((if (cpu.CPURegisters.flags.getCarryFlag()) 1 else 0) shl 7)) and 0xFF
 
-        cpu.registers.flags.setFlags(
+        cpu.CPURegisters.flags.setFlags(
             zero = finalValue == 0x00,
             subtract = false,
             half = false,
@@ -263,7 +263,7 @@ class RotateShift(
         )
 
         bus.setValue(memoryAddress, finalValue.toUByte())
-        cpu.registers.incrementProgramCounter(1)
+        cpu.CPURegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -272,19 +272,19 @@ class RotateShift(
      * @param register which register to shift left
      */
     fun sla(register: RegisterNames) {
-        val valueInRegister = cpu.registers.getRegister(register).value.toInt()
+        val valueInRegister = cpu.CPURegisters.getRegister(register).value.toInt()
         val carry = (valueInRegister and 0x80) == 0x80
         val finalValue = (valueInRegister shl 1) and 0xFF
 
-        cpu.registers.flags.setFlags(
+        cpu.CPURegisters.flags.setFlags(
             zero = finalValue == 0x00,
             subtract = false,
             half = false,
             carry = carry
         )
 
-        cpu.registers.setRegister(register, finalValue.toUByte())
-        cpu.registers.incrementProgramCounter(1)
+        cpu.CPURegisters.setRegister(register, finalValue.toUByte())
+        cpu.CPURegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -299,7 +299,7 @@ class RotateShift(
         val carry = (givenValue and 0x80) == 0x80
         val finalValue = (givenValue shl 1) and 0xFF
 
-        cpu.registers.flags.setFlags(
+        cpu.CPURegisters.flags.setFlags(
             zero = finalValue == 0x00,
             subtract = false,
             half = false,
@@ -307,7 +307,7 @@ class RotateShift(
         )
 
         bus.setValue(memoryAddress, finalValue.toUByte())
-        cpu.registers.incrementProgramCounter(1)
+        cpu.CPURegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -316,19 +316,19 @@ class RotateShift(
      * @param register which register to swap
      */
     fun swap(register: RegisterNames) {
-        val valueInRegister = cpu.registers.getRegister(register).value.toInt()
+        val valueInRegister = cpu.CPURegisters.getRegister(register).value.toInt()
         val finalValue =
             (((valueInRegister and 0xF0) shr 4) or ((valueInRegister and 0x0F) shl 4)) and 0xFF
 
-        cpu.registers.flags.setFlags(
+        cpu.CPURegisters.flags.setFlags(
             zero = finalValue == 0x00,
             subtract = false,
             half = false,
             carry = false
         )
 
-        cpu.registers.setRegister(register, finalValue.toUByte())
-        cpu.registers.incrementProgramCounter(1)
+        cpu.CPURegisters.setRegister(register, finalValue.toUByte())
+        cpu.CPURegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -343,7 +343,7 @@ class RotateShift(
         val givenValue = bus.getValue(memoryAddress).toInt()
         val finalValue = (((givenValue and 0x0F) shl 4) or ((givenValue and 0xF0) shr 4)) and 0xFF
 
-        cpu.registers.flags.setFlags(
+        cpu.CPURegisters.flags.setFlags(
             zero = finalValue == 0x00,
             subtract = false,
             half = false,
@@ -351,7 +351,7 @@ class RotateShift(
         )
 
         bus.setValue(memoryAddress, finalValue.toUByte())
-        cpu.registers.incrementProgramCounter(1)
+        cpu.CPURegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -361,19 +361,19 @@ class RotateShift(
      * @param register which register to shift
      */
     fun sra(register: RegisterNames) {
-        val valueInRegister = cpu.registers.getRegister(register).value.toInt()
+        val valueInRegister = cpu.CPURegisters.getRegister(register).value.toInt()
         val carry = (valueInRegister and 0x01) != 0
         val finalValue = ((valueInRegister shr 1) or (valueInRegister and 0xFF)) and 0xFF
 
-        cpu.registers.flags.setFlags(
+        cpu.CPURegisters.flags.setFlags(
             zero = finalValue == 0x00,
             subtract = false,
             half = false,
             carry = carry
         )
 
-        cpu.registers.setRegister(register, finalValue.toUByte())
-        cpu.registers.incrementProgramCounter(1)
+        cpu.CPURegisters.setRegister(register, finalValue.toUByte())
+        cpu.CPURegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -389,7 +389,7 @@ class RotateShift(
         val carry = (givenValue and 0x01) != 0
         val finalValue = ((givenValue shr 1) or (givenValue and 0xFF)) and 0xFF
 
-        cpu.registers.flags.setFlags(
+        cpu.CPURegisters.flags.setFlags(
             zero = finalValue == 0x00,
             subtract = false,
             half = false,
@@ -397,7 +397,7 @@ class RotateShift(
         )
 
         bus.setValue(memoryAddress, finalValue.toUByte())
-        cpu.registers.incrementProgramCounter(1)
+        cpu.CPURegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -407,19 +407,19 @@ class RotateShift(
      * @param register which register to shift
      */
     fun srl(register: RegisterNames) {
-        val valueInRegister = cpu.registers.getRegister(register).value.toInt()
+        val valueInRegister = cpu.CPURegisters.getRegister(register).value.toInt()
         val carry = (valueInRegister and 0x01) == 0x01
         val finalValue = (valueInRegister shr 1) and 0xFF
 
-        cpu.registers.flags.setFlags(
+        cpu.CPURegisters.flags.setFlags(
             zero = finalValue == 0x00,
             subtract = false,
             half = false,
             carry = carry
         )
 
-        cpu.registers.setRegister(register, finalValue.toUByte())
-        cpu.registers.incrementProgramCounter(1)
+        cpu.CPURegisters.setRegister(register, finalValue.toUByte())
+        cpu.CPURegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -435,7 +435,7 @@ class RotateShift(
         val carry = (givenValue and 0x01) == 0x01
         val finalValue = (givenValue shr 1) and 0xFF
 
-        cpu.registers.flags.setFlags(
+        cpu.CPURegisters.flags.setFlags(
             zero = finalValue == 0x00,
             subtract = false,
             half = false,
@@ -443,6 +443,6 @@ class RotateShift(
         )
 
         bus.setValue(memoryAddress, finalValue.toUByte())
-        cpu.registers.incrementProgramCounter(1)
+        cpu.CPURegisters.incrementProgramCounter(1)
     }
 }

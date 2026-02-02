@@ -3,17 +3,17 @@ package com.github.rodrigotimoteo.kboyemucore.cpu
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.cpu.instructions.Decoder
 import com.github.rodrigotimoteo.kboyemucore.cpu.interrupts.Interrupts
-import com.github.rodrigotimoteo.kboyemucore.cpu.registers.Registers
+import com.github.rodrigotimoteo.kboyemucore.cpu.registers.CPURegisters
 
 class CPU(
     private val bus: Bus
 ) {
 
-    internal val registers = Registers(bus)
+    internal val CPURegisters = CPURegisters(bus)
 
     internal val timers = Timers()
 
-    internal val interrupts = Interrupts(bus)
+    internal val interrupts = Interrupts(this, bus)
 
     internal val decoder = Decoder(this, bus)
 
@@ -26,6 +26,10 @@ class CPU(
      * Stores whether the CPU is currently stopped
      */
     private var isStopped = false
+
+    fun reset() {
+
+    }
 
     fun tick() {
         if (!isStopped) {
@@ -48,11 +52,11 @@ class CPU(
     }
 
     private fun fetchOperation() {
-        val programCounter = registers.getProgramCounter()
+        val programCounter = CPURegisters.getProgramCounter()
 
-        if (interrupts.isHaltBug()) {
+        if (interrupts.haltBug) {
             decoder.decode(programCounter)
-            registers.incrementProgramCounter(-1)
+            CPURegisters.incrementProgramCounter(-1)
             interrupts.disableHaltBug()
         } else {
             decoder.decode(bus.getValue(programCounter).toInt())

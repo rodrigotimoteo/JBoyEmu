@@ -139,6 +139,20 @@ class MemoryManager(
     }
 
     /**
+     * This is a special method designed to be used by the PPU only and it provides free write access
+     * to each and every memory location currently only bottomRegisters suffer this limitation
+     *
+     * @param memoryAddress memory location where to set value
+     * @param value value to put inside address
+     */
+    fun setValueFromPPU(memoryAddress: Int, value: UByte) = when (memoryAddress) {
+        in (ReservedAddresses.JOYP.memoryAddress + 1 ..ReservedAddresses.IE.memoryAddress) -> {
+            bottomRegisters.setValue(memoryAddress, value)
+        }
+        else -> { /** Nothing needs to be done */ }
+    }
+
+    /**
      * This method is responsible for handling the assignment of new values to the bottom registers, according to all
      * their quirks (these registers have special conditions that must be respected)
      *

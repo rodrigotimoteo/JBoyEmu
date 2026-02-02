@@ -27,17 +27,17 @@ class SingleBit(
      * @param register to test
      */
     fun bit(bit: Int, register: RegisterNames) {
-        val givenRegister = cpu.registers.getRegister(register)
+        val givenRegister = cpu.CPURegisters.getRegister(register)
         val testResult = givenRegister.value.testBit(bit)
 
-        cpu.registers.flags.setFlags(
+        cpu.CPURegisters.flags.setFlags(
             zero = !testResult,
             subtract = false,
             half = true,
             carry = null
         )
 
-        cpu.registers.incrementProgramCounter(1)
+        cpu.CPURegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -51,7 +51,7 @@ class SingleBit(
 
         val testResult = bus.getValue(memoryAddress).testBit(bit)
 
-        cpu.registers.flags.setFlags(
+        cpu.CPURegisters.flags.setFlags(
             zero = !testResult,
             subtract = false,
             half = true,
@@ -59,7 +59,7 @@ class SingleBit(
         )
 
 
-        cpu.registers.incrementProgramCounter(1)
+        cpu.CPURegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -69,10 +69,10 @@ class SingleBit(
      * @param register to change the given bit
      */
     fun set(bit: Int, register: RegisterNames) {
-        val givenRegister = cpu.registers.getRegister(register)
+        val givenRegister = cpu.CPURegisters.getRegister(register)
         givenRegister.value = givenRegister.value.setBit(bit)
 
-        cpu.registers.incrementProgramCounter(1)
+        cpu.CPURegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -86,7 +86,7 @@ class SingleBit(
 
         bus.setValue(memoryAddress, bus.getValue(memoryAddress).setBit(bit))
 
-        cpu.registers.incrementProgramCounter(1)
+        cpu.CPURegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -96,10 +96,10 @@ class SingleBit(
      * @param register to change the given bit
      */
     fun res(bit: Int, register: RegisterNames) {
-        val givenRegister = cpu.registers.getRegister(register)
+        val givenRegister = cpu.CPURegisters.getRegister(register)
         givenRegister.value = givenRegister.value.resetBit(bit)
 
-        cpu.registers.incrementProgramCounter(1)
+        cpu.CPURegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -113,6 +113,6 @@ class SingleBit(
 
         bus.setValue(memoryAddress, bus.getValue(memoryAddress).resetBit(bit))
 
-        cpu.registers.incrementProgramCounter(1)
+        cpu.CPURegisters.incrementProgramCounter(1)
     }
 }
