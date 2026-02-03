@@ -1,9 +1,8 @@
 package com.github.rodrigotimoteo.kboyemucore.bus
 
+import com.github.rodrigotimoteo.kboyemucore.api.FrameBuffer
 import com.github.rodrigotimoteo.kboyemucore.cpu.CPU
 import com.github.rodrigotimoteo.kboyemucore.cpu.interrupts.InterruptNames
-import kotlinx.coroutines.flow.StateFlow
-import com.github.rodrigotimoteo.kboyemucore.api.FrameBuffer
 import com.github.rodrigotimoteo.kboyemucore.memory.MemoryManager
 import com.github.rodrigotimoteo.kboyemucore.memory.MemoryManipulation
 import com.github.rodrigotimoteo.kboyemucore.memory.MemoryModule
@@ -13,6 +12,7 @@ import com.github.rodrigotimoteo.kboyemucore.util.FILTER_TOP_BITS
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlin.system.exitProcess
 
@@ -21,7 +21,10 @@ class Bus(
     private val isCGB: Boolean
 ) : MemoryManipulation {
 
-    private var runningJob: Job? = null
+    private var _runningJob: Job? = null
+
+    val runningJob: Job?
+        get() = _runningJob
 
     /**
      * Memory Manager reference
@@ -44,10 +47,10 @@ class Bus(
     val frameBuffer = ppu.painting
 
     fun run() {
-        if (runningJob?.isActive == true) {
+        if (_runningJob?.isActive == true) {
             return
         }
-        runningJob = CoroutineScope(Dispatchers.Default).launch {
+        _runningJob = CoroutineScope(Dispatchers.Default).launch {
             cpu.tick()
             ppu.tick()
 //        oldTime = System.nanoTime()
@@ -60,13 +63,9 @@ class Bus(
                         ppu.checkLCDStatus()
                     } else {
                         cpu.tick()
-                        for (i in 0..<(cpu.getCounter() - cpuCounter)) {
+                        for (i in 0 until (cpu.getCounter() - cpuCounter)) {
                             ppu.tick()
                         }
-                    }
-                    if (cpuCounter >= 1000000) {
-                        print(memoryManager)
-                        exitProcess(0)
                     }
                 } catch (e: InterruptedException) {
                     e.printStackTrace()
@@ -77,7 +76,7 @@ class Bus(
     }
 
     fun stop() {
-        runningJob?.cancel()
+        _runningJob?.cancel()
     }
 
     /**

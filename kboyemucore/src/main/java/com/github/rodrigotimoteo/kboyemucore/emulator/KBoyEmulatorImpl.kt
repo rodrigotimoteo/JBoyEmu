@@ -6,6 +6,7 @@ import com.github.rodrigotimoteo.kboyemucore.api.KBoyEmulator
 import com.github.rodrigotimoteo.kboyemucore.api.Rom
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.memory.rom.RomReader
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 
 class KBoyEmulatorImpl: KBoyEmulator {
@@ -48,6 +49,8 @@ class KBoyEmulatorImpl: KBoyEmulator {
     override fun run() {
         bus?.run()
     }
+
+    override fun job(): Job? = bus?.runningJob
 
     override fun pause() {
         bus?.stop()

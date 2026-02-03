@@ -92,7 +92,9 @@ class Jump(
     fun jrCond(condition: JumpConstants) {
         val conditionalValue = getConditionalValue(condition)
 
-        if (conditionalValue) jr()
+        if (conditionalValue) {
+            jr()
+        }
         else {
             cpu.cpuRegisters.incrementProgramCounter(3)
             cpu.timers.tick()
