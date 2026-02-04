@@ -71,8 +71,8 @@ class Interrupts(
         } else if (cpu.isHalted() && availableInterrupts != 0x00) {
             cpu.setHalted(true)
 
-            val machineCycles = cpu.timers.getMachineCycles()
-            val haltMachineCycles = cpu.timers.getHaltCycleCounter()
+            val machineCycles = cpu.timers.machineCycles
+            val haltMachineCycles = cpu.timers.haltCycleCounter
 
             if (machineCycles == haltMachineCycles) _haltBug = true
         }

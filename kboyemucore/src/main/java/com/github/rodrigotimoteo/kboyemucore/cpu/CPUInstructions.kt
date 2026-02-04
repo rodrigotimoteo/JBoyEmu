@@ -1768,14 +1768,5 @@ class CPUInstructions(
 //        cpu.increaseProgramCounter(1)
 //    }
 //
-//    fun readTAC() {
-//        //Timer Enabled
-//        cpu.setTimerEnabled(memory.testBit(0xff07, 2))
-//        //Timer Input Clock Select
-//        when (memory.getMemory(0xff07).code and 0x03) {
-//            1 -> cpu.setTimerFrequency(4)
-//            2 -> cpu.setTimerFrequency(16)
-//            3 -> cpu.setTimerFrequency(64)
-//        }
-//    }
+
 }

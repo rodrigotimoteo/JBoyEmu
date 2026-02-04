@@ -11,11 +11,11 @@ import java.io.PrintStream
 @OptIn(ExperimentalUnsignedTypes::class)
 fun main() {
     val emulator = KBoyEmulatorFactory()
-    val rom = File("/Users/ctw03939/StudioProjects/JBoyEmu/app/src/main/assets/01-special.gb").readBytes().toUByteArray()
+    val rom = File("/Users/ctw03939/StudioProjects/JBoyEmu/app/src/main/assets/02-interrupts.gb").readBytes().toUByteArray()
     emulator.loadRom(Rom(rom))
-    emulator.run()
     val debug = PrintStream("A.txt")
     System.setOut(debug)
+    emulator.run()
     runBlocking {
 
         emulator.job()?.join()

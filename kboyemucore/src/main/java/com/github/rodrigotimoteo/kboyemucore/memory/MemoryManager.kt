@@ -1,6 +1,7 @@
 package com.github.rodrigotimoteo.kboyemucore.memory
 
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
+import com.github.rodrigotimoteo.kboyemucore.cpu.Timers
 import com.github.rodrigotimoteo.kboyemucore.memory.rom.RomModule
 
 /**
@@ -207,6 +208,17 @@ class MemoryManager(
         else -> {
             bottomRegisters.getValue(memoryAddress)
         }
+    }
+
+    /**
+     * Sets the value of the [ReservedAddresses.DIV] memory address, this method is design for giving
+     * the [Timers] access to writing to this address as it should normally reset to 0 when written
+     * to
+     *
+     * @param value to write to [ReservedAddresses.DIV]
+     */
+    internal fun setDiv(value: UByte) {
+        bottomRegisters.setValue(ReservedAddresses.DIV.memoryAddress, value)
     }
 
     /**

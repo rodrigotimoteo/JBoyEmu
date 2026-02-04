@@ -115,7 +115,7 @@ class Decoder(
         regularOperations[0x26] = { load8Bit.ldNRegister(RegisterNames.H) } // LD H, u8
         regularOperations[0x27] = { alu.daa() } // DAA
         regularOperations[0x28] = { jump.jrCond(JumpConstants.Z) } // JR Z, u8
-        regularOperations[0x28] = { alu.addHL(2) } // ADD HL, HL
+        regularOperations[0x29] = { alu.addHL(2) } // ADD HL, HL
         regularOperations[0x2A] = { load8Bit.ldi(false) } // LDI A, (HL)
         regularOperations[0x2B] = { alu.decR(2) } // DEC HL
         regularOperations[0x2C] = { alu.inc(RegisterNames.L) } // INC L
@@ -200,7 +200,7 @@ class Decoder(
         regularOperations[0x7B] = { load8Bit.ld(RegisterNames.A, RegisterNames.E) } // LD A, E
         regularOperations[0x7C] = { load8Bit.ld(RegisterNames.A, RegisterNames.H) } // LD A, H
         regularOperations[0x7D] = { load8Bit.ld(RegisterNames.A, RegisterNames.L) } // LD A, L
-        regularOperations[0x7E] = { load8Bit.ldHLtoRegister(RegisterNames.L) } // LD A, (HL)
+        regularOperations[0x7E] = { load8Bit.ldHLtoRegister(RegisterNames.A) } // LD A, (HL)
         regularOperations[0x7F] = { load8Bit.ld(RegisterNames.A, RegisterNames.A) } // LD A, A
         regularOperations[0x80] = { alu.add(RegisterNames.B) } // ADD A, B
         regularOperations[0x81] = { alu.add(RegisterNames.C) } // ADD A, C
@@ -333,7 +333,7 @@ class Decoder(
             { alu.xorSpecial(cpu.cpuRegisters.getProgramCounter() + 1, false) } // XOR #
         regularOperations[0xEF] = { jump.rst(0x28) } // RST 28H
         regularOperations[0xF0] = { load8Bit.ldh(false) } // LD A, (FF00+u8)
-        regularOperations[0xE1] = { load16Bit.pop(0) } // POP AF
+        regularOperations[0xF1] = { load16Bit.pop(0) } // POP AF
         regularOperations[0xF2] = { load8Bit.ldAC(false) } // LD A, (C)
         regularOperations[0xF3] = { control.di() } // DI
         regularOperations[0xF5] = { load16Bit.push(0) } // PUSH AF

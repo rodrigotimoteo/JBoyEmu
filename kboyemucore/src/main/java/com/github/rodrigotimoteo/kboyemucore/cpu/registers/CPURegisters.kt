@@ -166,7 +166,7 @@ class CPURegisters(
 
     fun setAF(value: Int) {
         setRegister(RegisterNames.A, ((value and FILTER_TOP_BITS) shr EIGHT_BITS).toUByte())
-        setRegister(RegisterNames.F, (value and FILTER_LOWER_BITS).toUByte())
+        setRegister(RegisterNames.F, (value and 0x00F0).toUByte())
     }
 
     /**

@@ -454,7 +454,7 @@ class Alu(
 
         val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
         val valueInAddress = bus.getValue(memoryAddress).toInt()
-        val finalValue = valueInAddress - valueInRegisterA
+        val finalValue = valueInRegisterA - valueInAddress
 
         val zero = checkZero(finalValue)
         val halfCarry = checkHalfCarrySub(valueInRegisterA, valueInAddress, 0)

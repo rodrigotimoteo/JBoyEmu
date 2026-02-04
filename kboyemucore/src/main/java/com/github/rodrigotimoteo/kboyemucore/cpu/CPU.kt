@@ -11,7 +11,7 @@ class CPU(
 
     internal val cpuRegisters = CPURegisters(bus)
 
-    internal val timers = Timers()
+    internal val timers = Timers(bus)
 
     internal val interrupts = Interrupts(this, bus)
 
@@ -31,11 +31,11 @@ class CPU(
         if (!isStopped) {
             if (!isHalted) {
                 println(cpuRegisters)
-                fetchOperation()
+                executeOperation()
 
                 val imeChange = interrupts.requestedInterruptChange()
-                val interruptChangeCounter = timers.getInterruptChangedCounter()
-                val machineCycles = timers.getMachineCycles()
+                val interruptChangeCounter = timers.interruptChangedCounter
+                val machineCycles = timers.machineCycles
 
                 if (imeChange && interruptChangeCounter < machineCycles) {
                     interrupts.triggerImeChange()
@@ -51,9 +51,9 @@ class CPU(
     /**
      * Returns the amount of machineCycles that the CPU has executed
      */
-    fun getCounter() = timers.getMachineCycles()
+    fun getCounter() = timers.machineCycles
 
-    private fun fetchOperation() {
+    private fun executeOperation() {
         val programCounter = cpuRegisters.getProgramCounter()
 
         if (interrupts.haltBug) {
@@ -79,6 +79,7 @@ class CPU(
      */
     fun setHalted(haltedState: Boolean) {
         isHalted = haltedState
+        timers.setHaltCycleCounter()
     }
 
     /**

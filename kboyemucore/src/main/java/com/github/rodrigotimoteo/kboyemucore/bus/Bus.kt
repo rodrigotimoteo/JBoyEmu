@@ -75,6 +75,9 @@ class Bus(
         }
     }
 
+    /**
+     * Stops the [_runningJob] causing the emulation to stop entirely
+     */
     fun stop() {
         _runningJob?.cancel()
     }
@@ -103,6 +106,15 @@ class Bus(
      */
     fun setValueFromPPU(memoryAddress: Int, value: UByte) {
         memoryManager.setValueFromPPU(memoryAddress, value)
+    }
+
+    /**
+     * Sets the value on the DIV register
+     *
+     * @param value to set
+     */
+    fun setDIV(value: UByte) {
+        memoryManager.setDiv(value)
     }
 
     /**
