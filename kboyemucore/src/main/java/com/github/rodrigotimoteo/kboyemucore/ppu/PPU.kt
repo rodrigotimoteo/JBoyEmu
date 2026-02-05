@@ -39,7 +39,7 @@ class PPU(
      * @param painting content to be rendered (Color coded)
      */
     internal fun propagatePaintingUpdate(painting: ByteArray) {
-        _painting.value = FrameBuffer(pixels = painting)
+        _painting.value = FrameBuffer(pixels = painting.copyOf())
     }
 
     /**
@@ -73,31 +73,30 @@ class PPU(
     }
 
     private fun changeMode(mode: PPUModes) {
-        var lcdStatus: Int = bus.getValue(ReservedAddresses.LCDC.memoryAddress).toInt() and 0xFC
+        var statRegister: Int = bus.getValue(ReservedAddresses.LCDC.memoryAddress).toInt() and 0xFC
         var requestInterrupt = false
 
         when (mode) {
             PPUModes.HBLANK -> {
-                if ((lcdStatus and 0x08) != 0) requestInterrupt = true
+                if ((statRegister and 0x08) != 0) requestInterrupt = true
             }
 
             PPUModes.VBLANK -> {
-                lcdStatus = lcdStatus or 0x01
-                if ((lcdStatus and 0x10) != 0) requestInterrupt = true
+                statRegister = statRegister or 0x01
+                if ((statRegister and 0x10) != 0) requestInterrupt = true
             }
 
             PPUModes.OAM -> {
-                lcdStatus = lcdStatus or 0x02
-                if ((lcdStatus and 0x20) != 0) requestInterrupt = true
+                statRegister = statRegister or 0x02
+                if ((statRegister and 0x20) != 0) requestInterrupt = true
             }
 
             PPUModes.PIXEL_TRANSFER -> {
-                lcdStatus = lcdStatus or 0x03
+                statRegister = statRegister or 0x03
             }
         }
 
-        bus.setValueFromPPU(ReservedAddresses.LCDC.memoryAddress, lcdStatus.toUByte())
-        //System.out.println(currentLine + "   " + Integer.toHexString(memory.getMemory(LYC_REGISTER)));
+        bus.setValueFromPPU(ReservedAddresses.STAT.memoryAddress, statRegister.toUByte())
         val lycInterrupt = ppuRegisters.treatLYC()
         if (requestInterrupt || lycInterrupt) {
             bus.triggerInterrupt(InterruptNames.STAT_INT)

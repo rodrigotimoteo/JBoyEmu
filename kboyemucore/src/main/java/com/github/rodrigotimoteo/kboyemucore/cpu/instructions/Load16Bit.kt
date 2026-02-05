@@ -2,6 +2,9 @@ package com.github.rodrigotimoteo.kboyemucore.cpu.instructions
 
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.cpu.CPU
+import com.github.rodrigotimoteo.kboyemucore.util.EIGHT_BITS
+import com.github.rodrigotimoteo.kboyemucore.util.FILTER_LOWER_BITS
+import com.github.rodrigotimoteo.kboyemucore.util.FILTER_TOP_BITS
 
 /**
  * Class responsible for handling all things that deal with 16 bit load operations in CPU instruction set
@@ -96,7 +99,8 @@ class Load16Bit(
 
         val address = bus.calculateNN()
         val stackPointer = cpu.cpuRegisters.getStackPointer()
-        bus.setValue(address, (stackPointer and 0xFF).toUByte())
+        bus.setValue(address + 1, ((stackPointer and FILTER_TOP_BITS) shr EIGHT_BITS).toUByte())
+        bus.setValue(address, (stackPointer and FILTER_LOWER_BITS).toUByte())
         cpu.cpuRegisters.incrementProgramCounter(3)
     }
 

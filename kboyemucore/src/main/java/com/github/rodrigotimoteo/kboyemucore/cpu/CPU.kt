@@ -30,7 +30,7 @@ class CPU(
     fun tick() {
         if (!isStopped) {
             if (!isHalted) {
-                println(cpuRegisters)
+//                println(cpuRegisters)
                 executeOperation()
 
                 val imeChange = interrupts.requestedInterruptChange()

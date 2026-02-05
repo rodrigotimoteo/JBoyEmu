@@ -22,9 +22,8 @@ class PPUDrawer(
     internal fun drawBackground(tileMapAddress: Int, tileDataAddress: Int) {
         val tempY = (ppu.ppuRegisters.currentLine + ppu.ppuRegisters.scrollY) and 0xFF
 
-        //System.out.println(currentLine + "  " + tempY);
-        for (x in 0..159) {
-            val tempX = (ppu.ppuRegisters.scrollX + x) % 0x100
+        for (x in 0 until WIDTH) {
+            val tempX = (ppu.ppuRegisters.scrollX + x) % 0x0100
 
             val address = tileMapAddress + ((tempY / 8) * 0x20)
             var tile = bus.getValue(address + (tempX) / 8).toInt()

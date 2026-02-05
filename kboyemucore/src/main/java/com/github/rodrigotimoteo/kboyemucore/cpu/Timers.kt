@@ -3,8 +3,6 @@ package com.github.rodrigotimoteo.kboyemucore.cpu
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.ktx.testBit
 import com.github.rodrigotimoteo.kboyemucore.memory.ReservedAddresses
-import com.github.rodrigotimoteo.kboyemucore.util.FILTER_LOWER_BITS
-import kotlin.concurrent.timer
 
 /**
  * Class purposed with handling everything that needs timings inside the CPU total Cycles, interrupts

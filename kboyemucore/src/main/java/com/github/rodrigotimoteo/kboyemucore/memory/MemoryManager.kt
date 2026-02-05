@@ -99,7 +99,7 @@ class MemoryManager(
         bottomRegisters.setValue(ReservedAddresses.OBP1.memoryAddress, 0xFFu)
 
         //Debug Purposes LY
-        bottomRegisters.setValue(ReservedAddresses.LY.memoryAddress, 0x90u)
+        // bottomRegisters.setValue(ReservedAddresses.LY.memoryAddress, 0x90u)
     }
 
     override fun setValue(memoryAddress: Int, value: UByte) = when (memoryAddress) {
@@ -146,7 +146,8 @@ class MemoryManager(
     fun setValueFromPPU(memoryAddress: Int, value: UByte) = when (memoryAddress) {
         in ReservedAddresses.JOYP.memoryAddress until ReservedAddresses.IE.memoryAddress -> {
             //needs to go back to normal this should write everytime
-            if (memoryAddress != ReservedAddresses.LY.memoryAddress) bottomRegisters.setValue(memoryAddress, value) else 1+2
+//            if (memoryAddress != ReservedAddresses.LY.memoryAddress)  else 2+1
+            bottomRegisters.setValue(memoryAddress, value)
         }
 
         else -> {
@@ -165,7 +166,7 @@ class MemoryManager(
         if (memoryAddress == ReservedAddresses.DIV.memoryAddress)
             bottomRegisters.setValue(memoryAddress, 0x00.toUByte())
         else if (memoryAddress == ReservedAddresses.LY.memoryAddress)
-//            bottomRegisters.setValue(memoryAddress, 0x00.toUByte())
+            bottomRegisters.setValue(memoryAddress, 0x00.toUByte())
         else {
             bottomRegisters.setValue(memoryAddress, value)
         }

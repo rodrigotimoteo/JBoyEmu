@@ -101,8 +101,8 @@ class PPURegisters(
      * Updates the current [PPUModes] based on the value stored in [ReservedAddresses.LCDC]
      */
     internal fun readLCDStatus() {
-        mode = PPUModes.entries.find { it ->
-            bus.getValue(ReservedAddresses.LCDC.memoryAddress).toInt() and 0x03 == it.bit
+        mode = PPUModes.entries.find { ppuMode ->
+            bus.getValue(ReservedAddresses.STAT.memoryAddress).toInt() and 0x03 == ppuMode.bit
         } ?: return
 
         // Needs to be addressed later

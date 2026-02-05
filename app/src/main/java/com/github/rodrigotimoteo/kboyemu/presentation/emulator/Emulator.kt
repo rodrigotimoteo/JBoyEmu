@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import com.github.rodrigotimoteo.kboyemu.presentation.emulator.viewmodel.KBoyEmulatorViewModel
 import org.koin.androidx.compose.koinViewModel
+import timber.log.Timber
 
 @Composable
 fun EmulatorScreen(
@@ -21,11 +22,5 @@ fun EmulatorScreen(
         bitmap = image,
         contentDescription = null,
         modifier = modifier
-            .fillMaxSize()
-            .graphicsLayer {
-                scaleX = 3f
-                scaleY = 3f
-            }
     )
-
 }

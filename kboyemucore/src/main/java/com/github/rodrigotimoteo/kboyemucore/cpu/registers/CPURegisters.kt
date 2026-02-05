@@ -5,6 +5,7 @@ import com.github.rodrigotimoteo.kboyemucore.util.AF_INITIAL_VALUE
 import com.github.rodrigotimoteo.kboyemucore.util.BC_INITIAL_VALUE
 import com.github.rodrigotimoteo.kboyemucore.util.DE_INITIAL_VALUE
 import com.github.rodrigotimoteo.kboyemucore.util.EIGHT_BITS
+import com.github.rodrigotimoteo.kboyemucore.util.FILTER_16_BITS
 import com.github.rodrigotimoteo.kboyemucore.util.FILTER_LOWER_BITS
 import com.github.rodrigotimoteo.kboyemucore.util.FILTER_TOP_BITS
 import com.github.rodrigotimoteo.kboyemucore.util.HL_INITIAL_VALUE
@@ -92,7 +93,7 @@ class CPURegisters(
      * @param value to increase stack pointer
      */
     fun incrementStackPointer(value: Int) {
-        stackPointer += value
+        stackPointer = (stackPointer + value) and FILTER_16_BITS
     }
 
     /**

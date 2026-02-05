@@ -22,3 +22,4 @@ internal const val HL_INITIAL_VALUE = 0x014D
 internal const val EIGHT_BITS = 8
 internal const val FILTER_TOP_BITS = 0xFF00
 internal const val FILTER_LOWER_BITS = 0x00FF
+internal const val FILTER_16_BITS = 0xFFFF
