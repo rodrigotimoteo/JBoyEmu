@@ -11,8 +11,8 @@ import com.github.rodrigotimoteo.kboyemucore.cpu.registers.RegisterNames
  * @author rodrigotimoteo
  **/
 class Decoder(
-    private val bus: Bus,
     private val cpu: CPU,
+    private val bus: Bus
 ) {
 
     /**
@@ -74,34 +74,34 @@ class Decoder(
     init {
         regularOperations[0x00] = { control.nop() } // NOP
         regularOperations[0x01] = { load16Bit.ld16bit(0) } // LD BC, u16
-        regularOperations[0x02] = { load8Bit.ldTwoRegisters(cpu.registers.getBC()) } // LD (BC), A
-        regularOperations[0x03] = { alu.incR(BusConstants.GET_BC, BusConstants.SET_BC) } // INC BC
+        regularOperations[0x02] = { load8Bit.ldTwoRegisters(cpu.cpuRegisters.getBC()) } // LD (BC), A
+        regularOperations[0x03] = { alu.incR(0) } // INC BC
         regularOperations[0x04] = { alu.inc(RegisterNames.B) } // INC B
         regularOperations[0x05] = { alu.dec(RegisterNames.B) } // DEC B
         regularOperations[0x06] = { load8Bit.ldNRegister(RegisterNames.B) } // LD B, u8
         regularOperations[0x07] = { rotateShift.rlca() } // RLCA
         regularOperations[0x08] = { load16Bit.ldNNSP() } // LD (u16), SP
-        regularOperations[0x09] = { alu.addHL(BusConstants.GET_BC) } // ADD HL, BC
+        regularOperations[0x09] = { alu.addHL(0) } // ADD HL, BC
         regularOperations[0x0A] =
-            { load8Bit.ldTwoRegistersIntoA(cpu.registers.getBC()) } // LD A, (BC)
-        regularOperations[0x0B] = { alu.decR(BusConstants.GET_BC, BusConstants.SET_BC) } // DEC BC
+            { load8Bit.ldTwoRegistersIntoA(cpu.cpuRegisters.getBC()) } // LD A, (BC)
+        regularOperations[0x0B] = { alu.decR(0) } // DEC BC
         regularOperations[0x0C] = { alu.inc(RegisterNames.C) } // INC C
         regularOperations[0x0D] = { alu.dec(RegisterNames.C) } // DEC C
         regularOperations[0x0E] = { load8Bit.ldNRegister(RegisterNames.C) } // LD C, u8
         regularOperations[0x0F] = { rotateShift.rrca() } // RRCA
         regularOperations[0x10] = { control.stop() } // STOP
         regularOperations[0x11] = { load16Bit.ld16bit(1) } // LD DE, u16
-        regularOperations[0x12] = { load8Bit.ldTwoRegisters(cpu.registers.getDE()) } // LD (DE), A
-        regularOperations[0x13] = { alu.incR(BusConstants.GET_DE, BusConstants.SET_DE) } // INC DE
+        regularOperations[0x12] = { load8Bit.ldTwoRegisters(cpu.cpuRegisters.getDE()) } // LD (DE), A
+        regularOperations[0x13] = { alu.incR(1) } // INC DE
         regularOperations[0x14] = { alu.inc(RegisterNames.D) } // INC D
         regularOperations[0x15] = { alu.dec(RegisterNames.D) } // DEC D
         regularOperations[0x16] = { load8Bit.ldNRegister(RegisterNames.D) } // LD D, u8
         regularOperations[0x17] = { rotateShift.rla() } // RLA
         regularOperations[0x18] = { jump.jr() } // JR i8
-        regularOperations[0x19] = { alu.addHL(BusConstants.GET_DE) } // ADD HL, DE
+        regularOperations[0x19] = { alu.addHL(1) } // ADD HL, DE
         regularOperations[0x1A] =
-            { load8Bit.ldTwoRegistersIntoA(cpu.registers.getDE()) } // LD A, (DE)
-        regularOperations[0x1B] = { alu.decR(BusConstants.GET_DE, BusConstants.SET_DE) } // DEC DE
+            { load8Bit.ldTwoRegistersIntoA(cpu.cpuRegisters.getDE()) } // LD A, (DE)
+        regularOperations[0x1B] = { alu.decR(1) } // DEC DE
         regularOperations[0x1C] = { alu.inc(RegisterNames.E) } // INC E
         regularOperations[0x1D] = { alu.dec(RegisterNames.E) } // DEC E
         regularOperations[0x1E] = { load8Bit.ldNRegister(RegisterNames.E) } // LD E, u8
@@ -109,15 +109,15 @@ class Decoder(
         regularOperations[0x20] = { jump.jrCond(JumpConstants.NZ) } // JR NZ, i8
         regularOperations[0x21] = { load16Bit.ld16bit(2) } // LD HL, u16
         regularOperations[0x22] = { load8Bit.ldi(true) } // LDI (HL), A
-        regularOperations[0x23] = { alu.incR(BusConstants.GET_HL, BusConstants.GET_HL) } // INC HL
+        regularOperations[0x23] = { alu.incR(2) } // INC HL
         regularOperations[0x24] = { alu.inc(RegisterNames.H) } // INC H
         regularOperations[0x25] = { alu.dec(RegisterNames.H) } // DEC H
         regularOperations[0x26] = { load8Bit.ldNRegister(RegisterNames.H) } // LD H, u8
         regularOperations[0x27] = { alu.daa() } // DAA
         regularOperations[0x28] = { jump.jrCond(JumpConstants.Z) } // JR Z, u8
-        regularOperations[0x28] = { alu.addHL(BusConstants.GET_HL) } // ADD HL, HL
+        regularOperations[0x29] = { alu.addHL(2) } // ADD HL, HL
         regularOperations[0x2A] = { load8Bit.ldi(false) } // LDI A, (HL)
-        regularOperations[0x2B] = { alu.decR(BusConstants.GET_HL, BusConstants.GET_HL) } // DEC HL
+        regularOperations[0x2B] = { alu.decR(2) } // DEC HL
         regularOperations[0x2C] = { alu.inc(RegisterNames.L) } // INC L
         regularOperations[0x2D] = { alu.dec(RegisterNames.L) } // DEC L
         regularOperations[0x2E] = { load8Bit.ldNRegister(RegisterNames.L) } // LD L, u8
@@ -126,9 +126,8 @@ class Decoder(
         regularOperations[0x31] = { load16Bit.ldSPUU() } // LD SP, u16
         regularOperations[0x32] = { load8Bit.ldd(true) } // LDD (HL), A
         regularOperations[0x33] = { alu.incSP() } // INC SP
-        regularOperations[0x33] = { alu.incSP() } // INC SP
-        regularOperations[0x34] = { alu.incSpecial(cpu.registers.getHL()) } // INC (HL)
-        regularOperations[0x35] = { alu.decSpecial(cpu.registers.getHL()) } // DEC (HL)
+        regularOperations[0x34] = { alu.incSpecial(cpu.cpuRegisters.getHL()) } // INC (HL)
+        regularOperations[0x35] = { alu.decSpecial(cpu.cpuRegisters.getHL()) } // DEC (HL)
         regularOperations[0x36] = { load8Bit.ldNHL() } // LD (HL), n
         regularOperations[0x37] = { control.scf() } // SCF
         regularOperations[0x38] = { jump.jrCond(JumpConstants.C) } // JR C, u8
@@ -201,7 +200,7 @@ class Decoder(
         regularOperations[0x7B] = { load8Bit.ld(RegisterNames.A, RegisterNames.E) } // LD A, E
         regularOperations[0x7C] = { load8Bit.ld(RegisterNames.A, RegisterNames.H) } // LD A, H
         regularOperations[0x7D] = { load8Bit.ld(RegisterNames.A, RegisterNames.L) } // LD A, L
-        regularOperations[0x7E] = { load8Bit.ldHLtoRegister(RegisterNames.L) } // LD A, (HL)
+        regularOperations[0x7E] = { load8Bit.ldHLtoRegister(RegisterNames.A) } // LD A, (HL)
         regularOperations[0x7F] = { load8Bit.ld(RegisterNames.A, RegisterNames.A) } // LD A, A
         regularOperations[0x80] = { alu.add(RegisterNames.B) } // ADD A, B
         regularOperations[0x81] = { alu.add(RegisterNames.C) } // ADD A, C
@@ -210,7 +209,7 @@ class Decoder(
         regularOperations[0x84] = { alu.add(RegisterNames.H) } // ADD A, H
         regularOperations[0x85] = { alu.add(RegisterNames.L) } // ADD A, L
         regularOperations[0x86] = {
-            alu.addSpecial(cpu.registers.getHL(), true)
+            alu.addSpecial(cpu.cpuRegisters.getHL(), true)
         } // ADD A, (HL)
         regularOperations[0x87] = { alu.add(RegisterNames.A) } // ADD A, A
         regularOperations[0x88] = { alu.adc(RegisterNames.B) } // ADC A, B
@@ -220,7 +219,7 @@ class Decoder(
         regularOperations[0x8C] = { alu.adc(RegisterNames.H) } // ADC A, H
         regularOperations[0x8D] = { alu.adc(RegisterNames.L) } // ADC A, L
         regularOperations[0x8E] = {
-            alu.adcSpecial(cpu.registers.getHL(), true)
+            alu.adcSpecial(cpu.cpuRegisters.getHL(), true)
         } // ADC A, (HL)
         regularOperations[0x8F] = { alu.adc(RegisterNames.A) } // ADC A, A
         regularOperations[0x90] = { alu.sub(RegisterNames.B) } // SUB A, B
@@ -230,7 +229,7 @@ class Decoder(
         regularOperations[0x94] = { alu.sub(RegisterNames.H) } // SUB A, H
         regularOperations[0x95] = { alu.sub(RegisterNames.L) } // SUB A, L
         regularOperations[0x96] = {
-            alu.subSpecial(cpu.registers.getHL(), true)
+            alu.subSpecial(cpu.cpuRegisters.getHL(), true)
         } // SUB A, (HL)
         regularOperations[0x97] = { alu.sub(RegisterNames.A) } // SUB A, A
         regularOperations[0x98] = { alu.sbc(RegisterNames.B) } // SBC A, B
@@ -240,7 +239,7 @@ class Decoder(
         regularOperations[0x9C] = { alu.sbc(RegisterNames.H) } // SBC A, H
         regularOperations[0x9D] = { alu.sbc(RegisterNames.L) } // SBC A, L
         regularOperations[0x9E] = {
-            alu.sbcSpecial(cpu.registers.getHL(), true)
+            alu.sbcSpecial(cpu.cpuRegisters.getHL(), true)
         } // SBC A, (HL)
         regularOperations[0x9F] = { alu.sbc(RegisterNames.A) } // SBC A, A
         regularOperations[0xA0] = { alu.and(RegisterNames.B) } // AND A, B
@@ -250,7 +249,7 @@ class Decoder(
         regularOperations[0xA4] = { alu.and(RegisterNames.H) } // AND A, H
         regularOperations[0xA5] = { alu.and(RegisterNames.L) } // AND A, L
         regularOperations[0xA6] = {
-            alu.andSpecial(cpu.registers.getHL(), true)
+            alu.andSpecial(cpu.cpuRegisters.getHL(), true)
         } // AND A, (HL)
         regularOperations[0xA7] = { alu.and(RegisterNames.A) } // AND A, A
         regularOperations[0xA8] = { alu.xor(RegisterNames.B) } // XOR A, B
@@ -260,7 +259,7 @@ class Decoder(
         regularOperations[0xAC] = { alu.xor(RegisterNames.H) } // XOR A, H
         regularOperations[0xAD] = { alu.xor(RegisterNames.L) } // XOR A, L
         regularOperations[0xAE] = {
-            alu.xorSpecial(cpu.registers.getHL(), true)
+            alu.xorSpecial(cpu.cpuRegisters.getHL(), true)
         } // XOR A, (HL)
         regularOperations[0xAF] = { alu.xor(RegisterNames.A) } // XOR A, A
         regularOperations[0xB0] = { alu.or(RegisterNames.B) } // OR A, B
@@ -270,7 +269,7 @@ class Decoder(
         regularOperations[0xB4] = { alu.or(RegisterNames.H) } // OR A, H
         regularOperations[0xB5] = { alu.or(RegisterNames.L) } // OR A, L
         regularOperations[0xB6] = {
-            alu.orSpecial(cpu.registers.getHL(), true)
+            alu.orSpecial(cpu.cpuRegisters.getHL(), true)
         } // OR A, (HL)
         regularOperations[0xB7] = { alu.or(RegisterNames.A) } // OR A, A
         regularOperations[0xB8] = { alu.cp(RegisterNames.B) } // CP A, B
@@ -280,7 +279,7 @@ class Decoder(
         regularOperations[0xBC] = { alu.cp(RegisterNames.H) } // CP A, H
         regularOperations[0xBD] = { alu.cp(RegisterNames.L) } // CP A, L
         regularOperations[0xBE] = {
-            alu.cpSpecial(cpu.registers.getHL(), true)
+            alu.cpSpecial(cpu.cpuRegisters.getHL(), true)
         } // CP A, (HL)
         regularOperations[0xBF] = { alu.cp(RegisterNames.A) } // CP A, A
         regularOperations[0xC0] = { jump.retCond(JumpConstants.NZ) } // RET NZ
@@ -290,20 +289,20 @@ class Decoder(
         regularOperations[0xC4] = { jump.callCond(JumpConstants.NZ) } // CALL NZ, u16
         regularOperations[0xC5] = { load16Bit.push(1) } // PUSH BC
         regularOperations[0xC6] =
-            { alu.addSpecial(cpu.registers.getProgramCounter() + 1, false) } // ADD A, #
+            { alu.addSpecial(cpu.cpuRegisters.getProgramCounter() + 1, false) } // ADD A, #
         regularOperations[0xC7] = { jump.rst(0x00) } // RST 00H
         regularOperations[0xC8] = { jump.retCond(JumpConstants.Z) } // RET Z
         regularOperations[0xC9] = { jump.ret() } // RET
         regularOperations[0xCA] = { jump.jpCond(JumpConstants.Z) } // JP Z, u16
         regularOperations[0xCB] = {
             cbInstruction = true
-            cpu.registers.incrementProgramCounter(1)
-            decode(bus.getValue(cpu.registers.getProgramCounter()).toInt())
+            cpu.cpuRegisters.incrementProgramCounter(1)
+            decode(bus.getValue(cpu.cpuRegisters.getProgramCounter()).toInt())
         }
         regularOperations[0xCC] = { jump.callCond(JumpConstants.Z) } // CALL Z, nn
         regularOperations[0xCD] = { jump.call() } // CALL u16
         regularOperations[0xCE] =
-            { alu.adcSpecial(cpu.registers.getProgramCounter() + 1, false) } // ADC A, #
+            { alu.adcSpecial(cpu.cpuRegisters.getProgramCounter() + 1, false) } // ADC A, #
         regularOperations[0xCF] = { jump.rst(0x08) } // RST 08H
         regularOperations[0xD0] = { jump.retCond(JumpConstants.NC) } // RET NC
         regularOperations[0xD1] = { load16Bit.pop(2) } // POP DE
@@ -311,42 +310,42 @@ class Decoder(
         regularOperations[0xD4] = { jump.callCond(JumpConstants.NC) } // CALL NC,nn
         regularOperations[0xD5] = { load16Bit.push(2) } // PUSH DE
         regularOperations[0xD6] =
-            { alu.subSpecial(cpu.registers.getProgramCounter() + 1, false) } // SUB A, #
+            { alu.subSpecial(cpu.cpuRegisters.getProgramCounter() + 1, false) } // SUB A, #
         regularOperations[0xD7] = { jump.rst(0x10) } // RST 10H
         regularOperations[0xD8] = { jump.retCond(JumpConstants.C) } // RET C
         regularOperations[0xD9] = { jump.reti() } // RETI
         regularOperations[0xDA] = { jump.jpCond(JumpConstants.C) } // JP C, u16
         regularOperations[0xDC] = { jump.callCond(JumpConstants.C) } // CALL C, nn
         regularOperations[0xDE] =
-            { alu.sbcSpecial(cpu.registers.getProgramCounter() + 1, false) } // SBC A, #
+            { alu.sbcSpecial(cpu.cpuRegisters.getProgramCounter() + 1, false) } // SBC A, #
         regularOperations[0xDF] = { jump.rst(0x18) } // RST 18H
         regularOperations[0xE0] = { load8Bit.ldh(true) } // LD (FF00+u8), A
         regularOperations[0xE1] = { load16Bit.pop(3) } // POP (HL)
         regularOperations[0xE2] = { load8Bit.ldAC(true) } // LD (C), A
         regularOperations[0xE5] = { load16Bit.push(3) } // PUSH HL
         regularOperations[0xE6] =
-            { alu.andSpecial(cpu.registers.getProgramCounter() + 1, false) } // AND #
+            { alu.andSpecial(cpu.cpuRegisters.getProgramCounter() + 1, false) } // AND #
         regularOperations[0xE7] = { jump.rst(0x20) } // RST 20H
-        regularOperations[0xE8] = { alu.addSP(cpu.registers.getProgramCounter() + 1) } // ADD SP, n
+        regularOperations[0xE8] = { alu.addSP(cpu.cpuRegisters.getProgramCounter() + 1) } // ADD SP, n
         regularOperations[0xE9] = { jump.jpHL() } // JP (HL)
         regularOperations[0xEA] = { load8Bit.ldNN() } // LD (nn), A
         regularOperations[0xEE] =
-            { alu.xorSpecial(cpu.registers.getProgramCounter() + 1, false) } // XOR #
+            { alu.xorSpecial(cpu.cpuRegisters.getProgramCounter() + 1, false) } // XOR #
         regularOperations[0xEF] = { jump.rst(0x28) } // RST 28H
         regularOperations[0xF0] = { load8Bit.ldh(false) } // LD A, (FF00+u8)
-        regularOperations[0xE1] = { load16Bit.pop(0) } // POP AF
+        regularOperations[0xF1] = { load16Bit.pop(0) } // POP AF
         regularOperations[0xF2] = { load8Bit.ldAC(false) } // LD A, (C)
         regularOperations[0xF3] = { control.di() } // DI
         regularOperations[0xF5] = { load16Bit.push(0) } // PUSH AF
         regularOperations[0xF6] =
-            { alu.orSpecial(cpu.registers.getProgramCounter() + 1, false) } // OR #
+            { alu.orSpecial(cpu.cpuRegisters.getProgramCounter() + 1, false) } // OR #
         regularOperations[0xF7] = { jump.rst(0x30) } // RST 30H
         regularOperations[0xF8] = { load16Bit.ldHL() } // LDHL SP, n
         regularOperations[0xF9] = { load16Bit.ldSPHL() } // LD SP, HL
         regularOperations[0xFA] = { load8Bit.ldNNIntoA() } // LD A, (nn)
         regularOperations[0xFB] = { control.ei() } // EI
         regularOperations[0xFE] =
-            { alu.cpSpecial(cpu.registers.getProgramCounter() + 1, false) } // CP A, u8
+            { alu.cpSpecial(cpu.cpuRegisters.getProgramCounter() + 1, false) } // CP A, u8
         regularOperations[0xFF] = { jump.rst(0x38) } // RST 38H
 
         // CB Operations assignment
@@ -356,7 +355,7 @@ class Decoder(
         cbOperations[0x03] = { rotateShift.rlc(RegisterNames.E) } // RLC E
         cbOperations[0x04] = { rotateShift.rlc(RegisterNames.H) } // RLC H
         cbOperations[0x05] = { rotateShift.rlc(RegisterNames.L) } // RLC L
-        cbOperations[0x06] = { rotateShift.rlcHL(cpu.registers.getHL()) } // RLC (HL)
+        cbOperations[0x06] = { rotateShift.rlcHL(cpu.cpuRegisters.getHL()) } // RLC (HL)
         cbOperations[0x07] = { rotateShift.rlc(RegisterNames.A) } // RLC A
         cbOperations[0x08] = { rotateShift.rrc(RegisterNames.B) } // RRC B
         cbOperations[0x09] = { rotateShift.rrc(RegisterNames.C) } // RRC C
@@ -364,7 +363,7 @@ class Decoder(
         cbOperations[0x0B] = { rotateShift.rrc(RegisterNames.E) } // RRC E
         cbOperations[0x0C] = { rotateShift.rrc(RegisterNames.H) } // RRC H
         cbOperations[0x0D] = { rotateShift.rrc(RegisterNames.L) } // RRC L
-        cbOperations[0x0E] = { rotateShift.rrcHL(cpu.registers.getHL()) } // RRC (HL)
+        cbOperations[0x0E] = { rotateShift.rrcHL(cpu.cpuRegisters.getHL()) } // RRC (HL)
         cbOperations[0x0F] = { rotateShift.rrc(RegisterNames.A) } // RRC A
         cbOperations[0x10] = { rotateShift.rl(RegisterNames.B) } // RL B
         cbOperations[0x11] = { rotateShift.rl(RegisterNames.C) } // RL C
@@ -372,7 +371,7 @@ class Decoder(
         cbOperations[0x13] = { rotateShift.rl(RegisterNames.E) } // RL E
         cbOperations[0x14] = { rotateShift.rl(RegisterNames.H) } // RL H
         cbOperations[0x15] = { rotateShift.rl(RegisterNames.L) } // RL L
-        cbOperations[0x16] = { rotateShift.rlHL(cpu.registers.getHL()) } // RL (HL)
+        cbOperations[0x16] = { rotateShift.rlHL(cpu.cpuRegisters.getHL()) } // RL (HL)
         cbOperations[0x17] = { rotateShift.rl(RegisterNames.A) } // RL A
         cbOperations[0x18] = { rotateShift.rr(RegisterNames.B) } // RR B
         cbOperations[0x19] = { rotateShift.rr(RegisterNames.C) } // RR C
@@ -380,7 +379,7 @@ class Decoder(
         cbOperations[0x1B] = { rotateShift.rr(RegisterNames.E) } // RR E
         cbOperations[0x1C] = { rotateShift.rr(RegisterNames.H) } // RR H
         cbOperations[0x1D] = { rotateShift.rr(RegisterNames.L) } // RR L
-        cbOperations[0x1E] = { rotateShift.rrHL(cpu.registers.getHL()) } // RR (HL)
+        cbOperations[0x1E] = { rotateShift.rrHL(cpu.cpuRegisters.getHL()) } // RR (HL)
         cbOperations[0x1F] = { rotateShift.rr(RegisterNames.A) } // RR A
         cbOperations[0x20] = { rotateShift.sla(RegisterNames.B) } // SLA B
         cbOperations[0x21] = { rotateShift.sla(RegisterNames.C) } // SLA C
@@ -388,7 +387,7 @@ class Decoder(
         cbOperations[0x23] = { rotateShift.sla(RegisterNames.E) } // SLA E
         cbOperations[0x24] = { rotateShift.sla(RegisterNames.H) } // SLA H
         cbOperations[0x25] = { rotateShift.sla(RegisterNames.L) } // SLA L
-        cbOperations[0x26] = { rotateShift.slaHL(cpu.registers.getHL()) } // SLA (HL)
+        cbOperations[0x26] = { rotateShift.slaHL(cpu.cpuRegisters.getHL()) } // SLA (HL)
         cbOperations[0x27] = { rotateShift.sla(RegisterNames.A) } // SLA A
         cbOperations[0x28] = { rotateShift.sra(RegisterNames.B) } // SRA B
         cbOperations[0x29] = { rotateShift.sra(RegisterNames.C) } // SRA C
@@ -396,7 +395,7 @@ class Decoder(
         cbOperations[0x2B] = { rotateShift.sra(RegisterNames.E) } // SRA E
         cbOperations[0x2C] = { rotateShift.sra(RegisterNames.H) } // SRA H
         cbOperations[0x2D] = { rotateShift.sra(RegisterNames.L) } // SRA L
-        cbOperations[0x2E] = { rotateShift.sraHL(cpu.registers.getHL()) } // SRA (HL)
+        cbOperations[0x2E] = { rotateShift.sraHL(cpu.cpuRegisters.getHL()) } // SRA (HL)
         cbOperations[0x2F] = { rotateShift.sra(RegisterNames.A) } // SRA A
         cbOperations[0x30] = { rotateShift.swap(RegisterNames.B) } // SWAP B
         cbOperations[0x31] = { rotateShift.swap(RegisterNames.C) } // SWAP C
@@ -404,7 +403,7 @@ class Decoder(
         cbOperations[0x33] = { rotateShift.swap(RegisterNames.E) } // SWAP E
         cbOperations[0x34] = { rotateShift.swap(RegisterNames.H) } // SWAP H
         cbOperations[0x35] = { rotateShift.swap(RegisterNames.L) } // SWAP L
-        cbOperations[0x36] = { rotateShift.swapHL(cpu.registers.getHL()) } // SWAP (HL)
+        cbOperations[0x36] = { rotateShift.swapHL(cpu.cpuRegisters.getHL()) } // SWAP (HL)
         cbOperations[0x37] = { rotateShift.swap(RegisterNames.A) } // SWAP A
         cbOperations[0x38] = { rotateShift.srl(RegisterNames.B) } // SRL B
         cbOperations[0x39] = { rotateShift.srl(RegisterNames.C) } // SRL C
@@ -412,7 +411,7 @@ class Decoder(
         cbOperations[0x3B] = { rotateShift.srl(RegisterNames.E) } // SRL E
         cbOperations[0x3C] = { rotateShift.srl(RegisterNames.H) } // SRL H
         cbOperations[0x3D] = { rotateShift.srl(RegisterNames.L) } // SRL L
-        cbOperations[0x3E] = { rotateShift.srlHL(cpu.registers.getHL()) } // SRL (HL)
+        cbOperations[0x3E] = { rotateShift.srlHL(cpu.cpuRegisters.getHL()) } // SRL (HL)
         cbOperations[0x3F] = { rotateShift.srl(RegisterNames.A) } // SRL A
         cbOperations[0x40] = { singleBit.bit(0, RegisterNames.B) } // BIT 0, B
         cbOperations[0x41] = { singleBit.bit(0, RegisterNames.C) } // BIT 0, C
@@ -420,7 +419,7 @@ class Decoder(
         cbOperations[0x43] = { singleBit.bit(0, RegisterNames.E) } // BIT 0, E
         cbOperations[0x44] = { singleBit.bit(0, RegisterNames.H) } // BIT 0, H
         cbOperations[0x45] = { singleBit.bit(0, RegisterNames.L) } // BIT 0, L
-        cbOperations[0x46] = { singleBit.bitHL(0, cpu.registers.getHL()) } // BIT 0, (HL)
+        cbOperations[0x46] = { singleBit.bitHL(0, cpu.cpuRegisters.getHL()) } // BIT 0, (HL)
         cbOperations[0x47] = { singleBit.bit(0, RegisterNames.A) } // BIT 0, A
         cbOperations[0x48] = { singleBit.bit(1, RegisterNames.B) } // BIT 1, B
         cbOperations[0x49] = { singleBit.bit(1, RegisterNames.C) } // BIT 1, C
@@ -428,7 +427,7 @@ class Decoder(
         cbOperations[0x4B] = { singleBit.bit(1, RegisterNames.E) } // BIT 1, E
         cbOperations[0x4C] = { singleBit.bit(1, RegisterNames.H) } // BIT 1, H
         cbOperations[0x4D] = { singleBit.bit(1, RegisterNames.L) } // BIT 1, L
-        cbOperations[0x4E] = { singleBit.bitHL(1, cpu.registers.getHL()) } // BIT 1, (HL)
+        cbOperations[0x4E] = { singleBit.bitHL(1, cpu.cpuRegisters.getHL()) } // BIT 1, (HL)
         cbOperations[0x4F] = { singleBit.bit(1, RegisterNames.A) } // BIT 1, A
         cbOperations[0x50] = { singleBit.bit(2, RegisterNames.B) } // BIT 2, B
         cbOperations[0x51] = { singleBit.bit(2, RegisterNames.C) } // BIT 2, C
@@ -436,7 +435,7 @@ class Decoder(
         cbOperations[0x53] = { singleBit.bit(2, RegisterNames.E) } // BIT 2, E
         cbOperations[0x54] = { singleBit.bit(2, RegisterNames.H) } // BIT 2, H
         cbOperations[0x55] = { singleBit.bit(2, RegisterNames.L) } // BIT 2, L
-        cbOperations[0x56] = { singleBit.bitHL(2, cpu.registers.getHL()) } // BIT 2, (HL)
+        cbOperations[0x56] = { singleBit.bitHL(2, cpu.cpuRegisters.getHL()) } // BIT 2, (HL)
         cbOperations[0x57] = { singleBit.bit(2, RegisterNames.A) } // BIT 2, A
         cbOperations[0x58] = { singleBit.bit(3, RegisterNames.B) } // BIT 3, B
         cbOperations[0x59] = { singleBit.bit(3, RegisterNames.C) } // BIT 3, C
@@ -444,7 +443,7 @@ class Decoder(
         cbOperations[0x5B] = { singleBit.bit(3, RegisterNames.E) } // BIT 3, E
         cbOperations[0x5C] = { singleBit.bit(3, RegisterNames.H) } // BIT 3, H
         cbOperations[0x5D] = { singleBit.bit(3, RegisterNames.L) } // BIT 3, L
-        cbOperations[0x5E] = { singleBit.bitHL(3, cpu.registers.getHL()) } // BIT 3, (HL)
+        cbOperations[0x5E] = { singleBit.bitHL(3, cpu.cpuRegisters.getHL()) } // BIT 3, (HL)
         cbOperations[0x5F] = { singleBit.bit(3, RegisterNames.A) } // BIT 3, A
         cbOperations[0x60] = { singleBit.bit(4, RegisterNames.B) } // BIT 4, B
         cbOperations[0x61] = { singleBit.bit(4, RegisterNames.C) } // BIT 4, C
@@ -452,7 +451,7 @@ class Decoder(
         cbOperations[0x63] = { singleBit.bit(4, RegisterNames.E) } // BIT 4, E
         cbOperations[0x64] = { singleBit.bit(4, RegisterNames.H) } // BIT 4, H
         cbOperations[0x65] = { singleBit.bit(4, RegisterNames.L) } // BIT 4, L
-        cbOperations[0x66] = { singleBit.bitHL(4, cpu.registers.getHL()) } // BIT 4, (HL)
+        cbOperations[0x66] = { singleBit.bitHL(4, cpu.cpuRegisters.getHL()) } // BIT 4, (HL)
         cbOperations[0x67] = { singleBit.bit(4, RegisterNames.A) } // BIT 4, A
         cbOperations[0x68] = { singleBit.bit(5, RegisterNames.B) } // BIT 5, B
         cbOperations[0x69] = { singleBit.bit(5, RegisterNames.C) } // BIT 5, C
@@ -460,7 +459,7 @@ class Decoder(
         cbOperations[0x6B] = { singleBit.bit(5, RegisterNames.E) } // BIT 5, E
         cbOperations[0x6C] = { singleBit.bit(5, RegisterNames.H) } // BIT 5, H
         cbOperations[0x6D] = { singleBit.bit(5, RegisterNames.L) } // BIT 5, L
-        cbOperations[0x6E] = { singleBit.bitHL(5, cpu.registers.getHL()) } // BIT 5, (HL)
+        cbOperations[0x6E] = { singleBit.bitHL(5, cpu.cpuRegisters.getHL()) } // BIT 5, (HL)
         cbOperations[0x6F] = { singleBit.bit(5, RegisterNames.A) } // BIT 5, A
         cbOperations[0x70] = { singleBit.bit(6, RegisterNames.B) } // BIT 6, B
         cbOperations[0x71] = { singleBit.bit(6, RegisterNames.C) } // BIT 6, C
@@ -468,7 +467,7 @@ class Decoder(
         cbOperations[0x73] = { singleBit.bit(6, RegisterNames.E) } // BIT 6, E
         cbOperations[0x74] = { singleBit.bit(6, RegisterNames.H) } // BIT 6, H
         cbOperations[0x75] = { singleBit.bit(6, RegisterNames.L) } // BIT 6, L
-        cbOperations[0x76] = { singleBit.bitHL(6, cpu.registers.getHL()) } // BIT 6, (HL)
+        cbOperations[0x76] = { singleBit.bitHL(6, cpu.cpuRegisters.getHL()) } // BIT 6, (HL)
         cbOperations[0x77] = { singleBit.bit(6, RegisterNames.A) } // BIT 6, A
         cbOperations[0x78] = { singleBit.bit(7, RegisterNames.B) } // BIT 7, B
         cbOperations[0x79] = { singleBit.bit(7, RegisterNames.C) } // BIT 7, C
@@ -476,7 +475,7 @@ class Decoder(
         cbOperations[0x7B] = { singleBit.bit(7, RegisterNames.E) } // BIT 7, E
         cbOperations[0x7C] = { singleBit.bit(7, RegisterNames.H) } // BIT 7, H
         cbOperations[0x7D] = { singleBit.bit(7, RegisterNames.L) } // BIT 7, L
-        cbOperations[0x7E] = { singleBit.bitHL(7, cpu.registers.getHL()) } // BIT 7, (HL)
+        cbOperations[0x7E] = { singleBit.bitHL(7, cpu.cpuRegisters.getHL()) } // BIT 7, (HL)
         cbOperations[0x7F] = { singleBit.bit(7, RegisterNames.A) } // BIT 7, A
         cbOperations[0x80] = { singleBit.res(0, RegisterNames.B) } // RES 0, B
         cbOperations[0x81] = { singleBit.res(0, RegisterNames.C) } // RES 0, C
@@ -484,7 +483,7 @@ class Decoder(
         cbOperations[0x83] = { singleBit.res(0, RegisterNames.E) } // RES 0, E
         cbOperations[0x84] = { singleBit.res(0, RegisterNames.H) } // RES 0, H
         cbOperations[0x85] = { singleBit.res(0, RegisterNames.L) } // RES 0, L
-        cbOperations[0x86] = { singleBit.resHL(0, cpu.registers.getHL()) } // RES 1, (HL)
+        cbOperations[0x86] = { singleBit.resHL(0, cpu.cpuRegisters.getHL()) } // RES 1, (HL)
         cbOperations[0x87] = { singleBit.res(0, RegisterNames.A) } // RES 0, A
         cbOperations[0x88] = { singleBit.res(1, RegisterNames.B) } // RES 1, B
         cbOperations[0x89] = { singleBit.res(1, RegisterNames.C) } // RES 1, C
@@ -492,7 +491,7 @@ class Decoder(
         cbOperations[0x8B] = { singleBit.res(1, RegisterNames.E) } // RES 1, E
         cbOperations[0x8C] = { singleBit.res(1, RegisterNames.H) } // RES 1, H
         cbOperations[0x8D] = { singleBit.res(1, RegisterNames.L) } // RES 1, L
-        cbOperations[0x8E] = { singleBit.resHL(1, cpu.registers.getHL()) } // RES 1, (HL)
+        cbOperations[0x8E] = { singleBit.resHL(1, cpu.cpuRegisters.getHL()) } // RES 1, (HL)
         cbOperations[0x8F] = { singleBit.res(1, RegisterNames.A) } // RES 1, A
         cbOperations[0x90] = { singleBit.res(2, RegisterNames.B) } // RES 2, B
         cbOperations[0x91] = { singleBit.res(2, RegisterNames.C) } // RES 2, C
@@ -500,7 +499,7 @@ class Decoder(
         cbOperations[0x93] = { singleBit.res(2, RegisterNames.E) } // RES 2, E
         cbOperations[0x94] = { singleBit.res(2, RegisterNames.H) } // RES 2, H
         cbOperations[0x95] = { singleBit.res(2, RegisterNames.L) } // RES 2, L
-        cbOperations[0x96] = { singleBit.resHL(2, cpu.registers.getHL()) } // RES 2, (HL)
+        cbOperations[0x96] = { singleBit.resHL(2, cpu.cpuRegisters.getHL()) } // RES 2, (HL)
         cbOperations[0x97] = { singleBit.res(2, RegisterNames.A) } // RES 2, A
         cbOperations[0x98] = { singleBit.res(3, RegisterNames.B) } // RES 3, B
         cbOperations[0x99] = { singleBit.res(3, RegisterNames.C) } // RES 3, C
@@ -508,7 +507,7 @@ class Decoder(
         cbOperations[0x9B] = { singleBit.res(3, RegisterNames.E) } // RES 3, E
         cbOperations[0x9C] = { singleBit.res(3, RegisterNames.H) } // RES 3, H
         cbOperations[0x9D] = { singleBit.res(3, RegisterNames.L) } // RES 3, L
-        cbOperations[0x9E] = { singleBit.resHL(3, cpu.registers.getHL()) } // RES 3, (HL)
+        cbOperations[0x9E] = { singleBit.resHL(3, cpu.cpuRegisters.getHL()) } // RES 3, (HL)
         cbOperations[0x9F] = { singleBit.res(3, RegisterNames.A) } // RES 3, A
         cbOperations[0xA0] = { singleBit.res(4, RegisterNames.B) } // RES 4, B
         cbOperations[0xA1] = { singleBit.res(4, RegisterNames.C) } // RES 4, C
@@ -516,7 +515,7 @@ class Decoder(
         cbOperations[0xA3] = { singleBit.res(4, RegisterNames.E) } // RES 4, E
         cbOperations[0xA4] = { singleBit.res(4, RegisterNames.H) } // RES 4, H
         cbOperations[0xA5] = { singleBit.res(4, RegisterNames.L) } // RES 4, L
-        cbOperations[0xA6] = { singleBit.resHL(4, cpu.registers.getHL()) } // RES 4, (HL)
+        cbOperations[0xA6] = { singleBit.resHL(4, cpu.cpuRegisters.getHL()) } // RES 4, (HL)
         cbOperations[0xA7] = { singleBit.res(4, RegisterNames.A) } // RES 4, A
         cbOperations[0xA8] = { singleBit.res(5, RegisterNames.B) } // RES 5, B
         cbOperations[0xA9] = { singleBit.res(5, RegisterNames.C) } // RES 5, C
@@ -524,7 +523,7 @@ class Decoder(
         cbOperations[0xAB] = { singleBit.res(5, RegisterNames.E) } // RES 5, E
         cbOperations[0xAC] = { singleBit.res(5, RegisterNames.H) } // RES 5, H
         cbOperations[0xAD] = { singleBit.res(5, RegisterNames.L) } // RES 5, L
-        cbOperations[0xAE] = { singleBit.resHL(5, cpu.registers.getHL()) } // RES 5, (HL)
+        cbOperations[0xAE] = { singleBit.resHL(5, cpu.cpuRegisters.getHL()) } // RES 5, (HL)
         cbOperations[0xAF] = { singleBit.res(5, RegisterNames.A) } // RES 5, A
         cbOperations[0xB0] = { singleBit.res(6, RegisterNames.B) } // RES 6, B
         cbOperations[0xB1] = { singleBit.res(6, RegisterNames.C) } // RES 6, C
@@ -532,7 +531,7 @@ class Decoder(
         cbOperations[0xB3] = { singleBit.res(6, RegisterNames.E) } // RES 6, E
         cbOperations[0xB4] = { singleBit.res(6, RegisterNames.H) } // RES 6, H
         cbOperations[0xB5] = { singleBit.res(6, RegisterNames.L) } // RES 6, L
-        cbOperations[0xB6] = { singleBit.resHL(6, cpu.registers.getHL()) } // RES 6, (HL)
+        cbOperations[0xB6] = { singleBit.resHL(6, cpu.cpuRegisters.getHL()) } // RES 6, (HL)
         cbOperations[0xB7] = { singleBit.res(6, RegisterNames.A) } // RES 6, A
         cbOperations[0xB8] = { singleBit.res(7, RegisterNames.B) } // RES 7, B
         cbOperations[0xB9] = { singleBit.res(7, RegisterNames.C) } // RES 7, C
@@ -540,7 +539,7 @@ class Decoder(
         cbOperations[0xBB] = { singleBit.res(7, RegisterNames.E) } // RES 7, E
         cbOperations[0xBC] = { singleBit.res(7, RegisterNames.H) } // RES 7, H
         cbOperations[0xBD] = { singleBit.res(7, RegisterNames.L) } // RES 7, L
-        cbOperations[0xBE] = { singleBit.resHL(7, cpu.registers.getHL()) } // RES 7, (HL)
+        cbOperations[0xBE] = { singleBit.resHL(7, cpu.cpuRegisters.getHL()) } // RES 7, (HL)
         cbOperations[0xBF] = { singleBit.res(7, RegisterNames.A) } // RES 7, A
         cbOperations[0xC0] = { singleBit.set(0, RegisterNames.B) } // SET 0, B
         cbOperations[0xC1] = { singleBit.set(0, RegisterNames.C) } // SET 0, C
@@ -548,7 +547,7 @@ class Decoder(
         cbOperations[0xC3] = { singleBit.set(0, RegisterNames.E) } // SET 0, E
         cbOperations[0xC4] = { singleBit.set(0, RegisterNames.H) } // SET 0, H
         cbOperations[0xC5] = { singleBit.set(0, RegisterNames.L) } // SET 0, L
-        cbOperations[0xC6] = { singleBit.setHL(0, cpu.registers.getHL()) } // SET 0, (HL)
+        cbOperations[0xC6] = { singleBit.setHL(0, cpu.cpuRegisters.getHL()) } // SET 0, (HL)
         cbOperations[0xC7] = { singleBit.set(0, RegisterNames.A) } // SET 0, A
         cbOperations[0xC8] = { singleBit.set(1, RegisterNames.B) } // SET 1, B
         cbOperations[0xC9] = { singleBit.set(1, RegisterNames.C) } // SET 1, C
@@ -556,7 +555,7 @@ class Decoder(
         cbOperations[0xCB] = { singleBit.set(1, RegisterNames.E) } // SET 1, E
         cbOperations[0xCC] = { singleBit.set(1, RegisterNames.H) } // SET 1, H
         cbOperations[0xCD] = { singleBit.set(1, RegisterNames.L) } // SET 1, L
-        cbOperations[0xCE] = { singleBit.setHL(1, cpu.registers.getHL()) } // SET 1, (HL)
+        cbOperations[0xCE] = { singleBit.setHL(1, cpu.cpuRegisters.getHL()) } // SET 1, (HL)
         cbOperations[0xCF] = { singleBit.set(1, RegisterNames.A) } // SET 1, A
         cbOperations[0xD0] = { singleBit.set(2, RegisterNames.B) } // SET 2, B
         cbOperations[0xD1] = { singleBit.set(2, RegisterNames.C) } // SET 2, C
@@ -564,7 +563,7 @@ class Decoder(
         cbOperations[0xD3] = { singleBit.set(2, RegisterNames.E) } // SET 2, E
         cbOperations[0xD4] = { singleBit.set(2, RegisterNames.H) } // SET 2, H
         cbOperations[0xD5] = { singleBit.set(2, RegisterNames.L) } // SET 2, L
-        cbOperations[0xD6] = { singleBit.setHL(2, cpu.registers.getHL()) } // SET 2, (HL)
+        cbOperations[0xD6] = { singleBit.setHL(2, cpu.cpuRegisters.getHL()) } // SET 2, (HL)
         cbOperations[0xD7] = { singleBit.set(2, RegisterNames.A) } // SET 2, A
         cbOperations[0xD8] = { singleBit.set(3, RegisterNames.B) } // SET 3, B
         cbOperations[0xD9] = { singleBit.set(3, RegisterNames.C) } // SET 3, C
@@ -572,7 +571,7 @@ class Decoder(
         cbOperations[0xDB] = { singleBit.set(3, RegisterNames.E) } // SET 3, E
         cbOperations[0xDC] = { singleBit.set(3, RegisterNames.H) } // SET 3, H
         cbOperations[0xDD] = { singleBit.set(3, RegisterNames.L) } // SET 3, L
-        cbOperations[0xDE] = { singleBit.setHL(3, cpu.registers.getHL()) } // SET 3, (HL)
+        cbOperations[0xDE] = { singleBit.setHL(3, cpu.cpuRegisters.getHL()) } // SET 3, (HL)
         cbOperations[0xDF] = { singleBit.set(3, RegisterNames.A) } // SET 3, A
         cbOperations[0xE0] = { singleBit.set(4, RegisterNames.B) } // SET 4, B
         cbOperations[0xE1] = { singleBit.set(4, RegisterNames.C) } // SET 4, C
@@ -580,7 +579,7 @@ class Decoder(
         cbOperations[0xE3] = { singleBit.set(4, RegisterNames.E) } // SET 4, E
         cbOperations[0xE4] = { singleBit.set(4, RegisterNames.H) } // SET 4, H
         cbOperations[0xE5] = { singleBit.set(4, RegisterNames.L) } // SET 4, L
-        cbOperations[0xE6] = { singleBit.setHL(4, cpu.registers.getHL()) } // SET 4, (HL)
+        cbOperations[0xE6] = { singleBit.setHL(4, cpu.cpuRegisters.getHL()) } // SET 4, (HL)
         cbOperations[0xE7] = { singleBit.set(4, RegisterNames.A) } // SET 4, A
         cbOperations[0xE8] = { singleBit.set(5, RegisterNames.B) } // SET 5, B
         cbOperations[0xE9] = { singleBit.set(5, RegisterNames.C) } // SET 5, C
@@ -588,7 +587,7 @@ class Decoder(
         cbOperations[0xEB] = { singleBit.set(5, RegisterNames.E) } // SET 5, E
         cbOperations[0xEC] = { singleBit.set(5, RegisterNames.H) } // SET 5, H
         cbOperations[0xED] = { singleBit.set(5, RegisterNames.L) } // SET 5, L
-        cbOperations[0xEE] = { singleBit.setHL(5, cpu.registers.getHL()) } // SET 5, (HL)
+        cbOperations[0xEE] = { singleBit.setHL(5, cpu.cpuRegisters.getHL()) } // SET 5, (HL)
         cbOperations[0xEF] = { singleBit.set(5, RegisterNames.A) } // SET 5, A
         cbOperations[0xF0] = { singleBit.set(6, RegisterNames.B) } // SET 6, B
         cbOperations[0xF1] = { singleBit.set(6, RegisterNames.C) } // SET 6, C
@@ -596,7 +595,7 @@ class Decoder(
         cbOperations[0xF3] = { singleBit.set(6, RegisterNames.E) } // SET 6, E
         cbOperations[0xF4] = { singleBit.set(6, RegisterNames.H) } // SET 6, H
         cbOperations[0xF5] = { singleBit.set(6, RegisterNames.L) } // SET 6, L
-        cbOperations[0xF6] = { singleBit.setHL(6, cpu.registers.getHL()) } // SET 6, (HL)
+        cbOperations[0xF6] = { singleBit.setHL(6, cpu.cpuRegisters.getHL()) } // SET 6, (HL)
         cbOperations[0xF7] = { singleBit.set(6, RegisterNames.A) } // SET 6, A
         cbOperations[0xF8] = { singleBit.set(7, RegisterNames.B) } // SET 7, B
         cbOperations[0xF9] = { singleBit.set(7, RegisterNames.C) } // SET 7, C
@@ -604,7 +603,7 @@ class Decoder(
         cbOperations[0xFB] = { singleBit.set(7, RegisterNames.E) } // SET 7, E
         cbOperations[0xFC] = { singleBit.set(7, RegisterNames.H) } // SET 7, H
         cbOperations[0xFD] = { singleBit.set(7, RegisterNames.L) } // SET 7, L
-        cbOperations[0xFE] = { singleBit.setHL(7, cpu.registers.getHL()) } // SET 7, (HL)
+        cbOperations[0xFE] = { singleBit.setHL(7, cpu.cpuRegisters.getHL()) } // SET 7, (HL)
         cbOperations[0xFF] = { singleBit.set(7, RegisterNames.A) } // SET 7, A
     }
 

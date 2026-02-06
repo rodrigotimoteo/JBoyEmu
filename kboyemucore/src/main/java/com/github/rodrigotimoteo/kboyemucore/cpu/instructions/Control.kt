@@ -21,30 +21,30 @@ class Control(
      * Does nothing
      */
     fun nop() {
-        cpu.registers.incrementProgramCounter(1)
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
      * Complements the carry flag
      */
     fun ccf() {
-        cpu.registers.flags.setFlags(
+        cpu.cpuRegisters.flags.setFlags(
             zero = null,
             subtract = false,
             half = false,
-            carry = !cpu.registers.flags.getCarryFlag()
+            carry = !cpu.cpuRegisters.flags.getCarryFlag()
         )
 
-        cpu.registers.incrementProgramCounter(1)
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
      * Sets the carry flag
      */
     fun scf() {
-        cpu.registers.flags.setFlags(zero = null, subtract = false, half = false, carry = true)
+        cpu.cpuRegisters.flags.setFlags(zero = null, subtract = false, half = false, carry = true)
 
-        cpu.registers.incrementProgramCounter(1)
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -53,7 +53,7 @@ class Control(
     fun halt() {
         cpu.setHalted(true)
 
-        cpu.registers.incrementProgramCounter(1)
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -63,7 +63,7 @@ class Control(
         cpu.setStopped(true)
         bus.setValue(ReservedAddresses.DIV.memoryAddress, 0x00u)
 
-        cpu.registers.incrementProgramCounter(1)
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -72,7 +72,7 @@ class Control(
     fun di() {
         cpu.interrupts.setInterruptChange(false)
 
-        cpu.registers.incrementProgramCounter(1)
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -81,6 +81,6 @@ class Control(
     fun ei() {
         cpu.interrupts.setInterruptChange(true)
 
-        cpu.registers.incrementProgramCounter(1)
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 }

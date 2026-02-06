@@ -3,17 +3,17 @@ package com.github.rodrigotimoteo.kboyemucore.cpu
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.cpu.instructions.Decoder
 import com.github.rodrigotimoteo.kboyemucore.cpu.interrupts.Interrupts
-import com.github.rodrigotimoteo.kboyemucore.cpu.registers.Registers
+import com.github.rodrigotimoteo.kboyemucore.cpu.registers.CPURegisters
 
 class CPU(
     private val bus: Bus
 ) {
 
-    internal val registers = Registers(bus)
+    internal val cpuRegisters = CPURegisters(bus)
 
-    internal val timers = Timers()
+    internal val timers = Timers(bus)
 
-    internal val interrupts = Interrupts(bus)
+    internal val interrupts = Interrupts(this, bus)
 
     internal val decoder = Decoder(this, bus)
 
@@ -30,11 +30,12 @@ class CPU(
     fun tick() {
         if (!isStopped) {
             if (!isHalted) {
-                fetchOperation()
+//                println(cpuRegisters)
+                executeOperation()
 
                 val imeChange = interrupts.requestedInterruptChange()
-                val interruptChangeCounter = timers.getInterruptChangedCounter()
-                val machineCycles = timers.getMachineCycles()
+                val interruptChangeCounter = timers.interruptChangedCounter
+                val machineCycles = timers.machineCycles
 
                 if (imeChange && interruptChangeCounter < machineCycles) {
                     interrupts.triggerImeChange()
@@ -47,12 +48,17 @@ class CPU(
         }
     }
 
-    private fun fetchOperation() {
-        val programCounter = registers.getProgramCounter()
+    /**
+     * Returns the amount of machineCycles that the CPU has executed
+     */
+    fun getCounter() = timers.machineCycles
 
-        if (interrupts.isHaltBug()) {
+    private fun executeOperation() {
+        val programCounter = cpuRegisters.getProgramCounter()
+
+        if (interrupts.haltBug) {
             decoder.decode(programCounter)
-            registers.incrementProgramCounter(-1)
+            cpuRegisters.incrementProgramCounter(-1)
             interrupts.disableHaltBug()
         } else {
             decoder.decode(bus.getValue(programCounter).toInt())
@@ -73,6 +79,7 @@ class CPU(
      */
     fun setHalted(haltedState: Boolean) {
         isHalted = haltedState
+        timers.setHaltCycleCounter()
     }
 
     /**

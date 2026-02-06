@@ -89,10 +89,10 @@ class DisplayPanel {
 //        if (cgb) {
 //        } else {
 //            return when (pixelNumber) {
-//                0 -> androidx.compose.ui.graphics.Color(0xffffff)
-//                1 -> androidx.compose.ui.graphics.Color(0xcccccc)
-//                2 -> androidx.compose.ui.graphics.Color(0x777777)
-//                3 -> androidx.compose.ui.graphics.Color(0x000000)
+//                0 -> Color(0xffffff)
+//                1 -> Color(0xcccccc)
+//                2 -> Color(0x777777)
+//                3 -> Color(0x000000)
 //                else -> RED
 //            }
 //        }

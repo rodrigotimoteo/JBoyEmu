@@ -2,6 +2,9 @@ package com.github.rodrigotimoteo.kboyemucore.cpu.instructions
 
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.cpu.CPU
+import com.github.rodrigotimoteo.kboyemucore.util.EIGHT_BITS
+import com.github.rodrigotimoteo.kboyemucore.util.FILTER_LOWER_BITS
+import com.github.rodrigotimoteo.kboyemucore.util.FILTER_TOP_BITS
 
 /**
  * Class responsible for handling all things that deal with 16 bit load operations in CPU instruction set
@@ -28,12 +31,12 @@ class Load16Bit(
         val value = bus.calculateNN()
 
         when (type) {
-            0 -> cpu.registers.setBC(value)
-            1 -> cpu.registers.setDE(value)
-            2 -> cpu.registers.setHL(value)
+            0 -> cpu.cpuRegisters.setBC(value)
+            1 -> cpu.cpuRegisters.setDE(value)
+            2 -> cpu.cpuRegisters.setHL(value)
         }
 
-        cpu.registers.incrementProgramCounter(3)
+        cpu.cpuRegisters.incrementProgramCounter(3)
     }
 
     /**
@@ -44,19 +47,19 @@ class Load16Bit(
 
         val value = bus.calculateNN()
 
-        cpu.registers.setStackPointer(value)
-        cpu.registers.incrementProgramCounter(3)
+        cpu.cpuRegisters.setStackPointer(value)
+        cpu.cpuRegisters.incrementProgramCounter(3)
     }
 
     /**
      * Put the HL 16bit register onto the stack pointer
      */
     fun ldSPHL() {
-        val value = cpu.registers.getHL()
+        val value = cpu.cpuRegisters.getHL()
 
         cpu.timers.tick()
-        cpu.registers.setStackPointer(value)
-        cpu.registers.incrementProgramCounter(1)
+        cpu.cpuRegisters.setStackPointer(value)
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -66,8 +69,8 @@ class Load16Bit(
     fun ldHL() {
         repeat(2) { cpu.timers.tick() }
 
-        val stackPointer = cpu.registers.getStackPointer()
-        val programCounter = cpu.registers.getProgramCounter()
+        val stackPointer = cpu.cpuRegisters.getStackPointer()
+        val programCounter = cpu.cpuRegisters.getProgramCounter()
 
         val signedValue = bus.getValue(programCounter + 1).toByte().toInt()
 
@@ -77,15 +80,15 @@ class Load16Bit(
         val halfCarry = ((stackPointer and 0xF) + (valueToAssign and 0xF) and 0x10) == 0x10
         val carry = (((stackPointer and 0xFF) + valueToAssign) and 0x100) == 0x100
 
-        cpu.registers.flags.setFlags(
+        cpu.cpuRegisters.flags.setFlags(
             zero = false,
             subtract = false,
             half = halfCarry,
             carry = carry
         )
 
-        cpu.registers.setStackPointer(finalAddress)
-        cpu.registers.incrementProgramCounter(2)
+        cpu.cpuRegisters.setHL(finalAddress)
+        cpu.cpuRegisters.incrementProgramCounter(2)
     }
 
     /**
@@ -95,9 +98,10 @@ class Load16Bit(
         repeat(2) { cpu.timers.tick() }
 
         val address = bus.calculateNN()
-        val stackPointer = cpu.registers.getStackPointer()
-        bus.setValue(address, (stackPointer and 0xFF).toUByte())
-        cpu.registers.incrementProgramCounter(3)
+        val stackPointer = cpu.cpuRegisters.getStackPointer()
+        bus.setValue(address + 1, ((stackPointer and FILTER_TOP_BITS) shr EIGHT_BITS).toUByte())
+        bus.setValue(address, (stackPointer and FILTER_LOWER_BITS).toUByte())
+        cpu.cpuRegisters.incrementProgramCounter(3)
     }
 
     /**
@@ -109,20 +113,19 @@ class Load16Bit(
         repeat(3) { cpu.timers.tick() }
 
         val registerValue = when (register) {
-            0 -> cpu.registers.getAF()
-            1 -> cpu.registers.getBC()
-            2 -> cpu.registers.getDE()
-            3 -> cpu.registers.getHL()
+            0 -> cpu.cpuRegisters.getAF()
+            1 -> cpu.cpuRegisters.getBC()
+            2 -> cpu.cpuRegisters.getDE()
+            3 -> cpu.cpuRegisters.getHL()
             else -> return
         }
-        val stackPointer = cpu.registers.getStackPointer()
+        val stackPointer = cpu.cpuRegisters.getStackPointer()
 
         bus.setValue(stackPointer - 1, ((registerValue and 0xFF00) shr 8).toUByte())
         bus.setValue(stackPointer - 2, (registerValue and 0x00FF).toUByte())
 
-        cpu.registers.incrementStackPointer(-2)
-        cpu.registers.incrementStackPointer(-2)
-        cpu.registers.incrementProgramCounter(1)
+        cpu.cpuRegisters.incrementStackPointer(-2)
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -133,19 +136,19 @@ class Load16Bit(
     fun pop(register: Int) {
         repeat(2) { cpu.timers.tick() }
 
-        val stackPointer = cpu.registers.getStackPointer()
-        val wordToInsert = bus.getValue(stackPointer + 1).toInt() shl 8 +
+        val stackPointer = cpu.cpuRegisters.getStackPointer()
+        val wordToInsert = (bus.getValue(stackPointer + 1).toInt() shl 8) +
                 bus.getValue(stackPointer).toInt()
 
         when (register) {
-            0 -> cpu.registers.setAF(wordToInsert)
-            1 -> cpu.registers.setBC(wordToInsert)
-            2 -> cpu.registers.setDE(wordToInsert)
-            3 -> cpu.registers.setHL(wordToInsert)
+            0 -> cpu.cpuRegisters.setAF(wordToInsert)
+            1 -> cpu.cpuRegisters.setBC(wordToInsert)
+            2 -> cpu.cpuRegisters.setDE(wordToInsert)
+            3 -> cpu.cpuRegisters.setHL(wordToInsert)
             else -> return
         }
 
-        cpu.registers.incrementStackPointer(-2)
-        cpu.registers.incrementProgramCounter(1)
+        cpu.cpuRegisters.incrementStackPointer(2)
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 }

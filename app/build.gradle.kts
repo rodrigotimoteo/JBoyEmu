@@ -38,8 +38,15 @@ android {
     }
 }
 
-dependencies {
+kotlin {
+    jvmToolchain(17)
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+    }
+}
 
+dependencies {
+    implementation(project(":kboyemucore"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -48,6 +55,10 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.koin)
+    implementation(libs.koin.compose)
+    implementation(libs.koin.annotations)
+    implementation(libs.timber)
 
     testImplementation(libs.junit)
 

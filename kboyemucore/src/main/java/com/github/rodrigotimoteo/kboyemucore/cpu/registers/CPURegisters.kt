@@ -5,6 +5,7 @@ import com.github.rodrigotimoteo.kboyemucore.util.AF_INITIAL_VALUE
 import com.github.rodrigotimoteo.kboyemucore.util.BC_INITIAL_VALUE
 import com.github.rodrigotimoteo.kboyemucore.util.DE_INITIAL_VALUE
 import com.github.rodrigotimoteo.kboyemucore.util.EIGHT_BITS
+import com.github.rodrigotimoteo.kboyemucore.util.FILTER_16_BITS
 import com.github.rodrigotimoteo.kboyemucore.util.FILTER_LOWER_BITS
 import com.github.rodrigotimoteo.kboyemucore.util.FILTER_TOP_BITS
 import com.github.rodrigotimoteo.kboyemucore.util.HL_INITIAL_VALUE
@@ -19,7 +20,7 @@ import com.github.rodrigotimoteo.kboyemucore.util.STACK_POINTER_INITIAL_VALUE
  * @author rodrigotimoteo
  **/
 @Suppress("TooManyFunctions")
-class Registers(
+class CPURegisters(
     private val bus: Bus
 ) {
     /**
@@ -92,7 +93,7 @@ class Registers(
      * @param value to increase stack pointer
      */
     fun incrementStackPointer(value: Int) {
-        stackPointer += value
+        stackPointer = (stackPointer + value) and FILTER_16_BITS
     }
 
     /**
@@ -166,7 +167,7 @@ class Registers(
 
     fun setAF(value: Int) {
         setRegister(RegisterNames.A, ((value and FILTER_TOP_BITS) shr EIGHT_BITS).toUByte())
-        setRegister(RegisterNames.F, (value and FILTER_LOWER_BITS).toUByte())
+        setRegister(RegisterNames.F, (value and 0x00F0).toUByte())
     }
 
     /**
@@ -210,38 +211,38 @@ class Registers(
         val stringBuilder = StringBuilder();
 
         stringBuilder.append(RegisterNames.A).append(": ")
-            .append(String.format("%02X", getRegister(RegisterNames.A).value))
+            .append(String.format("%02X", getRegister(RegisterNames.A).value.toInt()))
             .append(" ");
         stringBuilder.append(RegisterNames.F).append(": ")
-            .append(String.format("%02X", getRegister(RegisterNames.F).value))
+            .append(String.format("%02X", getRegister(RegisterNames.F).value.toInt()))
             .append(" ");
         stringBuilder.append(RegisterNames.B).append(": ")
-            .append(String.format("%02X", getRegister(RegisterNames.B).value))
+            .append(String.format("%02X", getRegister(RegisterNames.B).value.toInt()))
             .append(" ");
         stringBuilder.append(RegisterNames.C).append(": ")
-            .append(String.format("%02X", getRegister(RegisterNames.C).value))
+            .append(String.format("%02X", getRegister(RegisterNames.C).value.toInt()))
             .append(" ");
         stringBuilder.append(RegisterNames.D).append(": ")
-            .append(String.format("%02X", getRegister(RegisterNames.D).value))
+            .append(String.format("%02X", getRegister(RegisterNames.D).value.toInt()))
             .append(" ");
         stringBuilder.append(RegisterNames.E).append(": ")
-            .append(String.format("%02X", getRegister(RegisterNames.E).value))
+            .append(String.format("%02X", getRegister(RegisterNames.E).value.toInt()))
             .append(" ");
         stringBuilder.append(RegisterNames.H).append(": ")
-            .append(String.format("%02X", getRegister(RegisterNames.H).value))
+            .append(String.format("%02X", getRegister(RegisterNames.H).value.toInt()))
             .append(" ");
         stringBuilder.append(RegisterNames.L).append(": ")
-            .append(String.format("%02X", getRegister(RegisterNames.L).value))
+            .append(String.format("%02X", getRegister(RegisterNames.L).value.toInt()))
             .append(" ");
 
         stringBuilder.append("SP: ").append(String.format("%04X", stackPointer)).append(" ");
         stringBuilder.append("PC: 00:").append(String.format("%04X", programCounter)).append(" ");
 
-//        stringBuilder.append("(").append(String.format("%02X", bus.getValue(programCounter)));
-//        stringBuilder.append(" ").append(String.format("%02X", bus.getValue(programCounter + 1)));
-//        stringBuilder.append(" ").append(String.format("%02X", bus.getValue(programCounter + 2)));
-//        stringBuilder.append(" ").append(String.format("%02X", bus.getValue(programCounter + 3)));
-//        stringBuilder.append(")");
+        stringBuilder.append("(").append(String.format("%02X", bus.getValue(programCounter).toInt()));
+        stringBuilder.append(" ").append(String.format("%02X", bus.getValue(programCounter + 1).toInt()));
+        stringBuilder.append(" ").append(String.format("%02X", bus.getValue(programCounter + 2).toInt()));
+        stringBuilder.append(" ").append(String.format("%02X", bus.getValue(programCounter + 3).toInt()));
+        stringBuilder.append(")");
 
         return stringBuilder.toString();
     }

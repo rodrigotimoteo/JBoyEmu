@@ -1,6 +1,10 @@
 package com.github.rodrigotimoteo.kboyemucore.cpu.interrupts
 
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
+import com.github.rodrigotimoteo.kboyemucore.cpu.CPU
+import com.github.rodrigotimoteo.kboyemucore.ktx.resetBit
+import com.github.rodrigotimoteo.kboyemucore.ktx.setBit
+import com.github.rodrigotimoteo.kboyemucore.ktx.testBit
 import com.github.rodrigotimoteo.kboyemucore.memory.ReservedAddresses
 
 /**
@@ -10,6 +14,7 @@ import com.github.rodrigotimoteo.kboyemucore.memory.ReservedAddresses
  * @author rodrigotimoteo
  **/
 class Interrupts(
+    private val cpu: CPU,
     private val bus: Bus
 ) {
 
@@ -35,7 +40,11 @@ class Interrupts(
      * inactive and the value of the IE register and IF register with an and operation is different then 0 the
      * instruction ends and the PC fails to be incremented
      */
-    private var haltBug: Boolean = false
+    private var _haltBug: Boolean = false
+
+    /** Value getter for the halt bug variable */
+    val haltBug: Boolean
+        get() = _haltBug
 
     /**
      * Stores whether an interrupt state change (enabling/disabling IME) is queried
@@ -47,42 +56,49 @@ class Interrupts(
      */
     private var changeToState: Boolean = false
 
-    public fun handleInterrupt() {
+    fun handleInterrupt() {
         val availableInterrupts = decodeServiceableInterrupts()
 
         if (interruptMasterEnabled) {
-            if (availableInterrupts.getValue() != 0x00) {
-                bus.executeFromCPU(BusConstants.UNHALT, Bus.EMPTY_ARGUMENTS)
+            if (availableInterrupts != 0x00) {
+                cpu.setHalted(false)
                 disableIme()
 
                 bus.storeProgramCounterInStackPointer()
 
                 checkInterruptTypes(availableInterrupts)
             }
-        } else if (bus.getFromCPU(BusConstants.GET_HALTED, Bus.EMPTY_ARGUMENTS) as Boolean) {
-            if (availableInterrupts.getValue() != 0x00) {
-                bus.executeFromCPU(BusConstants.HALT, Bus.EMPTY_ARGUMENTS)
+        } else if (cpu.isHalted() && availableInterrupts != 0x00) {
+            cpu.setHalted(true)
 
-                val machineCycles = bus.getFromCPU(BusConstants.GET_MC, Bus.EMPTY_ARGUMENTS) as Int
-                val haltMachineCycles = bus.getFromCPU(BusConstants.GET_HALT_MC, Bus.EMPTY_ARGUMENTS) as Int
+            val machineCycles = cpu.timers.machineCycles
+            val haltMachineCycles = cpu.timers.haltCycleCounter
 
-                if (machineCycles == haltMachineCycles) haltBug = true
-            }
+            if (machineCycles == haltMachineCycles) _haltBug = true
         }
     }
 
     /**
-     * Decodes the interrrupts being requested, this is obtained from the IE and IF register
+     * Decodes the interrupts being requested, this is obtained from the IE and IF register
      *
      * @return value of IE register and IF register after AND operation
      */
-    private fun decodeServiceableInterrupts(): Word = Word(ieRegister.getValue() and ifRegister.getValue())
+    private fun decodeServiceableInterrupts(): Int = ieRegister.toInt() and ifRegister.toInt()
 
-    private fun checkInterruptTypes(availableInterrupts: Word) {
-        for (interrupt in InterruptNames.entries) {
-            if (availableInterrupts.testBit(interrupt.testBit)) {
-                bus.executeFromCPU(BusConstants.SET_PC, Bus.EMPTY_ARGUMENTS)
-                ifRegister.resetBit(interrupt.testBit)
+    /**
+     * Based on the available given interrupts to be serviced provided by the integer received that
+     * combines the values of IE and IF register. Serves the first available interrupt and then quits
+     *
+     * @param availableInterrupts combination of IE and IF register
+     */
+    private fun checkInterruptTypes(availableInterrupts: Int) {
+        InterruptNames.entries.forEachIndexed { index, interrupt ->
+            if (availableInterrupts.toUByte().testBit(interrupt.testBit)) {
+                cpu.cpuRegisters.setProgramCounter(0x40 + 0x8 * index)
+                bus.setValue(
+                    ReservedAddresses.IF.memoryAddress,
+                    ifRegister.resetBit(interrupt.testBit)
+                )
 
                 return
             }
@@ -95,10 +111,10 @@ class Interrupts(
      * @param interrupt bit to set in the IF Register
      */
     @Suppress("MagicNumber")
-    public fun requestInterrupt(interrupt: Int) {
+    fun requestInterrupt(interrupt: Int) {
         if (interrupt !in 0..4) return
 
-        ifRegister.setBit(interrupt)
+        bus.setValue(ReservedAddresses.IF.memoryAddress, ifRegister.setBit(interrupt))
     }
 
     /**
@@ -106,7 +122,7 @@ class Interrupts(
      *
      * @param changeToState which state to change the IME flag to (true if enable false otherwise)
      */
-    public fun setInterruptChange(changeToState: Boolean) {
+    fun setInterruptChange(changeToState: Boolean) {
         interruptChange = true
         this.changeToState = changeToState
     }
@@ -116,12 +132,12 @@ class Interrupts(
      *
      * @return if there is IME change request
      */
-    public fun requestedInterruptChange(): Boolean = interruptChange
+    fun requestedInterruptChange(): Boolean = interruptChange
 
     /**
      * Change the IME state after the request is made
      */
-    public fun triggerImeChange() {
+    fun triggerImeChange() {
         interruptMasterEnabled = changeToState
         interruptChange = false
     }
@@ -129,21 +145,14 @@ class Interrupts(
     /**
      * Disables the Ime flag
      */
-    public fun disableIme() {
+    fun disableIme() {
         interruptMasterEnabled = false
     }
 
     /**
-     * Public getter for the halt bug flag
-     *
-     * @return halt bug status, true if enabled false otherwise
-     */
-    public fun isHaltBug(): Boolean = haltBug
-
-    /**
      * Disables the halt bug
      */
-    public fun disableHaltBug() {
-        haltBug = false
+    fun disableHaltBug() {
+        _haltBug = false
     }
 }

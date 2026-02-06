@@ -1,9 +1,9 @@
 package com.github.rodrigotimoteo.kboyemucore.util
 
-import com.github.rodrigotimoteo.kboyemucore.KBEmu
+import com.github.rodrigotimoteo.kboyemucore.api.KBoyEmulator
 
 /**
- * Helper interface to enable logging in the [KBEmu] core implementation
+ * Helper interface to enable logging in the [KBoyEmulator] core implementation
  */
 interface Logger {
 

@@ -25,11 +25,11 @@ class Load8Bit(
      * @param memoryAddress which memory address to use
      */
     fun ldTwoRegisters(memoryAddress: Int) {
-        val valueInRegisterA = cpu.registers.getRegister(RegisterNames.A).value
+        val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value
 
         cpu.timers.tick()
         bus.setValue(memoryAddress, valueInRegisterA)
-        cpu.registers.incrementProgramCounter(1)
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -38,11 +38,11 @@ class Load8Bit(
      */
     fun ldNN() {
         val memoryAddress = bus.calculateNN()
-        val valueInRegisterA = cpu.registers.getRegister(RegisterNames.A).value
+        val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value
 
         cpu.timers.tick()
         bus.setValue(memoryAddress, valueInRegisterA)
-        cpu.registers.incrementProgramCounter(3)
+        cpu.cpuRegisters.incrementProgramCounter(3)
     }
 
     /**
@@ -54,8 +54,8 @@ class Load8Bit(
         val valueAtAddress = bus.getValue(memoryAddress)
 
         cpu.timers.tick()
-        cpu.registers.setRegister(RegisterNames.A, valueAtAddress)
-        cpu.registers.incrementProgramCounter(1)
+        cpu.cpuRegisters.setRegister(RegisterNames.A, valueAtAddress)
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -67,8 +67,8 @@ class Load8Bit(
         val valueAtAddress = bus.getValue(memoryAddress)
 
         cpu.timers.tick()
-        cpu.registers.setRegister(RegisterNames.A, valueAtAddress)
-        cpu.registers.incrementProgramCounter(3)
+        cpu.cpuRegisters.setRegister(RegisterNames.A, valueAtAddress)
+        cpu.cpuRegisters.incrementProgramCounter(3)
     }
 
     /**
@@ -77,12 +77,12 @@ class Load8Bit(
      * @param register where to store immediate word
      */
     fun ldNRegister(register: RegisterNames) {
-        val programCounter = cpu.registers.getProgramCounter()
+        val programCounter = cpu.cpuRegisters.getProgramCounter()
         val immediateWord = bus.getValue(programCounter + 1)
 
         cpu.timers.tick()
-        cpu.registers.setRegister(register, immediateWord)
-        cpu.registers.incrementProgramCounter(2)
+        cpu.cpuRegisters.setRegister(register, immediateWord)
+        cpu.cpuRegisters.incrementProgramCounter(2)
     }
 
     /**
@@ -92,12 +92,12 @@ class Load8Bit(
     fun ldNHL() {
         repeat(2) { cpu.timers.tick() }
 
-        val programCounter = cpu.registers.getProgramCounter()
-        val valueInHL = cpu.registers.getHL()
+        val programCounter = cpu.cpuRegisters.getProgramCounter()
+        val valueInHL = cpu.cpuRegisters.getHL()
         val value = bus.getValue(programCounter + 1)
 
         bus.setValue(valueInHL, value)
-        cpu.registers.incrementProgramCounter(2)
+        cpu.cpuRegisters.incrementProgramCounter(2)
     }
 
     /**
@@ -107,10 +107,10 @@ class Load8Bit(
      * @param registerOut input register
      */
     fun ld(registerIn: RegisterNames, registerOut: RegisterNames) {
-        val value = cpu.registers.getRegister(registerOut).value
+        val value = cpu.cpuRegisters.getRegister(registerOut).value
 
-        cpu.registers.setRegister(registerIn, value)
-        cpu.registers.incrementProgramCounter(1)
+        cpu.cpuRegisters.setRegister(registerIn, value)
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -119,11 +119,11 @@ class Load8Bit(
      * @param register to receive new value
      */
     fun ldHLtoRegister(register: RegisterNames) {
-        val valueInHL = cpu.registers.getHL()
+        val valueInHL = cpu.cpuRegisters.getHL()
 
         cpu.timers.tick()
-        cpu.registers.setRegister(register, bus.getValue(valueInHL))
-        cpu.registers.incrementProgramCounter(1)
+        cpu.cpuRegisters.setRegister(register, bus.getValue(valueInHL))
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -132,12 +132,12 @@ class Load8Bit(
      * @param register to be used as input value
      */
     fun ldRtoHL(register: RegisterNames) {
-        val value = cpu.registers.getRegister(register).value
-        val valueInHL = cpu.registers.getHL()
+        val value = cpu.cpuRegisters.getRegister(register).value
+        val valueInHL = cpu.cpuRegisters.getHL()
 
         cpu.timers.tick()
         bus.setValue(valueInHL, value)
-        cpu.registers.incrementProgramCounter(1)
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -147,18 +147,18 @@ class Load8Bit(
      * @param aIntoC defines whether the value should be assigned to the A register false or otherwise true
      */
     fun ldAC(aIntoC: Boolean) {
-        val valueInRegisterA = cpu.registers.getRegister(RegisterNames.A).value
-        val valueInRegisterC = cpu.registers.getRegister(RegisterNames.C).value.toInt()
+        val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value
+        val valueInRegisterC = cpu.cpuRegisters.getRegister(RegisterNames.C).value.toInt()
         val memoryAddress = 0xFF00 + valueInRegisterC
 
         if (aIntoC) {
             bus.setValue(memoryAddress, valueInRegisterA)
         } else {
-            cpu.registers.setRegister(RegisterNames.A, bus.getValue(memoryAddress))
+            cpu.cpuRegisters.setRegister(RegisterNames.A, bus.getValue(memoryAddress))
         }
 
         cpu.timers.tick()
-        cpu.registers.incrementProgramCounter(1)
+        cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
     /**
@@ -167,13 +167,13 @@ class Load8Bit(
      * @param aIntoC sets whether register A should be used as input or has the receiver
      */
     fun ldd(aIntoC: Boolean) {
-        val valueInHL = cpu.registers.getHL()
+        val valueInHL = cpu.cpuRegisters.getHL()
 
         if (aIntoC) ldTwoRegisters(valueInHL)
         else ldTwoRegistersIntoA(valueInHL)
 
         val finalValueInHL = (valueInHL - 1) and 0xFFFF
-        cpu.registers.setHL(finalValueInHL)
+        cpu.cpuRegisters.setHL(finalValueInHL)
     }
 
     /**
@@ -183,13 +183,13 @@ class Load8Bit(
      * @param aIntoC sets whether register A should be used as input true or as the receiver false
      */
     fun ldi(aIntoC: Boolean) {
-        val valueInHL = cpu.registers.getHL()
+        val valueInHL = cpu.cpuRegisters.getHL()
 
         if (aIntoC) ldTwoRegisters(valueInHL)
         else ldTwoRegistersIntoA(valueInHL)
 
         val finalValueInHL = (valueInHL + 1) and 0xFFFF
-        cpu.registers.setHL(finalValueInHL)
+        cpu.cpuRegisters.setHL(finalValueInHL)
     }
 
     /**
@@ -201,17 +201,17 @@ class Load8Bit(
     fun ldh(isInput: Boolean) {
         repeat(2) { cpu.timers.tick() }
 
-        val valueInRegisterA = cpu.registers.getRegister(RegisterNames.A).value
-        val programCounter = cpu.registers.getProgramCounter()
+        val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value
+        val programCounter = cpu.cpuRegisters.getProgramCounter()
         val valueN = bus.getValue(programCounter + 1).toInt()
         val memoryAddress = 0xFF00 + valueN
 
         if (isInput) {
             bus.setValue(memoryAddress, valueInRegisterA)
         } else {
-            cpu.registers.setRegister(RegisterNames.A, bus.getValue(memoryAddress))
+            cpu.cpuRegisters.setRegister(RegisterNames.A, bus.getValue(memoryAddress))
         }
 
-        cpu.registers.incrementProgramCounter(2)
+        cpu.cpuRegisters.incrementProgramCounter(2)
     }
 }

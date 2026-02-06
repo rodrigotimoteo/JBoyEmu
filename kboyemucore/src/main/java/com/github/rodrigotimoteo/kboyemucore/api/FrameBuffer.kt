@@ -15,7 +15,7 @@ import com.github.rodrigotimoteo.kboyemucore.util.WIDTH
 data class FrameBuffer(
     val width: Int = WIDTH,
     val height: Int = HEIGHT,
-    val pixels: IntArray
+    val pixels: ByteArray
 ) {
 
     override fun equals(other: Any?): Boolean {

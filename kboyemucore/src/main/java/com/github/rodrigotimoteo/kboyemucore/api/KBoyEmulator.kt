@@ -1,5 +1,6 @@
 package com.github.rodrigotimoteo.kboyemucore.api
 
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -46,6 +47,14 @@ interface KBoyEmulator {
      * Starts the emulator execution
      */
     fun run()
+
+    /**
+     * This gives back the job created in [run] to the consumer basically enabling the consumer when
+     * running headless to own the lifecycle of the emulator (and join its execution)
+     *
+     * @return Job created in [run]
+     */
+    fun job(): Job?
 
     /**
      * Pauses the emulator execution
