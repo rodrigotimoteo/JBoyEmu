@@ -62,47 +62,41 @@ class PPUDrawer(
      * Draws the window part of the screen based on specification provided by the GameBoy PPU
      */
     internal fun drawWindow(tileMapAddress: Int, tileDataAddress: Int) { // NOSONAR
-        if (ppu.ppuRegisters.windowY < 0 || ppu.ppuRegisters.windowX > 166 ||
-            ppu.ppuRegisters.currentLine < ppu.ppuRegisters.windowY
-        ) {
-            return
-        }
-
+        val windowY = ppu.ppuRegisters.windowY
+        val windowX = ppu.ppuRegisters.windowX
         val tempY = ppu.ppuRegisters.currentLineWindow
-        for (x in 0..159) {
-            val tempX: Int
-            if (x < ppu.ppuRegisters.windowX) continue
-            else tempX = x - ppu.ppuRegisters.windowX
 
-            val address = tileMapAddress + ((tempY / 8) * 0x20)
-            var tile = bus.getValue(address + (tempX) / 8).toInt()
+        if (windowY < 0 || windowX > WIDTH || ppu.ppuRegisters.currentLine < windowY) return
 
-            if (ppu.ppuRegisters.negativeTiles) {
-                tile = if (((tile and 0x80) shr 7) == 0) tile and 0x7f
-                else (tile and 0x7f) - 0x80
-            }
+        for (x in 0 until WIDTH) {
+            print(windowX)
+            if (x < windowX) continue
 
+            val tempX = x - windowX
+
+            val tileIndexAddress = tileMapAddress + ((tempY / 8) * 0x20) + (tempX / 8)
+            val tile = bus.getValue(tileIndexAddress).toInt()
             val tileLine = if (ppu.ppuRegisters.negativeTiles) {
-                if (((tile and 0x80) shr 7) == 0) {
-                    tileDataAddress + ((tile and 0xff) * 0x10) + ((ppu.ppuRegisters.currentLine % 8) * 2)
+                val signedTile = tile.toByte().toInt()
+                if (signedTile >= 0) {
+                    tileDataAddress + signedTile * 0x10 + (tempY % 8) * 2
                 } else {
-                    ReservedAddresses.TILE_DATA_1.memoryAddress + (((tile and 0xff) - 128) * 0x10) +
-                            ((ppu.ppuRegisters.currentLine % 8) * 2)
+                    ReservedAddresses.TILE_DATA_1.memoryAddress + (signedTile + 128) * 0x10 + (tempY % 8) * 2
                 }
             } else {
-                tileDataAddress + ((tile and 0xff) * 0x10) + ((ppu.ppuRegisters.currentLine % 8) * 2)
+                tileDataAddress + tile * 0x10 + (tempY % 8) * 2
             }
 
             val offset = 7 - (tempX % 8)
             val colorNum =
                 (((bus.getValue(tileLine).toInt() and (1 shl offset)) shr offset) +
                         (((bus.getValue(tileLine + 1).toInt() and (1 shl offset)) shr offset) * 2))
-            val color = decodeColor(
-                colorNum,
-                bus.getValue(ReservedAddresses.BGP.memoryAddress).toInt()
-            )
+            val color =
+                decodeColor(colorNum, bus.getValue(ReservedAddresses.BGP.memoryAddress).toInt())
 
-            painting[ppu.ppuRegisters.currentLine * WIDTH + x] = color
+            println(ppu.ppuRegisters.currentLine)
+            println(tempX)
+            painting[ppu.ppuRegisters.currentLine * WIDTH + tempX] = color
         }
 
         ppu.ppuRegisters.currentLineWindow++
@@ -112,10 +106,6 @@ class PPUDrawer(
      * Draws the sprite part of the screen based on specification provided by the GameBoy PPU
      */
     internal fun drawSprite() { // NOSONAR
-        var tempY: Int
-        var tempX: Int
-        var tile: Int
-        var attributesAddress: Int
         val drawnX = IntArray(10)
 
         var drawnSprites = 0
@@ -123,13 +113,14 @@ class PPUDrawer(
 
         var spriteNumber = 0
         while (spriteNumber < 40 && drawnSprites < 10) {
-
-            tempY = bus.getValue(ReservedAddresses.OAM_START.memoryAddress + (spriteNumber * 4))
+            val tempY = bus.getValue(ReservedAddresses.OAM_START.memoryAddress + (spriteNumber * 4))
                 .toInt() - 16
-            tempX = bus.getValue(ReservedAddresses.OAM_START.memoryAddress + (spriteNumber * 4) + 1)
-                .toInt() - 8
-            tile = bus.getValue(ReservedAddresses.OAM_START.memoryAddress + (spriteNumber * 4) + 2)
-                .toInt()
+            val tempX =
+                bus.getValue(ReservedAddresses.OAM_START.memoryAddress + (spriteNumber * 4) + 1)
+                    .toInt() - 8
+            var tile =
+                bus.getValue(ReservedAddresses.OAM_START.memoryAddress + (spriteNumber * 4) + 2)
+                    .toInt()
 
             var quit = false
             if (drawnSprites > 1) for (x in drawnX) if (x == tempX) quit = true
@@ -138,9 +129,10 @@ class PPUDrawer(
                 continue
             }
 
-            if (spriteOffset == 16) tile = tile and 0xfe
+            if (spriteOffset == 16) tile = tile and 0xFE
 
-            attributesAddress = ReservedAddresses.OAM_START.memoryAddress + (spriteNumber * 4) + 3
+            val attributesAddress =
+                ReservedAddresses.OAM_START.memoryAddress + (spriteNumber * 4) + 3
 
             if ((ppu.ppuRegisters.currentLine >= tempY) && (ppu.ppuRegisters.currentLine < (tempY + spriteOffset))) {
                 val attributes = bus.getValue(attributesAddress)
@@ -178,7 +170,8 @@ class PPUDrawer(
                     val color = decodeColor(colorNum, palette)
 
                     if ((tempX + pixelPrinted < 160) && (tempX + pixelPrinted >= 0) && (colorNum != 0)) {
-                        painting[ppu.ppuRegisters.currentLine * WIDTH + tempX + pixelPrinted] = color
+                        painting[ppu.ppuRegisters.currentLine * WIDTH + tempX + pixelPrinted] =
+                            color
                     }
                 }
 

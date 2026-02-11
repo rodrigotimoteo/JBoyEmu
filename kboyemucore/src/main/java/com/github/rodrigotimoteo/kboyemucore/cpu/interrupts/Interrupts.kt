@@ -69,7 +69,7 @@ class Interrupts(
                 checkInterruptTypes(availableInterrupts)
             }
         } else if (cpu.isHalted() && availableInterrupts != 0x00) {
-            cpu.setHalted(true)
+            cpu.setHalted(false)
 
             val machineCycles = cpu.timers.machineCycles
             val haltMachineCycles = cpu.timers.haltCycleCounter

@@ -429,7 +429,7 @@ class Alu(
     fun cp(register: RegisterNames) {
         val valueInGivenRegister = cpu.cpuRegisters.getRegister(register).value.toInt()
         val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
-        val finalValue = valueInGivenRegister - valueInRegisterA
+        val finalValue = valueInRegisterA - valueInGivenRegister
 
         val zero = checkZero(finalValue)
         val halfCarry = checkHalfCarrySub(valueInRegisterA, valueInGivenRegister, 0)

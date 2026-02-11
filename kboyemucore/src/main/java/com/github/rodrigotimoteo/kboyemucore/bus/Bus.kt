@@ -67,10 +67,6 @@ class Bus(
                             ppu.tick()
                         }
                     }
-                    if (cpuCounter % 100000 < 2) {
-//                        print(memoryManager)
-//                        exitProcess(0)
-                    }
                 } catch (e: InterruptedException) {
                     e.printStackTrace()
                     exitProcess(-1)

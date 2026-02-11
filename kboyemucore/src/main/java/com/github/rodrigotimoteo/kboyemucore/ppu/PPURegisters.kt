@@ -113,7 +113,7 @@ class PPURegisters(
      */
     internal fun readWindow() {
         _windowY = bus.getValue(ReservedAddresses.WY.memoryAddress).toInt()
-        _windowX = (bus.getValue(ReservedAddresses.WX.memoryAddress).toInt() - 7)
+        _windowX = (bus.getValue(ReservedAddresses.WX.memoryAddress).toInt() - 7) and 0xFF
     }
 
     /**

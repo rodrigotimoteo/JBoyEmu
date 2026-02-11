@@ -25,7 +25,7 @@ import com.github.rodrigotimoteo.kboyemucore.memory.rom.RomModule
  */
 
 class MemoryManager(
-    private val bus: Bus,
+    bus: Bus,
     private val rom: MemoryModule
 ) : MemoryManipulation {
 
@@ -98,12 +98,12 @@ class MemoryManager(
         bottomRegisters.setValue(ReservedAddresses.OBP1.memoryAddress, 0xFFu)
 
         //Debug Purposes LY
-        // bottomRegisters.setValue(ReservedAddresses.LY.memoryAddress, 0x90u)
+//         bottomRegisters.setValue(ReservedAddresses.LY.memoryAddress, 0x90u)
     }
 
     override fun setValue(memoryAddress: Int, value: UByte) = when (memoryAddress) {
         in 0 until ReservedAddresses.SWITCH_ROM_END.memoryAddress -> {
-            rom.setValue(memoryAddress, value)
+//            rom.setValue(memoryAddress, value)
         }
 
         in ReservedAddresses.SWITCH_ROM_END.memoryAddress until ReservedAddresses.VRAM_END.memoryAddress -> {
@@ -145,8 +145,11 @@ class MemoryManager(
     fun setValueFromPPU(memoryAddress: Int, value: UByte) = when (memoryAddress) {
         in ReservedAddresses.JOYP.memoryAddress until ReservedAddresses.IE.memoryAddress -> {
             //needs to go back to normal this should write everytime
-//            if (memoryAddress != ReservedAddresses.LY.memoryAddress)  else 2+1
-            bottomRegisters.setValue(memoryAddress, value)
+//            if (memoryAddress != ReservedAddresses.LY.memoryAddress) {
+                bottomRegisters.setValue(memoryAddress, value)
+//            } else {
+//                2+1
+//            }
         }
 
         else -> {
@@ -161,15 +164,20 @@ class MemoryManager(
      * @param memoryAddress memory location where value should be written
      * @param value content that needs to be written to given address
      */
-    private fun handleBottomRegisters(memoryAddress: Int, value: UByte) {
-        if (memoryAddress == ReservedAddresses.DIV.memoryAddress)
-            bottomRegisters.setValue(memoryAddress, 0x00.toUByte())
-        else if (memoryAddress == ReservedAddresses.LY.memoryAddress)
-            bottomRegisters.setValue(memoryAddress, 0x00.toUByte())
-        else {
+    private fun handleBottomRegisters(memoryAddress: Int, value: UByte) = when (memoryAddress) {
+        ReservedAddresses.DIV.memoryAddress -> bottomRegisters.setValue(
+            memoryAddress,
+            0x00.toUByte()
+        )
+
+        ReservedAddresses.LY.memoryAddress -> bottomRegisters.setValue(
+            memoryAddress,
+            0x00.toUByte()
+        )
+
+        else -> {
             bottomRegisters.setValue(memoryAddress, value)
         }
-
     }
 
     override fun getValue(memoryAddress: Int): UByte = when (memoryAddress) {
