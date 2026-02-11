@@ -6,7 +6,6 @@ package com.github.rodrigotimoteo.kboyemucore.memory
  *
  * @author rodrigotimoteo
  **/
-@Suppress("MagicNumber")
 enum class ReservedAddresses(
     val memoryAddress: Int
 ) {

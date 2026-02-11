@@ -12,7 +12,7 @@ import com.github.rodrigotimoteo.kboyemucore.cpu.registers.RegisterNames
  *
  * @author rodrigotimoteo
  **/
-@Suppress("MagicNumber", "TooManyFunctions")
+@Suppress("TooManyFunctions")
 class Alu(
     private val cpu: CPU,
     private val bus: Bus

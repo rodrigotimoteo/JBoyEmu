@@ -9,7 +9,6 @@ import com.github.rodrigotimoteo.kboyemucore.memory.ReservedAddresses
  *
  * @author rodrigotimoteo
  **/
-@Suppress("MagicNumber")
 @OptIn(ExperimentalUnsignedTypes::class)
 class RomReader {
 

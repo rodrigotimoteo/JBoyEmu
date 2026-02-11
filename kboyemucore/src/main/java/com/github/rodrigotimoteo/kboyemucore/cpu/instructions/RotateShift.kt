@@ -12,7 +12,7 @@ import com.github.rodrigotimoteo.kboyemucore.cpu.registers.RegisterNames
  *
  * @author rodrigotimoteo
  **/
-@Suppress("MagicNumber")
+@Suppress("TooManyFunctions")
 class RotateShift(
     private val cpu: CPU,
     private val bus: Bus

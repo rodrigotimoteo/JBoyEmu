@@ -11,6 +11,7 @@ import com.github.rodrigotimoteo.kboyemucore.cpu.CPU
  *
  * @author rodrigotimoteo
  **/
+@Suppress("TooManyFunctions")
 class Jump(
     private val cpu: CPU,
     private val bus: Bus

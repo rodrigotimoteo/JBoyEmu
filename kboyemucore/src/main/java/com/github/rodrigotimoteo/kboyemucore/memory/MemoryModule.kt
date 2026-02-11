@@ -107,7 +107,6 @@ open class MemoryModule(
      *
      * @return custom dump of this module
      */
-    @Suppress("MagicNumber")
     override fun toString(): String {
         val stringBuilder = StringBuilder()
 

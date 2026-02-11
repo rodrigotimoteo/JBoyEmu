@@ -7,7 +7,6 @@ import com.github.rodrigotimoteo.kboyemucore.ktx.testBit
 import com.github.rodrigotimoteo.kboyemucore.memory.ReservedAddresses
 
 class PPURegisters(
-    private val ppu: PPU,
     private val bus: Bus,
 ) {
 

@@ -24,7 +24,6 @@ import com.github.rodrigotimoteo.kboyemucore.memory.rom.RomModule
  * @author rodrigotimoteo
  */
 
-@Suppress("MagicNumber")
 class MemoryManager(
     private val bus: Bus,
     private val rom: MemoryModule

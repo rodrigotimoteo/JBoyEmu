@@ -54,5 +54,4 @@ class KBoyEmulatorViewModel(
 
         emulator.run()
     }
-
 }

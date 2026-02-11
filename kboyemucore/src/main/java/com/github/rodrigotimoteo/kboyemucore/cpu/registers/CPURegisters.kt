@@ -206,7 +206,7 @@ class CPURegisters(
      *
      * @return String with debug dump of registers
      */
-    @Suppress("ImplicitDefaultLocale", "MagicNumber")
+    @Suppress("ImplicitDefaultLocale")
     override fun toString(): String {
         val stringBuilder = StringBuilder();
 

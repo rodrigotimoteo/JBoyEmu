@@ -9,6 +9,7 @@ import com.github.rodrigotimoteo.kboyemucore.util.WIDTH
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+@Suppress("TooManyFunctions")
 class PPU(
     private val bus: Bus,
 ) {
@@ -31,7 +32,7 @@ class PPU(
     /**
      * Reference to [PPURegisters]
      */
-    internal val ppuRegisters = PPURegisters(this, bus)
+    internal val ppuRegisters = PPURegisters(bus)
 
     /**
      * Updates the painting flow providing a new frame to be rendered
