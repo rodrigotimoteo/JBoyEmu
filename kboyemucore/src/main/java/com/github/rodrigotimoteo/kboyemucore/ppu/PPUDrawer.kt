@@ -69,7 +69,6 @@ class PPUDrawer(
         if (windowY < 0 || windowX > WIDTH || ppu.ppuRegisters.currentLine < windowY) return
 
         for (x in 0 until WIDTH) {
-            print(windowX)
             if (x < windowX) continue
 
             val tempX = x - windowX
@@ -94,8 +93,6 @@ class PPUDrawer(
             val color =
                 decodeColor(colorNum, bus.getValue(ReservedAddresses.BGP.memoryAddress).toInt())
 
-            println(ppu.ppuRegisters.currentLine)
-            println(tempX)
             painting[ppu.ppuRegisters.currentLine * WIDTH + tempX] = color
         }
 

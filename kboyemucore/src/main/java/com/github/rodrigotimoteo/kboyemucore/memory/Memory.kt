@@ -1,7 +1,6 @@
 package com.github.rodrigotimoteo.kboyemucore.memory
 
 import com.github.rodrigotimoteo.kboyemucore.DisplayFrame
-import com.github.rodrigotimoteo.kboyemucore.cpu.OldCPU
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.FileOutputStream
@@ -10,7 +9,6 @@ import java.nio.file.Files
 import java.util.Arrays
 
 class Memory(
-    private val cpu: OldCPU
 ) {
 //
 //

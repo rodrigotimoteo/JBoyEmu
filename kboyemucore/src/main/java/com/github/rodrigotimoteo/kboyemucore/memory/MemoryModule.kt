@@ -11,7 +11,7 @@ open class MemoryModule(
     private val numberOfBanks: Int = 1,
     private val memoryOffset: Int,
     private val simultaneousBanks: Int,
-    private val activeBank: Int = 0,
+    internal var activeBank: Int = 0,
     private val size: Int,
 ) : MemoryManipulation {
     private val memory: Array<UByteArray> = Array(numberOfBanks) { UByteArray(size) }

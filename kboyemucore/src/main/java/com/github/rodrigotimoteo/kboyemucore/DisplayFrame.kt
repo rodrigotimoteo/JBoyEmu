@@ -1,6 +1,5 @@
 package com.github.rodrigotimoteo.kboyemucore
 
-import com.github.rodrigotimoteo.kboyemucore.cpu.OldCPU
 import com.github.rodrigotimoteo.kboyemucore.memory.Memory
 import com.github.rodrigotimoteo.kboyemucore.memory.rom.ROM
 import com.github.rodrigotimoteo.kboyemucore.ppu.PPU
@@ -85,45 +84,7 @@ class DisplayFrame {
 //    //
 //    //    }
 //    //    @Override
-//    fun keyPressed(e: androidx.compose.ui.input.key.KeyEvent) {
-//        val keyPressed = getKeyValue(e)
-//        if (keyPressed == -1) return
-//
-//        joypad = joypad and ((1 shl keyPressed).inv())
-//        cpu!!.setInterrupt(HI_LO_INTERRUPT)
-//    }
-//
-//    fun getJoypad(joypadInfo: Char): Int {
-//        if ((joypadInfo.code and 0x10) == 0) {
-//            return (joypad and 0xf0) shr 4
-//        } else if ((joypadInfo.code and 0x20) == 0) {
-//            return joypad and 0xf
-//        }
-//        return 0
-//    }
-//
-//    fun getKeyValue(e: androidx.compose.ui.input.key.KeyEvent): Int {
-//        val keyCode: Int = e.nativeKeyEvent.getKeyCode()
-//
-//        return when (keyCode) {
-//            VK_Z -> 0
-//            VK_X -> 1
-//            VK_1 -> 2
-//            VK_2 -> 3
-//            VK_L -> 4
-//            VK_J -> 5
-//            VK_I -> 6
-//            VK_K -> 7
-//            else -> -1
-//        }
-//    }
-//
-//    public override fun keyReleased(e: androidx.compose.ui.input.key.KeyEvent) {
-//        val keyPressed = getKeyValue(e)
-//        if (keyPressed == -1) return
-//
-//        joypad = joypad or (1 shl keyPressed)
-//    }
+
 //
 //    fun chooseFile(): File {
 //        val fileChooser: FileDialog = FileDialog(this, "Choose a main.kotlin.ROM")

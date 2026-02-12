@@ -39,11 +39,11 @@ class KBoyEmulatorImpl: KBoyEmulator {
     }
 
     override fun press(button: Button) {
-        TODO("Not yet implemented")
+        bus?.press(button)
     }
 
     override fun release(button: Button) {
-        TODO("Not yet implemented")
+        bus?.release(button)
     }
 
     override fun run() {

@@ -1,6 +1,9 @@
 package com.github.rodrigotimoteo.kboyemu.presentation.emulator
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -15,9 +18,15 @@ fun EmulatorScreen(
 ) {
     val image by viewModel.frameBitmap.collectAsState()
 
-    Image(
-        bitmap = image,
-        contentDescription = null,
-        modifier = modifier
-    )
+    Column(modifier = modifier) {
+        Image(
+            bitmap = image,
+            contentDescription = null,
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(160f / 144f)
+        )
+
+        EmulatorControls(viewModel = viewModel)
+    }
 }

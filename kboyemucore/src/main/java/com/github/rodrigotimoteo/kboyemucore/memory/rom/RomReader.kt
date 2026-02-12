@@ -3,6 +3,11 @@ package com.github.rodrigotimoteo.kboyemucore.memory.rom
 import com.github.rodrigotimoteo.kboyemucore.api.Rom
 import com.github.rodrigotimoteo.kboyemucore.memory.MemoryModule
 import com.github.rodrigotimoteo.kboyemucore.memory.ReservedAddresses
+import com.github.rodrigotimoteo.kboyemucore.memory.rom.cartridge.MBC0
+import com.github.rodrigotimoteo.kboyemucore.memory.rom.cartridge.MBC1
+import com.github.rodrigotimoteo.kboyemucore.memory.rom.cartridge.MBC2
+import com.github.rodrigotimoteo.kboyemucore.memory.rom.cartridge.MBC3
+import com.github.rodrigotimoteo.kboyemucore.memory.rom.cartridge.MBC5
 
 /**
  * Class responsible for reading a file and parsing its rom, creating a MBC for the given rom
@@ -66,23 +71,22 @@ class RomReader {
                 MBC0(getRomSize(), getRamSize(), romContent)
 
             0x01, 0x02, 0x03 ->
-                //should be 1
-                MBC0(getRomSize(), getRamSize(), romContent)
+                MBC1(getRomSize(), getRamSize(), romContent)
 
             0x05, 0x06 ->
                 //should be 2
-                MBC0(getRomSize(), getRamSize(), romContent)
+                MBC1(getRomSize(), getRamSize(), romContent)
 
             0x0F, 0x10, 0x11, 0x12, 0x13 ->
                 //should be 3
-                MBC0(getRomSize(), getRamSize(), romContent)
+                MBC1(getRomSize(), getRamSize(), romContent)
 
             0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E ->
                 //should be 5
-                MBC0(getRomSize(), getRamSize(), romContent)
+                MBC1(getRomSize(), getRamSize(), romContent)
 
             else ->
-                MBC0(getRomSize(), getRamSize(), romContent)
+                MBC1(getRomSize(), getRamSize(), romContent)
         }
 
     /**
