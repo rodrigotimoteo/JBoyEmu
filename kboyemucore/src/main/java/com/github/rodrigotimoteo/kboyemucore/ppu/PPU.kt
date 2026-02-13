@@ -34,6 +34,9 @@ class PPU(
      */
     internal val ppuRegisters = PPURegisters(bus)
 
+    private var frameCount = 0
+    private var lastTimestampMs = System.currentTimeMillis()
+
     /**
      * Updates the painting flow providing a new frame to be rendered
      *
@@ -41,6 +44,16 @@ class PPU(
      */
     internal fun propagatePaintingUpdate(painting: ByteArray) {
         _painting.value = FrameBuffer(pixels = painting.copyOf())
+
+        frameCount++
+        val nowMs = System.currentTimeMillis()
+        val elapsedMs = nowMs - lastTimestampMs
+        if (elapsedMs >= 1000) {
+            val fps = (frameCount * 1000.0) / elapsedMs
+            println("PPU FPS: %.1f".format(fps))
+            frameCount = 0
+            lastTimestampMs = nowMs
+        }
     }
 
     /**

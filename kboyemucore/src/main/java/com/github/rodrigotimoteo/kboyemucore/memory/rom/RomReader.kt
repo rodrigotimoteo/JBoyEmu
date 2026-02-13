@@ -5,9 +5,7 @@ import com.github.rodrigotimoteo.kboyemucore.memory.MemoryModule
 import com.github.rodrigotimoteo.kboyemucore.memory.ReservedAddresses
 import com.github.rodrigotimoteo.kboyemucore.memory.rom.cartridge.MBC0
 import com.github.rodrigotimoteo.kboyemucore.memory.rom.cartridge.MBC1
-import com.github.rodrigotimoteo.kboyemucore.memory.rom.cartridge.MBC2
-import com.github.rodrigotimoteo.kboyemucore.memory.rom.cartridge.MBC3
-import com.github.rodrigotimoteo.kboyemucore.memory.rom.cartridge.MBC5
+import com.github.rodrigotimoteo.kboyemucore.util.Logger
 
 /**
  * Class responsible for reading a file and parsing its rom, creating a MBC for the given rom
@@ -15,7 +13,9 @@ import com.github.rodrigotimoteo.kboyemucore.memory.rom.cartridge.MBC5
  * @author rodrigotimoteo
  **/
 @OptIn(ExperimentalUnsignedTypes::class)
-class RomReader {
+class RomReader(
+    private val logger: Logger,
+) {
 
     /**
      * Holds the number of Rom banks for a given Rom size (coded internally by Game Boy)
@@ -53,6 +53,7 @@ class RomReader {
      * Loads a Rom into rom content
      */
     fun loadRom(rom: Rom) {
+        logger.i("Loaded rom with size ${rom.bytes.size} bytes")
         romContent = rom.bytes
     }
 

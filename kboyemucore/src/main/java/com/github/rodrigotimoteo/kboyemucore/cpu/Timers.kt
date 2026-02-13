@@ -91,6 +91,10 @@ class Timers(
         tickNormalTimer()
     }
 
+    /**
+     * Advances the divider timer, this timer is responsible for incrementing the DIV register at a
+     * fixed frequency
+     */
     private fun tickDividerTimer() {
         _dividerClockTimer++
         _totalDividerTimer++
@@ -106,6 +110,10 @@ class Timers(
         }
     }
 
+    /**
+     * Advances the normal timer, this timer is responsible for incrementing the TIMA register and
+     * throwing interrupts when it overflows
+     */
     private fun tickNormalTimer() {
         readTACRegister()
 
@@ -133,6 +141,9 @@ class Timers(
         }
     }
 
+    /**
+     * Reads the TAC register to update the timer enabled status and frequency
+     */
     private fun readTACRegister() {
 
         //Timer Enabled
