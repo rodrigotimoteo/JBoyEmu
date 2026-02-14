@@ -1,6 +1,7 @@
 package com.github.rodrigotimoteo.kboyemucore.cpu
 
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
+import com.github.rodrigotimoteo.kboyemucore.cpu.interrupts.InterruptNames
 import com.github.rodrigotimoteo.kboyemucore.ktx.testBit
 import com.github.rodrigotimoteo.kboyemucore.memory.ReservedAddresses
 
@@ -11,6 +12,7 @@ import com.github.rodrigotimoteo.kboyemucore.memory.ReservedAddresses
  * @author rodrigotimoteo
  **/
 class Timers(
+    private val cpu: CPU,
     private val bus: Bus
 ) {
 
@@ -89,6 +91,10 @@ class Timers(
         tickNormalTimer()
     }
 
+    /**
+     * Advances the divider timer, this timer is responsible for incrementing the DIV register at a
+     * fixed frequency
+     */
     private fun tickDividerTimer() {
         _dividerClockTimer++
         _totalDividerTimer++
@@ -104,41 +110,55 @@ class Timers(
         }
     }
 
+    /**
+     * Advances the normal timer, this timer is responsible for incrementing the TIMA register and
+     * throwing interrupts when it overflows
+     */
     private fun tickNormalTimer() {
         readTACRegister()
+
         if (handleOverflow) {
             val tmaRegister = bus.getValue(ReservedAddresses.TMA.memoryAddress)
-            bus.setValue(ReservedAddresses.TIMA.memoryAddress, tmaRegister)
+            bus.setValueFromPPU(ReservedAddresses.TIMA.memoryAddress, tmaRegister)
+            cpu.interrupts.requestInterrupt(InterruptNames.TIMER_INT.testBit)
             handleOverflow = false
         }
         if (timerEnabled) {
             _timerClockCounter++
-            val timaRegister = bus.getValue(ReservedAddresses.TIMA.memoryAddress).toInt()
-            if (timaRegister == 0xFF) {
-                handleOverflow = true
-            } else {
-                bus.setValue(
-                    ReservedAddresses.TIMA.memoryAddress,
-                    ((timaRegister + 1) and 0xFF).toUByte()
-                )
-            }
             while (_timerClockCounter >= _timerFrequency) {
                 _timerClockCounter -= _timerFrequency
+                if (bus.getValue(ReservedAddresses.TIMA.memoryAddress).toInt() == 0xFF) {
+                    handleOverflow = true
+                } else {
+                    val timaRegister = bus.getValue(ReservedAddresses.TIMA.memoryAddress)
+                    bus.setValueFromPPU(
+                        ReservedAddresses.TIMA.memoryAddress,
+                        (timaRegister + 1u).toUByte()
+                    )
+
+                }
             }
         }
     }
 
+    /**
+     * Reads the TAC register to update the timer enabled status and frequency
+     */
     private fun readTACRegister() {
+
         //Timer Enabled
         val tacRegister = bus.getValue(ReservedAddresses.TAC.memoryAddress)
         timerEnabled = tacRegister.testBit(2)
+
         //Timer Input Clock Select
+        val previousFrequency = _timerFrequency
         when (tacRegister.toInt() and 0x03) {
             0x00 -> _timerFrequency = 256
             0x01 -> _timerFrequency = 4
             0x02 -> _timerFrequency = 16
             0x03 -> _timerFrequency = 64
         }
+        if (previousFrequency != _timerFrequency) _timerClockCounter = 0
     }
 
     /**
@@ -147,13 +167,6 @@ class Timers(
     fun setHaltCycleCounter() {
         _haltCycleCounter = _machineCycles
     }
-
-    /**
-     * Getter for the last time interrupt change was triggered in machine cycles
-     *
-     * @return machine cycle count
-     */
-    fun getInterruptChangedCounter(): Int = _interruptChangedCounter
 
     /**
      * Setter for the last time interrupt status was changed

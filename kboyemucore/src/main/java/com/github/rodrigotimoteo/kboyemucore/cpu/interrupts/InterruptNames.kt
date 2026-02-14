@@ -5,7 +5,6 @@ package com.github.rodrigotimoteo.kboyemucore.cpu.interrupts
  *
  * @author rodrigotimoteo
  **/
-@Suppress("MagicNumber")
 enum class InterruptNames(
     val testBit: Int
 ) {

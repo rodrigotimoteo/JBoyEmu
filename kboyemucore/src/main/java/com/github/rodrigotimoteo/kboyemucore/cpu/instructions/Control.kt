@@ -71,6 +71,7 @@ class Control(
      */
     fun di() {
         cpu.interrupts.setInterruptChange(false)
+        cpu.timers.setInterruptChangedCounter()
 
         cpu.cpuRegisters.incrementProgramCounter(1)
     }
@@ -80,6 +81,7 @@ class Control(
      */
     fun ei() {
         cpu.interrupts.setInterruptChange(true)
+        cpu.timers.setInterruptChangedCounter()
 
         cpu.cpuRegisters.incrementProgramCounter(1)
     }

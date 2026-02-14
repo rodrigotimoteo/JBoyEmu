@@ -11,6 +11,7 @@ import com.github.rodrigotimoteo.kboyemucore.cpu.CPU
  *
  * @author rodrigotimoteo
  **/
+@Suppress("TooManyFunctions")
 class Jump(
     private val cpu: CPU,
     private val bus: Bus
@@ -166,7 +167,9 @@ class Jump(
      */
     fun reti() {
         ret()
+
         cpu.interrupts.setInterruptChange(true)
+        cpu.timers.setInterruptChangedCounter()
     }
 
     /**
@@ -184,6 +187,6 @@ class Jump(
         bus.setValue(stackPointer - 2, ((programCounter + 1) and 0x00FF).toUByte())
 
         cpu.cpuRegisters.setProgramCounter(jumpAddress)
-        cpu.cpuRegisters.incrementProgramCounter(-2)
+        cpu.cpuRegisters.incrementStackPointer(-2)
     }
 }

@@ -24,7 +24,6 @@ import com.github.rodrigotimoteo.kboyemucore.memory.rom.RomModule
  * @author rodrigotimoteo
  */
 
-@Suppress("MagicNumber")
 class MemoryManager(
     private val bus: Bus,
     private val rom: MemoryModule
@@ -47,7 +46,7 @@ class MemoryManager(
     /**
      * Reference to the ERAM [MemoryModule]
      */
-    private val eram: MemoryModule? = when (val ramBanks = (rom as RomModule).getRamBanks()) {
+    private val eram: MemoryModule? = when (val ramBanks = (rom as RomModule).ramBanks) {
         0 -> null
         else -> MemoryModule(0x2000, 1, 0xA000, ramBanks)
     }
@@ -97,14 +96,13 @@ class MemoryManager(
         bottomRegisters.setValue(ReservedAddresses.BGP.memoryAddress, 0xFCu)
         bottomRegisters.setValue(ReservedAddresses.OBP0.memoryAddress, 0xFFu)
         bottomRegisters.setValue(ReservedAddresses.OBP1.memoryAddress, 0xFFu)
-
-        //Debug Purposes LY
-        // bottomRegisters.setValue(ReservedAddresses.LY.memoryAddress, 0x90u)
     }
 
     override fun setValue(memoryAddress: Int, value: UByte) = when (memoryAddress) {
         in 0 until ReservedAddresses.SWITCH_ROM_END.memoryAddress -> {
-            rom.setValue(memoryAddress, value)
+            rom.setValue(memoryAddress, value).also {
+                eram?.let { eram.activeBank = (rom as RomModule).ramBankNumber }
+            }
         }
 
         in ReservedAddresses.SWITCH_ROM_END.memoryAddress until ReservedAddresses.VRAM_END.memoryAddress -> {
@@ -112,7 +110,9 @@ class MemoryManager(
         }
 
         in ReservedAddresses.VRAM_END.memoryAddress until ReservedAddresses.ERAM_END.memoryAddress -> {
-            eram?.setValue(memoryAddress, value) ?: Unit
+            eram?.let {
+                if ((rom as RomModule).ramStatus) eram.setValue(memoryAddress, value)
+            } ?: Unit
         }
 
         in ReservedAddresses.ERAM_END.memoryAddress until ReservedAddresses.WRAM_END.memoryAddress -> {
@@ -132,7 +132,7 @@ class MemoryManager(
         }
 
         else -> {
-            handleBottomRegisters(memoryAddress, value)
+            setBottomRegisters(memoryAddress, value)
         }
     }
 
@@ -145,8 +145,6 @@ class MemoryManager(
      */
     fun setValueFromPPU(memoryAddress: Int, value: UByte) = when (memoryAddress) {
         in ReservedAddresses.JOYP.memoryAddress until ReservedAddresses.IE.memoryAddress -> {
-            //needs to go back to normal this should write everytime
-//            if (memoryAddress != ReservedAddresses.LY.memoryAddress)  else 2+1
             bottomRegisters.setValue(memoryAddress, value)
         }
 
@@ -162,15 +160,13 @@ class MemoryManager(
      * @param memoryAddress memory location where value should be written
      * @param value content that needs to be written to given address
      */
-    private fun handleBottomRegisters(memoryAddress: Int, value: UByte) {
-        if (memoryAddress == ReservedAddresses.DIV.memoryAddress)
+    private fun setBottomRegisters(memoryAddress: Int, value: UByte) = when (memoryAddress) {
+        ReservedAddresses.DIV.memoryAddress, ReservedAddresses.LY.memoryAddress ->
             bottomRegisters.setValue(memoryAddress, 0x00.toUByte())
-        else if (memoryAddress == ReservedAddresses.LY.memoryAddress)
-            bottomRegisters.setValue(memoryAddress, 0x00.toUByte())
-        else {
+
+        else -> {
             bottomRegisters.setValue(memoryAddress, value)
         }
-
     }
 
     override fun getValue(memoryAddress: Int): UByte = when (memoryAddress) {
@@ -183,7 +179,7 @@ class MemoryManager(
         }
 
         in ReservedAddresses.VRAM_END.memoryAddress until ReservedAddresses.ERAM_END.memoryAddress -> {
-            if (eram != null && (rom as RomModule).getRamStatus()) {
+            if (eram != null && (rom as RomModule).ramStatus) {
                 eram.getValue(memoryAddress)
             } else {
                 0x00u
@@ -207,8 +203,23 @@ class MemoryManager(
         }
 
         else -> {
-            bottomRegisters.getValue(memoryAddress)
+            getBottomRegisters(memoryAddress)
         }
+    }
+
+    /**
+     * This method is responsible for handling the retrieval of values from the bottom registers,
+     * according to all their quirks (these registers have special conditions that must be respected)
+     *
+     * @param memoryAddress memory location where value should be retrieved
+     * @return value stored in given address
+     */
+    private fun getBottomRegisters(memoryAddress: Int): UByte {
+        if (memoryAddress == ReservedAddresses.JOYP.memoryAddress) {
+            return bus.getJoypad(bottomRegisters.getValue(memoryAddress))
+        }
+
+        return bottomRegisters.getValue(memoryAddress)
     }
 
     /**

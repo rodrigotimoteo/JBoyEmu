@@ -1,6 +1,8 @@
 package com.github.rodrigotimoteo.kboyemucore.bus
 
+import com.github.rodrigotimoteo.kboyemucore.api.Button
 import com.github.rodrigotimoteo.kboyemucore.api.FrameBuffer
+import com.github.rodrigotimoteo.kboyemucore.controller.Controller
 import com.github.rodrigotimoteo.kboyemucore.cpu.CPU
 import com.github.rodrigotimoteo.kboyemucore.cpu.interrupts.InterruptNames
 import com.github.rodrigotimoteo.kboyemucore.memory.MemoryManager
@@ -42,10 +44,19 @@ class Bus(
     private val ppu = PPU(this)
 
     /**
+     * Controller reference
+     */
+    private val controller = Controller(this)
+
+    /**
      * [StateFlow] of [FrameBuffer] for use in Emulator implementation
      */
     val frameBuffer = ppu.painting
 
+    /**
+     * Starts the emulation by launching a new coroutine that ticks the CPU and PPU in the correct
+     * order and timing
+     */
     fun run() {
         if (_runningJob?.isActive == true) {
             return
@@ -66,10 +77,6 @@ class Bus(
                         for (i in 0 until (cpu.getCounter() - cpuCounter)) {
                             ppu.tick()
                         }
-                    }
-                    if (cpuCounter % 100000 < 2) {
-//                        print(memoryManager)
-//                        exitProcess(0)
                     }
                 } catch (e: InterruptedException) {
                     e.printStackTrace()
@@ -130,6 +137,30 @@ class Bus(
     override fun getValue(memoryAddress: Int): UByte {
         return memoryManager.getValue(memoryAddress)
     }
+
+    /**
+     * Get the value of the joypad register based on the provided joyPadRegister (used for
+     * instructions that need to check the state of the joypad)
+     *
+     * @param joyPadRegister to check
+     *
+     * @return value of the joypad register based on the provided joyPadRegister
+     */
+    fun getJoypad(joyPadRegister: UByte) = controller.getJoypad(joyPadRegister)
+
+    /**
+     * Presses the provided button on the controller
+     *
+     * @param button to press
+     */
+    fun press(button: Button) = controller.buttonPressed(button)
+
+    /**
+     * Releases the provided button on the controller
+     *
+     * @param button to release
+     */
+    fun release(button: Button) = controller.buttonReleased(button)
 
     /**
      * Stores the program counter in the stack pointer and decreases its pointer by 2

@@ -3,6 +3,7 @@ package com.github.rodrigotimoteo.kboyemucore.cpu.instructions
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.cpu.CPU
 import com.github.rodrigotimoteo.kboyemucore.cpu.registers.RegisterNames
+import com.github.rodrigotimoteo.kboyemucore.ktx.testBit
 
 /**
  * Class responsible for handling all rotate and shift operations
@@ -12,7 +13,7 @@ import com.github.rodrigotimoteo.kboyemucore.cpu.registers.RegisterNames
  *
  * @author rodrigotimoteo
  **/
-@Suppress("MagicNumber")
+@Suppress("TooManyFunctions")
 class RotateShift(
     private val cpu: CPU,
     private val bus: Bus
@@ -24,7 +25,7 @@ class RotateShift(
     fun rlca() {
         val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
 
-        val carry = (valueInRegisterA and 0xFF) == 0xFF
+        val carry = valueInRegisterA.toUByte().testBit(7)
         val finalValue = ((valueInRegisterA shl 1) and 0xFF) or ((valueInRegisterA and 0xFF) shr 7)
 
         cpu.cpuRegisters.flags.setFlags(zero = false, subtract = false, half = false, carry = carry)
@@ -39,7 +40,7 @@ class RotateShift(
     fun rla() {
         val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
 
-        val carry = ((valueInRegisterA and 0xFF) == 0xFF)
+        val carry = valueInRegisterA.toUByte().testBit(7)
         val finalValue = ((valueInRegisterA shl 1) and 0xFF) or
                 if (cpu.cpuRegisters.flags.getCarryFlag()) 1 else 0
 
@@ -55,7 +56,7 @@ class RotateShift(
     fun rrca() {
         val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
 
-        val carry = (valueInRegisterA and 0x01) == 0x01
+        val carry = valueInRegisterA.toUByte().testBit(0)
         val finalValue = ((valueInRegisterA shr 1) and 0xFF) or ((valueInRegisterA and 0x01) shl 7)
 
         cpu.cpuRegisters.flags.setFlags(zero = false, subtract = false, half = false, carry = carry)
@@ -70,7 +71,7 @@ class RotateShift(
     fun rra() {
         val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
 
-        val carry = (valueInRegisterA and 0x01) == 0x01
+        val carry = valueInRegisterA.toUByte().testBit(0)
         val finalValue = (((valueInRegisterA shr 1) and 0xFF)
                 or ((if (cpu.cpuRegisters.flags.getCarryFlag()) 1 else 0) shl 7)) and 0xFF
 
@@ -88,7 +89,7 @@ class RotateShift(
     fun rlc(register: RegisterNames) {
         val valueInRegister = cpu.cpuRegisters.getRegister(register).value.toInt()
 
-        val carry = (valueInRegister and 0xFF) == 0xFF
+        val carry = valueInRegister.toUByte().testBit(7)
         val finalValue =
             (((valueInRegister shl 1) and 0xFF) or ((valueInRegister and 0xFF) shr 7)) and 0xFF
 
@@ -113,7 +114,7 @@ class RotateShift(
         repeat(2) { cpu.timers.tick() }
 
         val givenValue = bus.getValue(memoryAddress).toInt()
-        val carry = (givenValue and 0xFF) == 0xFF
+        val carry = givenValue.toUByte().testBit(7)
         val finalValue = (((givenValue shl 1) and 0xFF) or ((givenValue and 0xFF) shr 7)) and 0xFF
 
         cpu.cpuRegisters.flags.setFlags(
@@ -134,7 +135,7 @@ class RotateShift(
      */
     fun rl(register: RegisterNames) {
         val valueInRegister = cpu.cpuRegisters.getRegister(register).value.toInt()
-        val carry = (valueInRegister and 0xFF) == 0xFF
+        val carry = valueInRegister.toUByte().testBit(7)
         val finalValue = (((valueInRegister shl 1) and 0xFF)
                 or (if (cpu.cpuRegisters.flags.getCarryFlag()) 1 else 0)) and 0xFF
 
@@ -158,7 +159,7 @@ class RotateShift(
         repeat(2) { cpu.timers.tick() }
 
         val givenValue = bus.getValue(memoryAddress).toInt()
-        val carry = (givenValue and 0xFF) == 0xFF
+        val carry = givenValue.toUByte().testBit(7)
         val finalValue = (((givenValue shl 1) and 0xFF)
                 or (if (cpu.cpuRegisters.flags.getCarryFlag()) 1 else 0)) and 0xFF
 
@@ -181,7 +182,7 @@ class RotateShift(
      */
     fun rrc(register: RegisterNames) {
         val valueInRegister = cpu.cpuRegisters.getRegister(register).value.toInt()
-        val carry = (valueInRegister and 0x01) == 0x01
+        val carry = valueInRegister.toUByte().testBit(0)
         val finalValue =
             (((valueInRegister shr 1) and 0xff) or ((valueInRegister and 0x01) shl 7)) and 0xff
 
@@ -206,7 +207,7 @@ class RotateShift(
         repeat(2) { cpu.timers.tick() }
 
         val givenValue = bus.getValue(memoryAddress).toInt()
-        val carry = (givenValue and 0x01) == 0x01
+        val carry = givenValue.toUByte().testBit(0)
         val finalValue = (((givenValue shr 1) and 0xFF) or ((givenValue and 0x01) shl 7)) and 0xFF
 
         cpu.cpuRegisters.flags.setFlags(
@@ -227,7 +228,7 @@ class RotateShift(
      */
     fun rr(register: RegisterNames) {
         val valueInRegister = cpu.cpuRegisters.getRegister(register).value.toInt()
-        val carry = (valueInRegister and 0x01) == 0x01
+        val carry = valueInRegister.toUByte().testBit(0)
         val finalValue = (((valueInRegister shr 1) and 0xFF)
                 or ((if (cpu.cpuRegisters.flags.getCarryFlag()) 1 else 0) shl 7)) and 0xFF
 
@@ -251,7 +252,7 @@ class RotateShift(
         repeat(2) { cpu.timers.tick() }
 
         val givenValue = bus.getValue(memoryAddress).toInt()
-        val carry = (givenValue and 0x01) == 0x01
+        val carry = givenValue.toUByte().testBit(0)
         val finalValue = (((givenValue shr 1) and 0xFF)
                 or ((if (cpu.cpuRegisters.flags.getCarryFlag()) 1 else 0) shl 7)) and 0xFF
 
@@ -273,7 +274,7 @@ class RotateShift(
      */
     fun sla(register: RegisterNames) {
         val valueInRegister = cpu.cpuRegisters.getRegister(register).value.toInt()
-        val carry = (valueInRegister and 0x80) == 0x80
+        val carry = valueInRegister.toUByte().testBit(7)
         val finalValue = (valueInRegister shl 1) and 0xFF
 
         cpu.cpuRegisters.flags.setFlags(
@@ -296,7 +297,7 @@ class RotateShift(
         repeat(2) { cpu.timers.tick() }
 
         val givenValue = bus.getValue(memoryAddress).toInt()
-        val carry = (givenValue and 0x80) == 0x80
+        val carry = givenValue.toUByte().testBit(7)
         val finalValue = (givenValue shl 1) and 0xFF
 
         cpu.cpuRegisters.flags.setFlags(
@@ -362,8 +363,9 @@ class RotateShift(
      */
     fun sra(register: RegisterNames) {
         val valueInRegister = cpu.cpuRegisters.getRegister(register).value.toInt()
-        val carry = (valueInRegister and 0x01) != 0
-        val finalValue = ((valueInRegister shr 1) or (valueInRegister and 0xFF)) and 0xFF
+        val topBit = valueInRegister and 0x80
+        val carry = valueInRegister.toUByte().testBit(0)
+        val finalValue = ((valueInRegister shr 1) or topBit) and 0xFF
 
         cpu.cpuRegisters.flags.setFlags(
             zero = finalValue == 0x00,
@@ -386,8 +388,9 @@ class RotateShift(
         repeat(2) { cpu.timers.tick() }
 
         val givenValue = bus.getValue(memoryAddress).toInt()
-        val carry = (givenValue and 0x01) != 0
-        val finalValue = ((givenValue shr 1) or (givenValue and 0xFF)) and 0xFF
+        val topBit = givenValue and 0x80
+        val carry = givenValue.toUByte().testBit(0)
+        val finalValue = ((givenValue shr 1) or topBit) and 0xFF
 
         cpu.cpuRegisters.flags.setFlags(
             zero = finalValue == 0x00,
@@ -408,7 +411,7 @@ class RotateShift(
      */
     fun srl(register: RegisterNames) {
         val valueInRegister = cpu.cpuRegisters.getRegister(register).value.toInt()
-        val carry = (valueInRegister and 0x01) == 0x01
+        val carry = valueInRegister.toUByte().testBit(0)
         val finalValue = (valueInRegister shr 1) and 0xFF
 
         cpu.cpuRegisters.flags.setFlags(
@@ -432,7 +435,7 @@ class RotateShift(
         repeat(2) { cpu.timers.tick() }
 
         val givenValue = bus.getValue(memoryAddress).toInt()
-        val carry = (givenValue and 0x01) == 0x01
+        val carry = givenValue.toUByte().testBit(0)
         val finalValue = (givenValue shr 1) and 0xFF
 
         cpu.cpuRegisters.flags.setFlags(

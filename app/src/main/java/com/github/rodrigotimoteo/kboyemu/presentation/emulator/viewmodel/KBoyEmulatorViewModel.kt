@@ -7,17 +7,21 @@ import androidx.core.graphics.createBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.rodrigotimoteo.kboyemu.presentation.emulator.translateGbPixelsToArgb
+import com.github.rodrigotimoteo.kboyemucore.api.Button
 import com.github.rodrigotimoteo.kboyemucore.api.KBoyEmulator
 import com.github.rodrigotimoteo.kboyemucore.api.Rom
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import org.koin.android.annotation.KoinViewModel
+import timber.log.Timber
 
 @OptIn(ExperimentalUnsignedTypes::class)
 @KoinViewModel
 class KBoyEmulatorViewModel(
     context: Context,
-    emulator: KBoyEmulator,
+    private val emulator: KBoyEmulator,
 ) : ViewModel() {
     private val width = 160
     private val height = 144
@@ -27,7 +31,7 @@ class KBoyEmulatorViewModel(
     internal val frameBitmap = MutableStateFlow(ImageBitmap(160, 144))
 
     init {
-        val romBytes = context.assets.open("11-op a,(hl).gb").readBytes().toUByteArray()
+        val romBytes = context.assets.open("pokemon_red.gb").readBytes().toUByteArray()
         emulator.loadRom(Rom(romBytes))
 
         viewModelScope.launch {
@@ -55,4 +59,11 @@ class KBoyEmulatorViewModel(
         emulator.run()
     }
 
+    fun press(button: Button) {
+        emulator.press(button)
+    }
+
+    fun release(button: Button) {
+        emulator.release(button)
+    }
 }

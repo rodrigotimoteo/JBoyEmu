@@ -7,7 +7,6 @@ import com.github.rodrigotimoteo.kboyemucore.ktx.testBit
 import com.github.rodrigotimoteo.kboyemucore.memory.ReservedAddresses
 
 class PPURegisters(
-    private val ppu: PPU,
     private val bus: Bus,
 ) {
 
@@ -114,7 +113,7 @@ class PPURegisters(
      */
     internal fun readWindow() {
         _windowY = bus.getValue(ReservedAddresses.WY.memoryAddress).toInt()
-        _windowX = (bus.getValue(ReservedAddresses.WX.memoryAddress).toInt() - 7)
+        _windowX = (bus.getValue(ReservedAddresses.WX.memoryAddress).toInt() - 7) and 0xFF
     }
 
     /**

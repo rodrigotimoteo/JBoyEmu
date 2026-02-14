@@ -3,7 +3,7 @@ package com.github.rodrigotimoteo.kboyemucore.ppu
 /**
  * Stores all modes that PPU uses while operating
  *
- * @author
+ * @author rodrigotimoteo
  */
 enum class PPUModes(val bit: Int) {
     HBLANK(0),
