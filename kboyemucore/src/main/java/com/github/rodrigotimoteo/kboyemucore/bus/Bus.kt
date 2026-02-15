@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlin.system.exitProcess
 
+@Suppress("TooManyFunctions")
 class Bus(
     rom: MemoryModule,
     private val isCGB: Boolean

@@ -156,7 +156,7 @@ class PPUDrawer(
                     ReservedAddresses.SWITCH_ROM_END.memoryAddress + tile * 16 + offset
 
                 for (pixelPrinted in 0..7) {
-                    if (tempX + pixelPrinted < 0 || tempX + pixelPrinted >= 160) continue
+                    if (tempX + pixelPrinted !in 0..<160) continue
                     if (priority && painting[ppu.ppuRegisters.currentLine * WIDTH + tempX + pixelPrinted] > 0) continue
 
                     val x = if (xFlipped) pixelPrinted else 7 - pixelPrinted

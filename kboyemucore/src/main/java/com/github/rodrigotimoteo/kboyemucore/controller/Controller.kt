@@ -48,11 +48,12 @@ class Controller(
      * @return current value of the joypad based on the provided [joypadInfo]
      */
     fun getJoypad(joypadInfo: UByte): UByte {
-        if ((joypadInfo.toInt() and 0x10) == 0) {
-            return ((_joypadValue and 0xF0) shr 4).toUByte()
+        return if ((joypadInfo.toInt() and 0x10) == 0) {
+            ((_joypadValue and 0xF0) shr 4).toUByte()
         } else if ((joypadInfo.toInt() and 0x20) == 0) {
-            return (_joypadValue and 0x0F).toUByte()
+            (_joypadValue and 0x0F).toUByte()
+        } else {
+            0x00u
         }
-        return 0x00u
     }
 }
