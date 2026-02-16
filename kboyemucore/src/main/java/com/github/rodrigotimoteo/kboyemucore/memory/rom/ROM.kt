@@ -1,6 +1,5 @@
 package com.github.rodrigotimoteo.kboyemucore.memory.rom
 
-import com.github.rodrigotimoteo.kboyemucore.memory.Memory
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files

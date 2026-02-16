@@ -18,6 +18,10 @@ data class FrameBuffer(
     val pixels: ByteArray
 ) {
 
+    /**
+     * Custom equals and hashcode implementation to avoid the default one that does not work with
+     * arrays
+     */
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
@@ -31,6 +35,9 @@ data class FrameBuffer(
         return true
     }
 
+    /**
+     * Custom hashcode implementation to avoid the default one that does not work with arrays
+     */
     override fun hashCode(): Int {
         var result = width
         result = 31 * result + height

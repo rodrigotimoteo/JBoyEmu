@@ -5,6 +5,13 @@ package com.github.rodrigotimoteo.kboyemucore.api
  *
  * @author rodrigotimoteo
  */
-enum class Button {
-    A, B, START, SELECT, UP, DOWN, LEFT, RIGHT
+enum class Button(val code: Int) {
+    A     (0),
+    B     (1),
+    SELECT(2),
+    START (3),
+    RIGHT (4),
+    LEFT  (5),
+    UP    (6),
+    DOWN  (7)
 }

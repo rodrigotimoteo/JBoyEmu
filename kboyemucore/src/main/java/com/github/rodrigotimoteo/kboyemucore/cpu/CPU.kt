@@ -11,7 +11,7 @@ class CPU(
 
     internal val cpuRegisters = CPURegisters(bus)
 
-    internal val timers = Timers(bus)
+    internal val timers = Timers(this, bus)
 
     internal val interrupts = Interrupts(this, bus)
 
@@ -57,7 +57,7 @@ class CPU(
         val programCounter = cpuRegisters.getProgramCounter()
 
         if (interrupts.haltBug) {
-            decoder.decode(programCounter)
+            decoder.decode(bus.getValue(programCounter).toInt())
             cpuRegisters.incrementProgramCounter(-1)
             interrupts.disableHaltBug()
         } else {

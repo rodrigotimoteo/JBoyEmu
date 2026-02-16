@@ -6,6 +6,6 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val kBoyEmulatorModule = module {
-    single { KBoyEmulatorFactory() }
+    single { KBoyEmulatorFactory(get()) }
     viewModel { KBoyEmulatorViewModel(get(), get()) }
 }

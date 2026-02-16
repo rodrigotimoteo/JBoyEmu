@@ -13,6 +13,7 @@ import com.github.rodrigotimoteo.kboyemucore.cpu.registers.RegisterNames
  *
  * @author rodrigotimoteo
  **/
+@Suppress("TooManyFunctions")
 class Load8Bit(
     private val cpu: CPU,
     private val bus: Bus

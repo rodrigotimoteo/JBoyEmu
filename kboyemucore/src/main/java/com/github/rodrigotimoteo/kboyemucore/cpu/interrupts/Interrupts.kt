@@ -69,7 +69,7 @@ class Interrupts(
                 checkInterruptTypes(availableInterrupts)
             }
         } else if (cpu.isHalted() && availableInterrupts != 0x00) {
-            cpu.setHalted(true)
+            cpu.setHalted(false)
 
             val machineCycles = cpu.timers.machineCycles
             val haltMachineCycles = cpu.timers.haltCycleCounter
@@ -110,7 +110,6 @@ class Interrupts(
      *
      * @param interrupt bit to set in the IF Register
      */
-    @Suppress("MagicNumber")
     fun requestInterrupt(interrupt: Int) {
         if (interrupt !in 0..4) return
 
