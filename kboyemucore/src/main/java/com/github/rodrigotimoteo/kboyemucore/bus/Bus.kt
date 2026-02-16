@@ -75,7 +75,7 @@ class Bus(
                         ppu.checkLCDStatus()
                     } else {
                         cpu.tick()
-                        for (i in 0 until (cpu.getCounter() - cpuCounter)) {
+                        repeat(cpu.getCounter() - cpuCounter) {
                             ppu.tick()
                         }
                     }

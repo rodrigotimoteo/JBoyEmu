@@ -79,8 +79,6 @@ class Timers(
      */
     private var _timerFrequency: Int = 256
 
-    private var shouldHandleOverflow: Boolean = false
-
     /**
      * Advances the timers by one unit
      */

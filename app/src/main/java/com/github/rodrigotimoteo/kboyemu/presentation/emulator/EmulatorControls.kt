@@ -122,6 +122,7 @@ private fun StartSelectButtons(
     }
 }
 
+@Suppress("LongParameterList")
 @Composable
 private fun PressableButton(
     label: String,

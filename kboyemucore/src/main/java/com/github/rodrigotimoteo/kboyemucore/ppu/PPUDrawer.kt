@@ -102,6 +102,7 @@ class PPUDrawer(
     /**
      * Draws the sprite part of the screen based on specification provided by the GameBoy PPU
      */
+    @Suppress("LongMethod", "CyclomaticComplexMethod", "NestedBlockDepth")
     internal fun drawSprite() { // NOSONAR
         val drawnX = IntArray(10)
 
@@ -155,6 +156,7 @@ class PPUDrawer(
                 val pixelDataAddress =
                     ReservedAddresses.SWITCH_ROM_END.memoryAddress + tile * 16 + offset
 
+                @Suppress("LoopWithTooManyJumpStatements")
                 for (pixelPrinted in 0..7) {
                     if (tempX + pixelPrinted !in 0..<160) continue
                     if (priority && painting[ppu.ppuRegisters.currentLine * WIDTH + tempX + pixelPrinted] > 0) continue

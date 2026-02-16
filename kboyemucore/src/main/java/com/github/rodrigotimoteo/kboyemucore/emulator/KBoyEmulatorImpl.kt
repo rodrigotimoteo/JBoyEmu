@@ -6,6 +6,7 @@ import com.github.rodrigotimoteo.kboyemucore.api.KBoyEmulator
 import com.github.rodrigotimoteo.kboyemucore.api.Rom
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.memory.rom.RomReader
+import com.github.rodrigotimoteo.kboyemucore.util.ACCESSING_FRAME_BEFORE_READY
 import com.github.rodrigotimoteo.kboyemucore.util.Logger
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
@@ -67,5 +68,5 @@ class KBoyEmulatorImpl(
     }
 
     override val frames: Flow<FrameBuffer>
-        get() = _frames ?: error("Emulator has not been initialized first pass a valid ROM")
+        get() = _frames ?: error(ACCESSING_FRAME_BEFORE_READY)
 }

@@ -23,3 +23,7 @@ internal const val EIGHT_BITS = 8
 internal const val FILTER_TOP_BITS = 0xFF00
 internal const val FILTER_LOWER_BITS = 0x00FF
 internal const val FILTER_16_BITS = 0xFFFF
+
+/** Illegal State Strings */
+internal const val ACCESSING_FRAME_BEFORE_READY =
+    "Emulator has not been initialized first pass a valid ROM"
