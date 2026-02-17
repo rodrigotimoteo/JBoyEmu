@@ -27,3 +27,5 @@ internal const val FILTER_16_BITS = 0xFFFF
 /** Illegal State Strings */
 internal const val ACCESSING_FRAME_BEFORE_READY =
     "Emulator has not been initialized first pass a valid ROM"
+internal const val REGISTER_DOES_NOT_EXIST =
+    "This register is not accessible through this method"

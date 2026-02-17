@@ -3,6 +3,8 @@ package com.github.rodrigotimoteo.kboyemucore.memory
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.cpu.Timers
 import com.github.rodrigotimoteo.kboyemucore.memory.rom.RomModule
+import com.github.rodrigotimoteo.kboyemucore.util.MutableUByte
+import com.github.rodrigotimoteo.kboyemucore.util.REGISTER_DOES_NOT_EXIST
 
 /**
  * Class responsible for managing everything interacting directly with the
@@ -68,34 +70,56 @@ class MemoryManager(
     /**
      * Reference to the BottomRegisters [MemoryModule]
      */
-    private val bottomRegisters: MemoryModule =
-        MemoryModule(0x100, ReservedAddresses.JOYP.memoryAddress)
+    private val bottomRegisters = Array<MutableUByte>(0x100) { MutableUByte() }
 
     /**
      * Responsible for initializing the memory with the default values assign by the boot rom
      * therefore skipping its necessity
+     *
+     * Uses - ReservedAddresses.JOYP.memoryAddress as the base address for the bottom registers as
+     * they are the last part of the memory map
      */
     init {
-        bottomRegisters.setValue(ReservedAddresses.NR10.memoryAddress, 0x80u)
-        bottomRegisters.setValue(ReservedAddresses.NR11.memoryAddress, 0xBFu)
-        bottomRegisters.setValue(ReservedAddresses.NR12.memoryAddress, 0xF3u)
-        bottomRegisters.setValue(ReservedAddresses.NR14.memoryAddress, 0xBFu)
-        bottomRegisters.setValue(ReservedAddresses.NR21.memoryAddress, 0x3Fu)
-        bottomRegisters.setValue(ReservedAddresses.NR24.memoryAddress, 0xBFu)
-        bottomRegisters.setValue(ReservedAddresses.NR30.memoryAddress, 0x7Fu)
-        bottomRegisters.setValue(ReservedAddresses.NR31.memoryAddress, 0xFFu)
-        bottomRegisters.setValue(ReservedAddresses.NR32.memoryAddress, 0x9Fu)
-        bottomRegisters.setValue(ReservedAddresses.NR34.memoryAddress, 0xBFu)
-        bottomRegisters.setValue(ReservedAddresses.NR41.memoryAddress, 0xFFu)
-        bottomRegisters.setValue(ReservedAddresses.NR44.memoryAddress, 0xBFu)
-        bottomRegisters.setValue(ReservedAddresses.NR50.memoryAddress, 0x77u)
-        bottomRegisters.setValue(ReservedAddresses.NR51.memoryAddress, 0xF3u)
-        bottomRegisters.setValue(ReservedAddresses.NR52.memoryAddress, 0xF1u)
-        bottomRegisters.setValue(ReservedAddresses.LCDC.memoryAddress, 0x91u)
-        bottomRegisters.setValue(ReservedAddresses.STAT.memoryAddress, 0x80u)
-        bottomRegisters.setValue(ReservedAddresses.BGP.memoryAddress, 0xFCu)
-        bottomRegisters.setValue(ReservedAddresses.OBP0.memoryAddress, 0xFFu)
-        bottomRegisters.setValue(ReservedAddresses.OBP1.memoryAddress, 0xFFu)
+        bottomRegisters[ReservedAddresses.NR10.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
+            0x80u
+        bottomRegisters[ReservedAddresses.NR11.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
+            0xBFu
+        bottomRegisters[ReservedAddresses.NR12.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
+            0xF3u
+        bottomRegisters[ReservedAddresses.NR14.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
+            0xBFu
+        bottomRegisters[ReservedAddresses.NR21.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
+            0x3Fu
+        bottomRegisters[ReservedAddresses.NR24.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
+            0xBFu
+        bottomRegisters[ReservedAddresses.NR30.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
+            0x7Fu
+        bottomRegisters[ReservedAddresses.NR31.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
+            0xFFu
+        bottomRegisters[ReservedAddresses.NR32.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
+            0x9Fu
+        bottomRegisters[ReservedAddresses.NR34.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
+            0xBFu
+        bottomRegisters[ReservedAddresses.NR41.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
+            0xFFu
+        bottomRegisters[ReservedAddresses.NR44.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
+            0xBFu
+        bottomRegisters[ReservedAddresses.NR50.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
+            0x77u
+        bottomRegisters[ReservedAddresses.NR51.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
+            0xF3u
+        bottomRegisters[ReservedAddresses.NR52.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
+            0xF1u
+        bottomRegisters[ReservedAddresses.LCDC.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
+            0x91u
+        bottomRegisters[ReservedAddresses.STAT.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
+            0x80u
+        bottomRegisters[ReservedAddresses.BGP.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
+            0xFCu
+        bottomRegisters[ReservedAddresses.OBP0.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
+            0xFFu
+        bottomRegisters[ReservedAddresses.OBP1.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
+            0xFFu
     }
 
     override fun setValue(memoryAddress: Int, value: UByte) = when (memoryAddress) {
@@ -145,12 +169,27 @@ class MemoryManager(
      */
     fun setValueFromPPU(memoryAddress: Int, value: UByte) = when (memoryAddress) {
         in ReservedAddresses.JOYP.memoryAddress until ReservedAddresses.IE.memoryAddress -> {
-            bottomRegisters.setValue(memoryAddress, value)
+            bottomRegisters[memoryAddress - ReservedAddresses.JOYP.memoryAddress].value = value
         }
 
         else -> {
             /** Nothing needs to be done */
         }
+    }
+
+    /**
+     * This is a special method designed to be used by the PPU only for now and it provides free read
+     * access to each and every memory location currently only bottomRegisters suffer this limitation
+     *
+     * @param memoryAddress memory location where to get value
+     * @return value stored in given address
+     */
+    fun getPermanentRegister(memoryAddress: Int): MutableUByte = when (memoryAddress) {
+        in ReservedAddresses.JOYP.memoryAddress..ReservedAddresses.IE.memoryAddress -> {
+            bottomRegisters[memoryAddress - ReservedAddresses.JOYP.memoryAddress]
+        }
+
+        else -> error(REGISTER_DOES_NOT_EXIST)
     }
 
     /**
@@ -162,10 +201,10 @@ class MemoryManager(
      */
     private fun setBottomRegisters(memoryAddress: Int, value: UByte) = when (memoryAddress) {
         ReservedAddresses.DIV.memoryAddress, ReservedAddresses.LY.memoryAddress ->
-            bottomRegisters.setValue(memoryAddress, 0x00.toUByte())
+            bottomRegisters[memoryAddress - ReservedAddresses.JOYP.memoryAddress].value = 0x00u
 
         else -> {
-            bottomRegisters.setValue(memoryAddress, value)
+            bottomRegisters[memoryAddress - ReservedAddresses.JOYP.memoryAddress].value = value
         }
     }
 
@@ -216,10 +255,10 @@ class MemoryManager(
      */
     private fun getBottomRegisters(memoryAddress: Int): UByte {
         if (memoryAddress == ReservedAddresses.JOYP.memoryAddress) {
-            return bus.getJoypad(bottomRegisters.getValue(memoryAddress))
+            return bus.getJoypad(bottomRegisters[memoryAddress - ReservedAddresses.JOYP.memoryAddress].value)
         }
 
-        return bottomRegisters.getValue(memoryAddress)
+        return bottomRegisters[memoryAddress - ReservedAddresses.JOYP.memoryAddress].value
     }
 
     /**
@@ -230,7 +269,8 @@ class MemoryManager(
      * @param value to write to [ReservedAddresses.DIV]
      */
     internal fun setDiv(value: UByte) {
-        bottomRegisters.setValue(ReservedAddresses.DIV.memoryAddress, value)
+        bottomRegisters[ReservedAddresses.DIV.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
+            value
     }
 
     /**

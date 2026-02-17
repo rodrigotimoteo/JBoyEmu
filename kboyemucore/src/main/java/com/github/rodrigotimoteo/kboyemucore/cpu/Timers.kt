@@ -2,7 +2,6 @@ package com.github.rodrigotimoteo.kboyemucore.cpu
 
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.cpu.interrupts.InterruptNames
-import com.github.rodrigotimoteo.kboyemucore.ktx.testBit
 import com.github.rodrigotimoteo.kboyemucore.memory.ReservedAddresses
 
 /**
@@ -80,6 +79,11 @@ class Timers(
     private var _timerFrequency: Int = 256
 
     /**
+     * Permanent storage of the [ReservedAddresses.TAC] register
+     */
+    private val tacRegister = bus.getPermanentRegister(ReservedAddresses.TAC.memoryAddress)
+
+    /**
      * Advances the timers by one unit
      */
     fun tick() {
@@ -145,12 +149,11 @@ class Timers(
     private fun readTACRegister() {
 
         //Timer Enabled
-        val tacRegister = bus.getValue(ReservedAddresses.TAC.memoryAddress)
         timerEnabled = tacRegister.testBit(2)
 
         //Timer Input Clock Select
         val previousFrequency = _timerFrequency
-        when (tacRegister.toInt() and 0x03) {
+        when (tacRegister.value.toInt() and 0x03) {
             0x00 -> _timerFrequency = 256
             0x01 -> _timerFrequency = 4
             0x02 -> _timerFrequency = 16

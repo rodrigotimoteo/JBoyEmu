@@ -11,6 +11,7 @@ import com.github.rodrigotimoteo.kboyemucore.memory.MemoryModule
 import com.github.rodrigotimoteo.kboyemucore.ppu.PPU
 import com.github.rodrigotimoteo.kboyemucore.util.FILTER_LOWER_BITS
 import com.github.rodrigotimoteo.kboyemucore.util.FILTER_TOP_BITS
+import com.github.rodrigotimoteo.kboyemucore.util.MutableUByte
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -118,6 +119,10 @@ class Bus(
      */
     fun setValueFromPPU(memoryAddress: Int, value: UByte) {
         memoryManager.setValueFromPPU(memoryAddress, value)
+    }
+
+    fun getPermanentRegister(memoryAddress: Int): MutableUByte {
+        return memoryManager.getPermanentRegister(memoryAddress)
     }
 
     /**

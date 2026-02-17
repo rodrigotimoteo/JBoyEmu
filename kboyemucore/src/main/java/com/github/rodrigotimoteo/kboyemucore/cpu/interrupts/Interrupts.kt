@@ -2,8 +2,6 @@ package com.github.rodrigotimoteo.kboyemucore.cpu.interrupts
 
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.cpu.CPU
-import com.github.rodrigotimoteo.kboyemucore.ktx.resetBit
-import com.github.rodrigotimoteo.kboyemucore.ktx.setBit
 import com.github.rodrigotimoteo.kboyemucore.ktx.testBit
 import com.github.rodrigotimoteo.kboyemucore.memory.ReservedAddresses
 
@@ -21,14 +19,12 @@ class Interrupts(
     /**
      * Always has the value at the [ReservedAddresses.IE] memory address
      */
-    private val ieRegister: UByte
-        get() = bus.getValue(ReservedAddresses.IE.memoryAddress)
+    private val ieRegister = bus.getPermanentRegister(ReservedAddresses.IE.memoryAddress)
 
     /**
      * Always has the value at the [ReservedAddresses.IF] memory address
      */
-    private val ifRegister: UByte
-        get() = bus.getValue(ReservedAddresses.IF.memoryAddress)
+    private val ifRegister = bus.getPermanentRegister(ReservedAddresses.IF.memoryAddress)
 
     /**
      * Stores whether the CPU is currently reacting to interrupts true if so false otherwise
@@ -83,7 +79,8 @@ class Interrupts(
      *
      * @return value of IE register and IF register after AND operation
      */
-    private fun decodeServiceableInterrupts(): Int = ieRegister.toInt() and ifRegister.toInt()
+    private fun decodeServiceableInterrupts(): Int =
+        ieRegister.value.toInt() and ifRegister.value.toInt()
 
     /**
      * Based on the available given interrupts to be serviced provided by the integer received that
@@ -95,10 +92,7 @@ class Interrupts(
         InterruptNames.entries.forEachIndexed { index, interrupt ->
             if (availableInterrupts.toUByte().testBit(interrupt.testBit)) {
                 cpu.cpuRegisters.setProgramCounter(0x40 + 0x8 * index)
-                bus.setValue(
-                    ReservedAddresses.IF.memoryAddress,
-                    ifRegister.resetBit(interrupt.testBit)
-                )
+                ifRegister.resetBit(interrupt.testBit)
 
                 return
             }
@@ -113,7 +107,7 @@ class Interrupts(
     fun requestInterrupt(interrupt: Int) {
         if (interrupt !in 0..4) return
 
-        bus.setValue(ReservedAddresses.IF.memoryAddress, ifRegister.setBit(interrupt))
+        ifRegister.setBit(interrupt)
     }
 
     /**

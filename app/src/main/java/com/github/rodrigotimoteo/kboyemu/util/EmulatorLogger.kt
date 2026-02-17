@@ -1,7 +1,6 @@
 package com.github.rodrigotimoteo.kboyemu.util
 
 import com.github.rodrigotimoteo.kboyemucore.util.Logger
-import org.koin.core.annotation.Single
 import timber.log.Timber
 
 /**
@@ -9,7 +8,6 @@ import timber.log.Timber
  *
  * @author rodrigotimoteo
  */
-@Single
 class EmulatorLogger : Logger {
 
     override fun i(message: String) {

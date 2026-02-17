@@ -62,11 +62,15 @@ class PPURegisters(
 
     internal var negativeTiles = false
 
+    private val lcdcRegister = bus.getPermanentRegister(ReservedAddresses.LCDC.memoryAddress)
+
+    private val statRegister = bus.getPermanentRegister(ReservedAddresses.STAT.memoryAddress)
+
     /**
      * Reads the content of [ReservedAddresses.LCDC] and translates it into easily accessible flags
      */
     fun readLCDControl() {
-        val lcdcValue = bus.getValue(ReservedAddresses.LCDC.memoryAddress)
+        val lcdcValue = lcdcRegister.value
 
         //Read LCD and main.kotlin.PPU enabled bit
         _lcdOn = lcdcValue.testBit(7)
@@ -100,9 +104,14 @@ class PPURegisters(
      * Updates the current [PPUModes] based on the value stored in [ReservedAddresses.LCDC]
      */
     internal fun readLCDStatus() {
-        mode = PPUModes.entries.find { ppuMode ->
-            bus.getValue(ReservedAddresses.STAT.memoryAddress).toInt() and 0x03 == ppuMode.bit
-        } ?: return
+        val modeBits = statRegister.value.toInt() and 0x03
+        mode = when (modeBits) {
+            PPUModes.HBLANK.bit -> PPUModes.HBLANK
+            PPUModes.VBLANK.bit -> PPUModes.VBLANK
+            PPUModes.OAM.bit -> PPUModes.OAM
+            PPUModes.PIXEL_TRANSFER.bit -> PPUModes.PIXEL_TRANSFER
+            else -> return
+        }
 
         // Needs to be addressed later
         // memory.setPpuMode(mode)
