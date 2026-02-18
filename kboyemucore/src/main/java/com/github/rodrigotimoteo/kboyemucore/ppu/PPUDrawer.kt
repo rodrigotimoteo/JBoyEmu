@@ -26,7 +26,7 @@ class PPUDrawer(
             val tempX = (ppu.ppuRegisters.scrollX + x) % 0x0100
 
             val address = tileMapAddress + ((tempY / 8) * 0x20)
-            var tile = bus.getValue(address + (tempX) / 8).toInt()
+            var tile = bus.getValueFromPPU(address + (tempX) / 8).toInt()
 
             if (ppu.ppuRegisters.negativeTiles) {
                 tile = if (((tile and 0x80) shr 7) == 0) {
@@ -47,11 +47,11 @@ class PPUDrawer(
             } else i
 
             val offset = 7 - (tempX % 8)
-            val colorNum = (((bus.getValue(tileLine).toInt() and (1 shl offset)) shr offset) +
-                    (((bus.getValue(tileLine + 1).toInt() and (1 shl offset)) shr offset) * 2))
+            val colorNum = (((bus.getValueFromPPU(tileLine).toInt() and (1 shl offset)) shr offset) +
+                    (((bus.getValueFromPPU(tileLine + 1).toInt() and (1 shl offset)) shr offset) * 2))
             val color = decodeColor(
                 colorNum,
-                bus.getValue(ReservedAddresses.BGP.memoryAddress).toInt()
+                bus.getValueFromPPU(ReservedAddresses.BGP.memoryAddress).toInt()
             )
 
             painting[ppu.ppuRegisters.currentLine * WIDTH + x] = color
@@ -74,7 +74,7 @@ class PPUDrawer(
             val tempX = x - windowX
 
             val tileIndexAddress = tileMapAddress + ((tempY / 8) * 0x20) + (tempX / 8)
-            val tile = bus.getValue(tileIndexAddress).toInt()
+            val tile = bus.getValueFromPPU(tileIndexAddress).toInt()
             val tileLine = if (ppu.ppuRegisters.negativeTiles) {
                 val signedTile = tile.toByte().toInt()
                 if (signedTile >= 0) {
@@ -88,10 +88,10 @@ class PPUDrawer(
 
             val offset = 7 - (tempX % 8)
             val colorNum =
-                (((bus.getValue(tileLine).toInt() and (1 shl offset)) shr offset) +
-                        (((bus.getValue(tileLine + 1).toInt() and (1 shl offset)) shr offset) * 2))
+                (((bus.getValueFromPPU(tileLine).toInt() and (1 shl offset)) shr offset) +
+                        (((bus.getValueFromPPU(tileLine + 1).toInt() and (1 shl offset)) shr offset) * 2))
             val color =
-                decodeColor(colorNum, bus.getValue(ReservedAddresses.BGP.memoryAddress).toInt())
+                decodeColor(colorNum, bus.getValueFromPPU(ReservedAddresses.BGP.memoryAddress).toInt())
 
             painting[ppu.ppuRegisters.currentLine * WIDTH + tempX] = color
         }
@@ -111,13 +111,13 @@ class PPUDrawer(
 
         var spriteNumber = 0
         while (spriteNumber < 40 && drawnSprites < 10) {
-            val tempY = bus.getValue(ReservedAddresses.OAM_START.memoryAddress + (spriteNumber * 4))
+            val tempY = bus.getValueFromPPU(ReservedAddresses.OAM_START.memoryAddress + (spriteNumber * 4))
                 .toInt() - 16
             val tempX =
-                bus.getValue(ReservedAddresses.OAM_START.memoryAddress + (spriteNumber * 4) + 1)
+                bus.getValueFromPPU(ReservedAddresses.OAM_START.memoryAddress + (spriteNumber * 4) + 1)
                     .toInt() - 8
             var tile =
-                bus.getValue(ReservedAddresses.OAM_START.memoryAddress + (spriteNumber * 4) + 2)
+                bus.getValueFromPPU(ReservedAddresses.OAM_START.memoryAddress + (spriteNumber * 4) + 2)
                     .toInt()
 
             var quit = false
@@ -133,7 +133,7 @@ class PPUDrawer(
                 ReservedAddresses.OAM_START.memoryAddress + (spriteNumber * 4) + 3
 
             if ((ppu.ppuRegisters.currentLine >= tempY) && (ppu.ppuRegisters.currentLine < (tempY + spriteOffset))) {
-                val attributes = bus.getValue(attributesAddress)
+                val attributes = bus.getValueFromPPU(attributesAddress)
                 val priority: Boolean = attributes.testBit(7)
                 val yFlipped: Boolean = attributes.testBit(6)
                 val xFlipped: Boolean = attributes.testBit(5)
@@ -144,7 +144,7 @@ class PPUDrawer(
                     ReservedAddresses.OBP0.memoryAddress
                 }
 
-                val palette: Int = bus.getValue(paletteAddress).toInt()
+                val palette: Int = bus.getValueFromPPU(paletteAddress).toInt()
 
                 val tileLine = spriteOffset - (ppu.ppuRegisters.currentLine - tempY)
                 val offset: Int = if (!yFlipped) {
@@ -163,8 +163,8 @@ class PPUDrawer(
 
                     val x = if (xFlipped) pixelPrinted else 7 - pixelPrinted
                     val colorNum: Int =
-                        ((bus.getValue(pixelDataAddress).toInt() and (1 shl x)) shr x) +
-                                (((bus.getValue(pixelDataAddress + 1)
+                        ((bus.getValueFromPPU(pixelDataAddress).toInt() and (1 shl x)) shr x) +
+                                (((bus.getValueFromPPU(pixelDataAddress + 1)
                                     .toInt() and (1 shl x)) shr x) * 2)
                     val color = decodeColor(colorNum, palette)
 

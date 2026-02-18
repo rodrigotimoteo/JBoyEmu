@@ -262,18 +262,6 @@ class MemoryManager(
     }
 
     /**
-     * Sets the value of the [ReservedAddresses.DIV] memory address, this method is design for giving
-     * the [Timers] access to writing to this address as it should normally reset to 0 when written
-     * to
-     *
-     * @param value to write to [ReservedAddresses.DIV]
-     */
-    internal fun setDiv(value: UByte) {
-        bottomRegisters[ReservedAddresses.DIV.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
-            value
-    }
-
-    /**
      * Converts the full memory map into a readable string containing all the memory addrress' content
      *
      * @return memory dump of GB

@@ -25,71 +25,71 @@ class ControllerTest {
 
     @Test
     fun `when no joypad group is selected then joypad returns zero`() {
-        bus.setValue(ReservedAddresses.JOYP.memoryAddress, 0x30u)
+        bus.setValueFromPPU(ReservedAddresses.JOYP.memoryAddress, 0x30u)
 
-        val value = bus.getValue(ReservedAddresses.JOYP.memoryAddress)
+        val value = bus.getValueFromPPU(ReservedAddresses.JOYP.memoryAddress)
 
         assertEquals(0x00u.toUByte(), value)
     }
 
     @Test
     fun `when direction group is selected and no input then joypad returns all released`() {
-        bus.setValue(ReservedAddresses.JOYP.memoryAddress, 0x20u)
+        bus.setValueFromPPU(ReservedAddresses.JOYP.memoryAddress, 0x20u)
 
-        val value = bus.getValue(ReservedAddresses.JOYP.memoryAddress)
+        val value = bus.getValueFromPPU(ReservedAddresses.JOYP.memoryAddress)
 
         assertEquals(0x0Fu.toUByte(), value)
     }
 
     @Test
     fun `when right is pressed and direction group selected then joypad returns right cleared`() {
-        bus.setValue(ReservedAddresses.JOYP.memoryAddress, 0x20u)
+        bus.setValueFromPPU(ReservedAddresses.JOYP.memoryAddress, 0x20u)
         bus.press(Button.RIGHT)
 
-        val value = bus.getValue(ReservedAddresses.JOYP.memoryAddress)
+        val value = bus.getValueFromPPU(ReservedAddresses.JOYP.memoryAddress)
 
         assertEquals(0x0Eu.toUByte(), value)
     }
 
     @Test
     fun `when button group is selected and a is pressed then joypad returns a cleared`() {
-        bus.setValue(ReservedAddresses.JOYP.memoryAddress, 0x10u)
+        bus.setValueFromPPU(ReservedAddresses.JOYP.memoryAddress, 0x10u)
         bus.press(Button.A)
 
-        val value = bus.getValue(ReservedAddresses.JOYP.memoryAddress)
+        val value = bus.getValueFromPPU(ReservedAddresses.JOYP.memoryAddress)
 
         assertEquals(0x0Eu.toUByte(), value)
     }
 
     @Test
     fun `when a is released then joypad returns a set again`() {
-        bus.setValue(ReservedAddresses.JOYP.memoryAddress, 0x10u)
+        bus.setValueFromPPU(ReservedAddresses.JOYP.memoryAddress, 0x10u)
         bus.press(Button.A)
         bus.release(Button.A)
 
-        val value = bus.getValue(ReservedAddresses.JOYP.memoryAddress)
+        val value = bus.getValueFromPPU(ReservedAddresses.JOYP.memoryAddress)
 
         assertEquals(0x0Fu.toUByte(), value)
     }
 
     @Test
     fun `when select and start are pressed then joypad returns both cleared`() {
-        bus.setValue(ReservedAddresses.JOYP.memoryAddress, 0x10u)
+        bus.setValueFromPPU(ReservedAddresses.JOYP.memoryAddress, 0x10u)
         bus.press(Button.SELECT)
         bus.press(Button.START)
 
-        val value = bus.getValue(ReservedAddresses.JOYP.memoryAddress)
+        val value = bus.getValueFromPPU(ReservedAddresses.JOYP.memoryAddress)
 
         assertEquals(0x03u.toUByte(), value)
     }
 
     @Test
     fun `when a button is pressed then joypad interrupt bit is set`() {
-        val before = bus.getValue(ReservedAddresses.IF.memoryAddress).toInt()
+        val before = bus.getValueFromPPU(ReservedAddresses.IF.memoryAddress).toInt()
 
         bus.press(Button.A)
 
-        val after = bus.getValue(ReservedAddresses.IF.memoryAddress).toInt()
+        val after = bus.getValueFromPPU(ReservedAddresses.IF.memoryAddress).toInt()
         val joypadMask = 1 shl InterruptNames.JOYPAD_INT.testBit
         assertTrue((before and joypadMask) == 0)
         assertTrue((after and joypadMask) != 0)
@@ -97,41 +97,41 @@ class ControllerTest {
 
     @Test
     fun `when button group is selected then direction presses do not change the readout`() {
-        bus.setValue(ReservedAddresses.JOYP.memoryAddress, 0x10u)
+        bus.setValueFromPPU(ReservedAddresses.JOYP.memoryAddress, 0x10u)
         bus.press(Button.RIGHT)
 
-        val value = bus.getValue(ReservedAddresses.JOYP.memoryAddress)
+        val value = bus.getValueFromPPU(ReservedAddresses.JOYP.memoryAddress)
 
         assertEquals(0x0Fu.toUByte(), value)
     }
 
     @Test
     fun `when direction group is selected then button presses do not change the readout`() {
-        bus.setValue(ReservedAddresses.JOYP.memoryAddress, 0x20u)
+        bus.setValueFromPPU(ReservedAddresses.JOYP.memoryAddress, 0x20u)
         bus.press(Button.A)
 
-        val value = bus.getValue(ReservedAddresses.JOYP.memoryAddress)
+        val value = bus.getValueFromPPU(ReservedAddresses.JOYP.memoryAddress)
 
         assertEquals(0x0Fu.toUByte(), value)
     }
 
     @Test
     fun `when both groups are selected then direction group has priority`() {
-        bus.setValue(ReservedAddresses.JOYP.memoryAddress, 0x00u)
+        bus.setValueFromPPU(ReservedAddresses.JOYP.memoryAddress, 0x00u)
         bus.press(Button.RIGHT)
         bus.press(Button.A)
 
-        val value = bus.getValue(ReservedAddresses.JOYP.memoryAddress)
+        val value = bus.getValueFromPPU(ReservedAddresses.JOYP.memoryAddress)
 
         assertEquals(0x0Eu.toUByte(), value)
     }
 
     @Test
     fun `when no joypad group is selected and a button is pressed then joypad returns zero`() {
-        bus.setValue(ReservedAddresses.JOYP.memoryAddress, 0x30u)
+        bus.setValueFromPPU(ReservedAddresses.JOYP.memoryAddress, 0x30u)
         bus.press(Button.A)
 
-        val value = bus.getValue(ReservedAddresses.JOYP.memoryAddress)
+        val value = bus.getValueFromPPU(ReservedAddresses.JOYP.memoryAddress)
 
         assertEquals(0x00u.toUByte(), value)
     }

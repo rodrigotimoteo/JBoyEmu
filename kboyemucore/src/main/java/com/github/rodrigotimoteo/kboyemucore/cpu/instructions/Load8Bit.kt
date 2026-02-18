@@ -28,8 +28,7 @@ class Load8Bit(
     fun ldTwoRegisters(memoryAddress: Int) {
         val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value
 
-        cpu.timers.tick()
-        bus.setValue(memoryAddress, valueInRegisterA)
+        bus.setValueFromCPU(memoryAddress, valueInRegisterA)
         cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
@@ -41,8 +40,7 @@ class Load8Bit(
         val memoryAddress = bus.calculateNN()
         val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value
 
-        cpu.timers.tick()
-        bus.setValue(memoryAddress, valueInRegisterA)
+        bus.setValueFromCPU(memoryAddress, valueInRegisterA)
         cpu.cpuRegisters.incrementProgramCounter(3)
     }
 
@@ -52,9 +50,8 @@ class Load8Bit(
      * @param memoryAddress which memory address to use
      */
     fun ldTwoRegistersIntoA(memoryAddress: Int) {
-        val valueAtAddress = bus.getValue(memoryAddress)
+        val valueAtAddress = bus.getValueFromCPU(memoryAddress)
 
-        cpu.timers.tick()
         cpu.cpuRegisters.setRegister(RegisterNames.A, valueAtAddress)
         cpu.cpuRegisters.incrementProgramCounter(1)
     }
@@ -65,9 +62,8 @@ class Load8Bit(
      */
     fun ldNNIntoA() {
         val memoryAddress = bus.calculateNN()
-        val valueAtAddress = bus.getValue(memoryAddress)
+        val valueAtAddress = bus.getValueFromCPU(memoryAddress)
 
-        cpu.timers.tick()
         cpu.cpuRegisters.setRegister(RegisterNames.A, valueAtAddress)
         cpu.cpuRegisters.incrementProgramCounter(3)
     }
@@ -79,9 +75,8 @@ class Load8Bit(
      */
     fun ldNRegister(register: RegisterNames) {
         val programCounter = cpu.cpuRegisters.getProgramCounter()
-        val immediateWord = bus.getValue(programCounter + 1)
+        val immediateWord = bus.getValueFromCPU(programCounter + 1)
 
-        cpu.timers.tick()
         cpu.cpuRegisters.setRegister(register, immediateWord)
         cpu.cpuRegisters.incrementProgramCounter(2)
     }
@@ -91,13 +86,11 @@ class Load8Bit(
      * address given by the HL register aggregation
      */
     fun ldNHL() {
-        repeat(2) { cpu.timers.tick() }
-
         val programCounter = cpu.cpuRegisters.getProgramCounter()
         val valueInHL = cpu.cpuRegisters.getHL()
-        val value = bus.getValue(programCounter + 1)
+        val value = bus.getValueFromCPU(programCounter + 1)
 
-        bus.setValue(valueInHL, value)
+        bus.setValueFromCPU(valueInHL, value)
         cpu.cpuRegisters.incrementProgramCounter(2)
     }
 
@@ -122,8 +115,7 @@ class Load8Bit(
     fun ldHLtoRegister(register: RegisterNames) {
         val valueInHL = cpu.cpuRegisters.getHL()
 
-        cpu.timers.tick()
-        cpu.cpuRegisters.setRegister(register, bus.getValue(valueInHL))
+        cpu.cpuRegisters.setRegister(register, bus.getValueFromCPU(valueInHL))
         cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
@@ -136,8 +128,7 @@ class Load8Bit(
         val value = cpu.cpuRegisters.getRegister(register).value
         val valueInHL = cpu.cpuRegisters.getHL()
 
-        cpu.timers.tick()
-        bus.setValue(valueInHL, value)
+        bus.setValueFromCPU(valueInHL, value)
         cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
@@ -153,12 +144,11 @@ class Load8Bit(
         val memoryAddress = 0xFF00 + valueInRegisterC
 
         if (aIntoC) {
-            bus.setValue(memoryAddress, valueInRegisterA)
+            bus.setValueFromCPU(memoryAddress, valueInRegisterA)
         } else {
-            cpu.cpuRegisters.setRegister(RegisterNames.A, bus.getValue(memoryAddress))
+            cpu.cpuRegisters.setRegister(RegisterNames.A, bus.getValueFromCPU(memoryAddress))
         }
 
-        cpu.timers.tick()
         cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
@@ -200,17 +190,15 @@ class Load8Bit(
      * @param isInput sets whether register A should be used as input true or as the receiver false
      */
     fun ldh(isInput: Boolean) {
-        repeat(2) { cpu.timers.tick() }
-
         val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value
         val programCounter = cpu.cpuRegisters.getProgramCounter()
-        val valueN = bus.getValue(programCounter + 1).toInt()
+        val valueN = bus.getValueFromCPU(programCounter + 1).toInt()
         val memoryAddress = 0xFF00 + valueN
 
         if (isInput) {
-            bus.setValue(memoryAddress, valueInRegisterA)
+            bus.setValueFromCPU(memoryAddress, valueInRegisterA)
         } else {
-            cpu.cpuRegisters.setRegister(RegisterNames.A, bus.getValue(memoryAddress))
+            cpu.cpuRegisters.setRegister(RegisterNames.A, bus.getValueFromCPU(memoryAddress))
         }
 
         cpu.cpuRegisters.incrementProgramCounter(2)

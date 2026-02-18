@@ -61,9 +61,9 @@ class Control(
      */
     fun stop() {
         cpu.setStopped(true)
-        bus.setValue(ReservedAddresses.DIV.memoryAddress, 0x00u)
+        bus.setValueFromCPU(ReservedAddresses.DIV.memoryAddress, 0x00u)
 
-        cpu.cpuRegisters.incrementProgramCounter(1)
+        cpu.cpuRegisters.incrementProgramCounter(2)
     }
 
     /**

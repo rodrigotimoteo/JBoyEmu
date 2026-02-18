@@ -84,13 +84,28 @@ class Timers(
     private val tacRegister = bus.getPermanentRegister(ReservedAddresses.TAC.memoryAddress)
 
     /**
+     * Permanent storage of the [ReservedAddresses.DIV] register
+     */
+    private val divRegister = bus.getPermanentRegister(ReservedAddresses.DIV.memoryAddress)
+
+    /**
+     * Permanent storage of the [ReservedAddresses.TMA] register
+     */
+    private val tmaRegister = bus.getPermanentRegister(ReservedAddresses.TMA.memoryAddress)
+
+    /**
+     * Permanent storage of the [ReservedAddresses.TIMA] register
+     */
+    private val timaRegister = bus.getPermanentRegister(ReservedAddresses.TIMA.memoryAddress)
+
+    /**
      * Advances the timers by one unit
      */
     fun tick() {
         _machineCycles++
 
-        tickDividerTimer()
         tickNormalTimer()
+        tickDividerTimer()
     }
 
     /**
@@ -103,8 +118,8 @@ class Timers(
 
         while (_dividerClockTimer >= 64) {
             _dividerClockTimer -= 64
-            val divCounter = bus.getValue(ReservedAddresses.DIV.memoryAddress).toInt()
-            bus.setDIV((divCounter + 1).toUByte())
+            val divCounter = divRegister.value.toInt()
+            divRegister.value = (divCounter + 1).toUByte()
         }
 
         if (_totalDividerTimer >= _timerFrequency) {
@@ -120,8 +135,7 @@ class Timers(
         readTACRegister()
 
         if (handleOverflow) {
-            val tmaRegister = bus.getValue(ReservedAddresses.TMA.memoryAddress)
-            bus.setValueFromPPU(ReservedAddresses.TIMA.memoryAddress, tmaRegister)
+            timaRegister.value = tmaRegister.value
             cpu.interrupts.requestInterrupt(InterruptNames.TIMER_INT.testBit)
             handleOverflow = false
         }
@@ -129,15 +143,10 @@ class Timers(
             _timerClockCounter++
             while (_timerClockCounter >= _timerFrequency) {
                 _timerClockCounter -= _timerFrequency
-                if (bus.getValue(ReservedAddresses.TIMA.memoryAddress).toInt() == 0xFF) {
+                if (timaRegister.value.toInt() == 0xFF) {
                     handleOverflow = true
                 } else {
-                    val timaRegister = bus.getValue(ReservedAddresses.TIMA.memoryAddress)
-                    bus.setValueFromPPU(
-                        ReservedAddresses.TIMA.memoryAddress,
-                        (timaRegister + 1u).toUByte()
-                    )
-
+                    timaRegister.value = (timaRegister.value + 1u).toUByte()
                 }
             }
         }
@@ -147,11 +156,8 @@ class Timers(
      * Reads the TAC register to update the timer enabled status and frequency
      */
     private fun readTACRegister() {
-
-        //Timer Enabled
         timerEnabled = tacRegister.testBit(2)
 
-        //Timer Input Clock Select
         val previousFrequency = _timerFrequency
         when (tacRegister.value.toInt() and 0x03) {
             0x00 -> _timerFrequency = 256

@@ -87,7 +87,7 @@ class PPU(
     }
 
     private fun changeMode(mode: PPUModes) {
-        var statRegister: Int = bus.getValue(ReservedAddresses.LCDC.memoryAddress).toInt() and 0xFC
+        var statRegister: Int = bus.getValueFromPPU(ReservedAddresses.LCDC.memoryAddress).toInt() and 0xFC
         var requestInterrupt = false
 
         when (mode) {
@@ -203,8 +203,6 @@ class PPU(
             //System.out.println(currentLine + "  " + Integer.toHexString(backgroundMapAddress));
 //                    System.out.println(scrollX + " " + scrollY + "  " + cpu.getIsHalted());
 
-            ppuRegisters.setScrolls()
-            ppuRegisters.readWindow()
             if (ppuRegisters.backgroundOn) {
                 ppuDrawer.drawBackground(backgroundMapAddress, tileDataAddress)
             }

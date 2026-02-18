@@ -24,17 +24,17 @@ class PPURegisters(
     internal var currentLine = 0
     internal var currentLineWindow = 0
 
-    private var _scrollY = 0
-    internal val scrollY get() = _scrollY
+    private var _scrollY = bus.getPermanentRegister(ReservedAddresses.SCY.memoryAddress)
+    internal val scrollY get() = _scrollY.value.toInt()
 
-    private var _scrollX = 0
-    internal val scrollX get() = _scrollX
+    private var _scrollX = bus.getPermanentRegister(ReservedAddresses.SCX.memoryAddress)
+    internal val scrollX get() = _scrollX.value.toInt()
 
-    private var _windowX = 0
-    internal val windowX get() = _windowX
+    private val _windowX = bus.getPermanentRegister(ReservedAddresses.WX.memoryAddress)
+    internal val windowX get() = (_windowX.value.toInt()- 7) and 0xFF
 
-    private var _windowY = 0
-    internal val windowY get() = _windowY
+    private val _windowY = bus.getPermanentRegister(ReservedAddresses.WY.memoryAddress)
+    internal val windowY get() = _windowY.value.toInt()
 
     private var _lcdOn: Boolean = false
     internal val lcdOn get() = _lcdOn
@@ -60,11 +60,17 @@ class PPURegisters(
     private var _spriteOn: Boolean = false
     internal val spriteOn get() = _spriteOn
 
+    /**
+     * This variable is used to determine whether the tile data should be treated as signed or unsigned,
+     * this is determined by the value of the tile data bit in the LCDC register
+     */
     internal var negativeTiles = false
 
+    /** Always has the value at the [ReservedAddresses.LCDC] memory address */
     private val lcdcRegister = bus.getPermanentRegister(ReservedAddresses.LCDC.memoryAddress)
 
-    private val statRegister = bus.getPermanentRegister(ReservedAddresses.STAT.memoryAddress)
+    /** Always has the value at the [ReservedAddresses.STAT] memory address */
+    internal val statRegister = bus.getPermanentRegister(ReservedAddresses.STAT.memoryAddress)
 
     /**
      * Reads the content of [ReservedAddresses.LCDC] and translates it into easily accessible flags
@@ -118,22 +124,14 @@ class PPURegisters(
     }
 
     /**
-     * Updates the [windowY] and [windowX] value by getting them from their respective registers
-     */
-    internal fun readWindow() {
-        _windowY = bus.getValue(ReservedAddresses.WY.memoryAddress).toInt()
-        _windowX = (bus.getValue(ReservedAddresses.WX.memoryAddress).toInt() - 7) and 0xFF
-    }
-
-    /**
      * TODO NEEDS TO CHECK THIS DOCUMENTATION
      */
     internal fun treatLYC(): Boolean {
-        val lyc = bus.getValue(ReservedAddresses.LYC.memoryAddress)
+        val lyc = bus.getValueFromPPU(ReservedAddresses.LYC.memoryAddress)
 
         if (currentLine == lyc.toInt()) {
             bus.setValueFromPPU(ReservedAddresses.LYC.memoryAddress, lyc.setBit(2))
-            return (bus.getValue(ReservedAddresses.LCDC.memoryAddress).toInt() and 0x40) != 0
+            return (bus.getValueFromPPU(ReservedAddresses.LCDC.memoryAddress).toInt() and 0x40) != 0
         } else {
             bus.setValueFromPPU(ReservedAddresses.LYC.memoryAddress, lyc.resetBit(2))
         }
@@ -142,32 +140,9 @@ class PPURegisters(
     }
 
     /**
-     * Sets both [scrollX] and [scrollY] to the value stored in their respective registers
-     */
-    fun setScrolls() {
-        readScrollX()
-        readScrollY()
-    }
-
-    /**
-     * Reads and sets the SCY register to [scrollY]
-     */
-    private fun readScrollY() {
-        _scrollY = bus.getValue(ReservedAddresses.SCY.memoryAddress).toInt()
-    }
-
-    /**
-     * Reads and sets the SCX register to [scrollX]
-     */
-    private fun readScrollX() {
-        _scrollY = bus.getValue(ReservedAddresses.SCX.memoryAddress).toInt()
-    }
-
-    /**
      * Reads the LY register and assigns it to currentLine variable
      */
     fun readLY() {
-        currentLine = bus.getValue(ReservedAddresses.LY.memoryAddress).toInt()
+        currentLine = bus.getValueFromPPU(ReservedAddresses.LY.memoryAddress).toInt()
     }
-
 }

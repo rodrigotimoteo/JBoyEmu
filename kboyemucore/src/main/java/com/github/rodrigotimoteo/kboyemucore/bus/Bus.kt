@@ -5,9 +5,10 @@ import com.github.rodrigotimoteo.kboyemucore.api.FrameBuffer
 import com.github.rodrigotimoteo.kboyemucore.controller.Controller
 import com.github.rodrigotimoteo.kboyemucore.cpu.CPU
 import com.github.rodrigotimoteo.kboyemucore.cpu.interrupts.InterruptNames
+import com.github.rodrigotimoteo.kboyemucore.memory.CpuMemoryOperations
 import com.github.rodrigotimoteo.kboyemucore.memory.MemoryManager
-import com.github.rodrigotimoteo.kboyemucore.memory.MemoryManipulation
 import com.github.rodrigotimoteo.kboyemucore.memory.MemoryModule
+import com.github.rodrigotimoteo.kboyemucore.memory.PpuMemoryOperations
 import com.github.rodrigotimoteo.kboyemucore.ppu.PPU
 import com.github.rodrigotimoteo.kboyemucore.util.FILTER_LOWER_BITS
 import com.github.rodrigotimoteo.kboyemucore.util.FILTER_TOP_BITS
@@ -23,7 +24,7 @@ import kotlin.system.exitProcess
 class Bus(
     rom: MemoryModule,
     private val isCGB: Boolean
-) : MemoryManipulation {
+) : CpuMemoryOperations, PpuMemoryOperations {
 
     private var _runningJob: Job? = null
 
@@ -101,12 +102,10 @@ class Bus(
     fun isCGB() = isCGB
 
     /**
-     * Changes value of specific word based on its memory address
-     *
-     * @param memoryAddress where to change the value
-     * @param value to assign
+     * CPU-only write access that ticks timers
      */
-    override fun setValue(memoryAddress: Int, value: UByte) {
+    override fun setValueFromCPU(memoryAddress: Int, value: UByte) {
+        cpu.timers.tick()
         memoryManager.setValue(memoryAddress, value)
     }
 
@@ -117,30 +116,37 @@ class Bus(
      * @param memoryAddress where to change the value
      * @param value to assign
      */
-    fun setValueFromPPU(memoryAddress: Int, value: UByte) {
+    override fun setValueFromPPU(memoryAddress: Int, value: UByte) {
         memoryManager.setValueFromPPU(memoryAddress, value)
     }
 
+    /**
+     * Gets a reference to a mutable value of a specific word based on its memory address without
+     * limitation (because PPU has unrestricted access to every memory address) "I Think" (for now
+     * only check bottom registers)
+     *
+     * @param memoryAddress where to get the value
+     *
+     * @return reference to a mutable value of a specific word based on its memory address without
+     * limitation (because PPU has unrestricted access to every memory address) "I Think" (for now
+     * only check bottom registers)
+     */
     fun getPermanentRegister(memoryAddress: Int): MutableUByte {
         return memoryManager.getPermanentRegister(memoryAddress)
     }
 
     /**
-     * Sets the value on the DIV register
-     *
-     * @param value to set
+     * CPU-only read access that ticks timers
      */
-    fun setDIV(value: UByte) {
-        memoryManager.setDiv(value)
+    override fun getValueFromCPU(memoryAddress: Int): UByte {
+        cpu.timers.tick()
+        return memoryManager.getValue(memoryAddress)
     }
 
     /**
-     * Gets the value of specific word based on its address
-     *
-     * @param memoryAddress where to get the value
-     * @return value stored in specific address
+     * PPU-only read access that does not tick timers
      */
-    override fun getValue(memoryAddress: Int): UByte {
+    override fun getValueFromPPU(memoryAddress: Int): UByte {
         return memoryManager.getValue(memoryAddress)
     }
 
@@ -175,8 +181,8 @@ class Bus(
         val stackPointer = cpu.cpuRegisters.getStackPointer()
         val programCounter = cpu.cpuRegisters.getProgramCounter()
 
-        setValue(stackPointer - 1, ((programCounter and FILTER_TOP_BITS) shr 8).toUByte())
-        setValue(stackPointer - 2, (programCounter and FILTER_LOWER_BITS).toUByte())
+        setValueFromCPU(stackPointer - 1, ((programCounter and FILTER_TOP_BITS) shr 8).toUByte())
+        setValueFromCPU(stackPointer - 2, (programCounter and FILTER_LOWER_BITS).toUByte())
 
         cpu.cpuRegisters.incrementStackPointer(-2)
     }
@@ -188,12 +194,10 @@ class Bus(
      * @return calculated address
      */
     fun calculateNN(): Int {
-        repeat(2) { cpu.timers.tick() }
-
         val programCounter = cpu.cpuRegisters.getProgramCounter()
 
-        val lowerAddress = getValue(programCounter + 1).toInt()
-        val upperAddress = getValue(programCounter + 2).toInt() shl 8
+        val lowerAddress = getValueFromCPU(programCounter + 1).toInt()
+        val upperAddress = getValueFromCPU(programCounter + 2).toInt() shl 8
 
         return lowerAddress + upperAddress
     }

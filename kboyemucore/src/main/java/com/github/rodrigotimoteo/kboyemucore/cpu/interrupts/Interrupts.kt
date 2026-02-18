@@ -75,6 +75,16 @@ class Interrupts(
     }
 
     /**
+     * Checks if the joypad interrupt is being requested, if so it changes the stopped state of the
+     * CPU to false
+     */
+    fun checkJoypadInterrupt() {
+        if (decodeServiceableInterrupts().toUByte().testBit(InterruptNames.JOYPAD_INT.testBit)) {
+            cpu.setStopped(false)
+        }
+    }
+
+    /**
      * Decodes the interrupts being requested, this is obtained from the IE and IF register
      *
      * @return value of IE register and IF register after AND operation

@@ -36,14 +36,14 @@ class Jump(
      * Jumps to the address given by the two words after the program counter
      */
     fun jp() {
+        cpu.timers.tick()
         val jumpAddress = bus.calculateNN()
 
         cpu.cpuRegisters.setProgramCounter(jumpAddress)
-        cpu.timers.tick()
     }
 
     /**
-     * Jumps to the address given by the two words after the program counter if the given condition is statisfied
+     * Jumps to the address given by the two words after the program counter if the given condition is satisfied
      *
      * @param condition which condition to test for
      * @see jp()
@@ -51,10 +51,11 @@ class Jump(
     fun jpCond(condition: JumpConstants) {
         val conditionalValue = getConditionalValue(condition)
 
-        if (conditionalValue) jp()
-        else {
-            cpu.cpuRegisters.incrementProgramCounter(3)
+        if (conditionalValue) {
+            jp()
+        } else {
             repeat(2) { cpu.timers.tick() }
+            cpu.cpuRegisters.incrementProgramCounter(3)
         }
     }
 
@@ -69,10 +70,9 @@ class Jump(
      * Adds a given value to the program counter taken from the value after the program counter, this value is signed
      */
     fun jr() {
-        repeat(2) { cpu.timers.tick() }
-
+        cpu.timers.tick()
         val programCounter = cpu.cpuRegisters.getProgramCounter()
-        val checkValue = bus.getValue(programCounter + 1).toByte().toInt()
+        val checkValue = bus.getValueFromCPU(programCounter + 1).toByte().toInt()
 
         cpu.cpuRegisters.incrementProgramCounter(2)
         cpu.cpuRegisters.incrementProgramCounter(checkValue)
@@ -91,8 +91,8 @@ class Jump(
         if (conditionalValue) {
             jr()
         } else {
-            cpu.cpuRegisters.incrementProgramCounter(2)
             cpu.timers.tick()
+            cpu.cpuRegisters.incrementProgramCounter(2)
         }
     }
 
@@ -100,14 +100,14 @@ class Jump(
      * Pushes the address of the next instruction onto the stack and then jumps to given NN address
      */
     fun call() {
-        repeat(3) { cpu.timers.tick() }
+        cpu.timers.tick()
 
         val programCounter = cpu.cpuRegisters.getProgramCounter()
         val stackPointer = cpu.cpuRegisters.getStackPointer()
         val jumpAddress = bus.calculateNN()
 
-        bus.setValue(stackPointer - 1, (((programCounter + 3) and 0xFF00) shr 8).toUByte())
-        bus.setValue(stackPointer - 2, ((programCounter + 3) and 0x00FF).toUByte())
+        bus.setValueFromCPU(stackPointer - 1, (((programCounter + 3) and 0xFF00) shr 8).toUByte())
+        bus.setValueFromCPU(stackPointer - 2, ((programCounter + 3) and 0x00FF).toUByte())
 
         cpu.cpuRegisters.setProgramCounter(jumpAddress)
         cpu.cpuRegisters.incrementStackPointer(-2)
@@ -123,10 +123,11 @@ class Jump(
     fun callCond(condition: JumpConstants) {
         val conditionalValue = getConditionalValue(condition)
 
-        if (conditionalValue) call()
-        else {
-            cpu.cpuRegisters.incrementProgramCounter(3)
+        if (conditionalValue) {
+            call()
+        } else {
             repeat(2) { cpu.timers.tick() }
+            cpu.cpuRegisters.incrementProgramCounter(3)
         }
     }
 
@@ -134,11 +135,11 @@ class Jump(
      * This operation pops two bytes from the stack and jumps to that address
      */
     fun ret() {
-        repeat(3) { cpu.timers.tick() }
+        cpu.timers.tick()
 
         val stackPointer = cpu.cpuRegisters.getStackPointer()
-        val jumpAddress = bus.getValue(stackPointer).toInt() +
-                (bus.getValue(stackPointer + 1).toInt() shl 8)
+        val jumpAddress = bus.getValueFromCPU(stackPointer).toInt() +
+                (bus.getValueFromCPU(stackPointer + 1).toInt() shl 8)
 
         cpu.cpuRegisters.setProgramCounter(jumpAddress)
         cpu.cpuRegisters.incrementStackPointer(2)
@@ -153,6 +154,7 @@ class Jump(
     fun retCond(condition: JumpConstants) {
         val conditionalValue = getConditionalValue(condition)
 
+        cpu.timers.tick()
         if (conditionalValue) {
             ret()
         } else {
@@ -178,13 +180,13 @@ class Jump(
      * @param jumpAddress offset of where to jump to
      */
     fun rst(jumpAddress: Int) {
-        repeat(3) { cpu.timers.tick() }
+        cpu.timers.tick()
 
         val programCounter = cpu.cpuRegisters.getProgramCounter()
         val stackPointer = cpu.cpuRegisters.getStackPointer()
 
-        bus.setValue(stackPointer - 1, (((programCounter + 1) and 0xFF00) shr 8).toUByte())
-        bus.setValue(stackPointer - 2, ((programCounter + 1) and 0x00FF).toUByte())
+        bus.setValueFromCPU(stackPointer - 1, (((programCounter + 1) and 0xFF00) shr 8).toUByte())
+        bus.setValueFromCPU(stackPointer - 2, ((programCounter + 1) and 0x00FF).toUByte())
 
         cpu.cpuRegisters.setProgramCounter(jumpAddress)
         cpu.cpuRegisters.incrementStackPointer(-2)

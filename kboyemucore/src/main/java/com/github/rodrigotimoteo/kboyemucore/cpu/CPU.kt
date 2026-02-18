@@ -53,15 +53,20 @@ class CPU(
      */
     fun getCounter() = timers.machineCycles
 
+    /**
+     * Executes the operation that is currently pointed by the program counter, if the halt bug is
+     * active it decodes the instruction at the program counter and then decrements the program counter
+     * by 1 to make it point to the same instruction for the next tick
+     */
     private fun executeOperation() {
         val programCounter = cpuRegisters.getProgramCounter()
 
         if (interrupts.haltBug) {
-            decoder.decode(bus.getValue(programCounter).toInt())
+            decoder.decode(bus.getValueFromCPU(programCounter).toInt())
             cpuRegisters.incrementProgramCounter(-1)
             interrupts.disableHaltBug()
         } else {
-            decoder.decode(bus.getValue(programCounter).toInt())
+            decoder.decode(bus.getValueFromCPU(programCounter).toInt())
         }
     }
 
