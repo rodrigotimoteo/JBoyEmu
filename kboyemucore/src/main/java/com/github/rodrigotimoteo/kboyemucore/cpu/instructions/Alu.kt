@@ -663,6 +663,8 @@ class Alu(
      * Does not affect any flags.
      */
     fun incSP() {
+        cpu.timers.tick()
+
         cpu.cpuRegisters.incrementStackPointer(1)
         cpu.cpuRegisters.incrementProgramCounter(1)
     }
@@ -673,6 +675,8 @@ class Alu(
      * Does not affect any flags.
      */
     fun decSP() {
+        cpu.timers.tick()
+
         cpu.cpuRegisters.incrementStackPointer(-1)
         cpu.cpuRegisters.incrementProgramCounter(1)
     }
