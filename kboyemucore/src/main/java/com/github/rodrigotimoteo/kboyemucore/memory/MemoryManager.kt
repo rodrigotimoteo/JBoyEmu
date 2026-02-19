@@ -34,7 +34,7 @@ class MemoryManager(
     /**
      * Whether or not the current rom is Color Game Boy or not
      */
-    private val isCGB: Boolean = bus.isCGB()
+    private val isCGB: Boolean = bus.isCGB
 
     /**
      * Reference to the VRAM [MemoryModule]

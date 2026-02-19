@@ -60,8 +60,9 @@ class Control(
      * Stops the CPU and LCD until a button is pressed
      */
     fun stop() {
-        cpu.setStopped(true)
-        bus.setValueFromCPU(ReservedAddresses.DIV.memoryAddress, 0x00u)
+        if (bus.isCGB) {
+
+        }
 
         cpu.cpuRegisters.incrementProgramCounter(2)
     }

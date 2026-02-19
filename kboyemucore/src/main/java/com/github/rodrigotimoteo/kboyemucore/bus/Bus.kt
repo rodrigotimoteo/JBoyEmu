@@ -23,7 +23,7 @@ import kotlin.system.exitProcess
 @Suppress("TooManyFunctions")
 class Bus(
     rom: MemoryModule,
-    private val isCGB: Boolean
+    val isCGB: Boolean
 ) : CpuMemoryOperations, PpuMemoryOperations {
 
     private var _runningJob: Job? = null
@@ -95,11 +95,6 @@ class Bus(
     fun stop() {
         _runningJob?.cancel()
     }
-
-    /**
-     * Returns whether or not the current rom is from Color Game Boy or not
-     */
-    fun isCGB() = isCGB
 
     /**
      * CPU-only write access that ticks timers

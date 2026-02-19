@@ -52,6 +52,20 @@ class Interrupts(
      */
     private var changeToState: Boolean = false
 
+    /**
+     * Checks if the IE register is 0, this is used for the halt bug test
+     */
+    internal val isIERegisterZero get() = ieRegister.value.toInt() == 0
+
+    /**
+     * Handles the interrupt process, this is done by first checking if the interrupt master enabled
+     * flag is active, if so it checks if there are any interrupts to be serviced by doing an and
+     * operation between the IE and IF register, if there are interrupts to be serviced it sets the
+     * halted state of the CPU to false, disables the IME flag, stores the program counter in the
+     * stack pointer and then checks which interrupt is being requested and serves it. If the
+     * interrupt master enabled flag is not active but the CPU is halted and there are interrupts
+     * to be serviced it sets the halted state of the CPU to false and checks for the halt bug
+     */
     fun handleInterrupt() {
         val availableInterrupts = decodeServiceableInterrupts()
 
@@ -76,10 +90,10 @@ class Interrupts(
 
     /**
      * Checks if the joypad interrupt is being requested, if so it changes the stopped state of the
-     * CPU to false
+     * CPU to false. Checks only IF register since IE may be 0 during STOP mode.
      */
     fun checkJoypadInterrupt() {
-        if (decodeServiceableInterrupts().toUByte().testBit(InterruptNames.JOYPAD_INT.testBit)) {
+        if (ifRegister.value.toInt().toUByte().testBit(InterruptNames.JOYPAD_INT.testBit)) {
             cpu.setStopped(false)
         }
     }

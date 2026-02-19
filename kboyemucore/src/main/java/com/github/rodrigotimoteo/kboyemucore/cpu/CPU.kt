@@ -9,12 +9,16 @@ class CPU(
     private val bus: Bus
 ) {
 
+    /** Reference to the [CPURegisters] */
     internal val cpuRegisters = CPURegisters(bus)
 
+    /** Reference to the [Timers] */
     internal val timers = Timers(this, bus)
 
+    /** Reference to the [Interrupts] */
     internal val interrupts = Interrupts(this, bus)
 
+    /** Reference to the [Decoder] */
     internal val decoder = Decoder(this, bus)
 
     /**
@@ -27,7 +31,13 @@ class CPU(
      */
     private var isStopped = false
 
+    /**
+     * Executes a CPU tick, this is the main function of the CPU and is responsible for executing
+     * instructions, handling interrupts and updating timers
+     */
     fun tick() {
+        interrupts.checkJoypadInterrupt()
+
         if (!isStopped) {
             if (!isHalted) {
 //                println(cpuRegisters)
