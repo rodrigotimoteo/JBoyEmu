@@ -234,7 +234,7 @@ The emulator supports:
 ### Timing
 
 - **CPU Clock:** 4.19 MHz
-- **Frame Rate:** 59.73 FPS (GM)
+- **Frame Rate:** 59.73 FPS (GB)
 - **Cycles per Frame:** ~70,224
 - **Scanlines:** 154 (144 visible + 10 V-blank)
 - **PPU Cycles per Scanline:** 456
