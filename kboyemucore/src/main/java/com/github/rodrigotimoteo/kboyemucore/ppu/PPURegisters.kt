@@ -31,7 +31,7 @@ class PPURegisters(
     internal val scrollX get() = _scrollX.value.toInt()
 
     private val _windowX = bus.getPermanentRegister(ReservedAddresses.WX.memoryAddress)
-    internal val windowX get() = (_windowX.value.toInt()- 7) and 0xFF
+    internal val windowX get() = (_windowX.value.toInt() - 7) and 0xFF
 
     private val _windowY = bus.getPermanentRegister(ReservedAddresses.WY.memoryAddress)
     internal val windowY get() = _windowY.value.toInt()
