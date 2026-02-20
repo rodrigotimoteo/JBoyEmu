@@ -142,7 +142,7 @@ class Bus(
      * PPU-only read access that does not tick timers
      */
     override fun getValueFromPPU(memoryAddress: Int): UByte {
-        return memoryManager.getValue(memoryAddress)
+        return memoryManager.getValueFromPPU(memoryAddress)
     }
 
     /**

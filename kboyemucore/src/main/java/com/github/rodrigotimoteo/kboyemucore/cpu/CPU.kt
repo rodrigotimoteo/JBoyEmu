@@ -72,9 +72,9 @@ class CPU(
         val programCounter = cpuRegisters.getProgramCounter()
 
         if (interrupts.haltBug) {
-            decoder.decode(bus.getValueFromCPU(programCounter).toInt())
-            cpuRegisters.incrementProgramCounter(-1)
             interrupts.disableHaltBug()
+            decoder.decode(bus.getValueFromCPU(programCounter).toInt())
+            cpuRegisters.setProgramCounter(programCounter)
         } else {
             decoder.decode(bus.getValueFromCPU(programCounter).toInt())
         }

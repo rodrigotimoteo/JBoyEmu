@@ -17,10 +17,29 @@ class PPUDrawer(
     private val painting = ByteArray(WIDTH * HEIGHT)
 
     /**
+     * Pre-decoded palette caches - decoded once per scanline, reused per pixel
+     */
+    private val bgPalette  = ByteArray(4)
+    private val obp0Palette = ByteArray(4)
+    private val obp1Palette = ByteArray(4)
+
+    /**
+     * Decodes a Game Boy palette register into 4 color values and stores them in [dest]
+     */
+    private fun decodePalette(palette: Int, dest: ByteArray) {
+        dest[0] = ((palette and 0x03)).toByte()
+        dest[1] = (((palette shr 2) and 0x03)).toByte()
+        dest[2] = (((palette shr 4) and 0x03)).toByte()
+        dest[3] = (((palette shr 6) and 0x03)).toByte()
+    }
+
+    /**
      * Draws the background part of the screen based on specification provided by the GameBoy PPU
      */
     internal fun drawBackground(tileMapAddress: Int, tileDataAddress: Int) {
         val tempY = (ppu.ppuRegisters.currentLine + ppu.ppuRegisters.scrollY) and 0xFF
+
+        decodePalette(ppu.ppuRegisters.bgpRegister.value.toInt(), bgPalette)
 
         for (x in 0 until WIDTH) {
             val tempX = (ppu.ppuRegisters.scrollX + x) % 0x0100
@@ -47,14 +66,12 @@ class PPUDrawer(
             } else i
 
             val offset = 7 - (tempX % 8)
-            val colorNum = (((bus.getValueFromPPU(tileLine).toInt() and (1 shl offset)) shr offset) +
-                    (((bus.getValueFromPPU(tileLine + 1).toInt() and (1 shl offset)) shr offset) * 2))
-            val color = decodeColor(
-                colorNum,
-                bus.getValueFromPPU(ReservedAddresses.BGP.memoryAddress).toInt()
-            )
+            val colorNum =
+                (((bus.getValueFromPPU(tileLine).toInt() and (1 shl offset)) shr offset) +
+                        (((bus.getValueFromPPU(tileLine + 1)
+                            .toInt() and (1 shl offset)) shr offset) * 2))
 
-            painting[ppu.ppuRegisters.currentLine * WIDTH + x] = color
+            painting[ppu.ppuRegisters.currentLine * WIDTH + x] = bgPalette[colorNum]
         }
     }
 
@@ -67,6 +84,8 @@ class PPUDrawer(
         val tempY = ppu.ppuRegisters.currentLineWindow
 
         if (windowY < 0 || windowX > WIDTH || ppu.ppuRegisters.currentLine < windowY) return
+
+        decodePalette(ppu.ppuRegisters.bgpRegister.value.toInt(), bgPalette)
 
         for (x in 0 until WIDTH) {
             if (x < windowX) continue
@@ -89,11 +108,10 @@ class PPUDrawer(
             val offset = 7 - (tempX % 8)
             val colorNum =
                 (((bus.getValueFromPPU(tileLine).toInt() and (1 shl offset)) shr offset) +
-                        (((bus.getValueFromPPU(tileLine + 1).toInt() and (1 shl offset)) shr offset) * 2))
-            val color =
-                decodeColor(colorNum, bus.getValueFromPPU(ReservedAddresses.BGP.memoryAddress).toInt())
+                        (((bus.getValueFromPPU(tileLine + 1)
+                            .toInt() and (1 shl offset)) shr offset) * 2))
 
-            painting[ppu.ppuRegisters.currentLine * WIDTH + tempX] = color
+            painting[ppu.ppuRegisters.currentLine * WIDTH + x] = bgPalette[colorNum]
         }
 
         ppu.ppuRegisters.currentLineWindow++
@@ -106,13 +124,17 @@ class PPUDrawer(
     internal fun drawSprite() { // NOSONAR
         val drawnX = IntArray(10)
 
+        decodePalette(bus.getValueFromPPU(ReservedAddresses.OBP0.memoryAddress).toInt(), obp0Palette)
+        decodePalette(bus.getValueFromPPU(ReservedAddresses.OBP1.memoryAddress).toInt(), obp1Palette)
+
         var drawnSprites = 0
         val spriteOffset = if (ppu.ppuRegisters.spriteSize) 16 else 8
 
         var spriteNumber = 0
         while (spriteNumber < 40 && drawnSprites < 10) {
-            val tempY = bus.getValueFromPPU(ReservedAddresses.OAM_START.memoryAddress + (spriteNumber * 4))
-                .toInt() - 16
+            val tempY =
+                bus.getValueFromPPU(ReservedAddresses.OAM_START.memoryAddress + (spriteNumber * 4))
+                    .toInt() - 16
             val tempX =
                 bus.getValueFromPPU(ReservedAddresses.OAM_START.memoryAddress + (spriteNumber * 4) + 1)
                     .toInt() - 8
@@ -138,13 +160,7 @@ class PPUDrawer(
                 val yFlipped: Boolean = attributes.testBit(6)
                 val xFlipped: Boolean = attributes.testBit(5)
 
-                val paletteAddress = if (attributes.testBit(4)) {
-                    ReservedAddresses.OBP1.memoryAddress
-                } else {
-                    ReservedAddresses.OBP0.memoryAddress
-                }
-
-                val palette: Int = bus.getValueFromPPU(paletteAddress).toInt()
+                val spritePalette = if (attributes.testBit(4)) obp1Palette else obp0Palette
 
                 val tileLine = spriteOffset - (ppu.ppuRegisters.currentLine - tempY)
                 val offset: Int = if (!yFlipped) {
@@ -166,11 +182,10 @@ class PPUDrawer(
                         ((bus.getValueFromPPU(pixelDataAddress).toInt() and (1 shl x)) shr x) +
                                 (((bus.getValueFromPPU(pixelDataAddress + 1)
                                     .toInt() and (1 shl x)) shr x) * 2)
-                    val color = decodeColor(colorNum, palette)
 
                     if ((tempX + pixelPrinted < 160) && (tempX + pixelPrinted >= 0) && (colorNum != 0)) {
                         painting[ppu.ppuRegisters.currentLine * WIDTH + tempX + pixelPrinted] =
-                            color
+                            spritePalette[colorNum]
                     }
                 }
 
@@ -179,16 +194,6 @@ class PPUDrawer(
             }
             spriteNumber++
         }
-    }
-
-    private fun decodeColor(index: Int, palette: Int): Byte {
-        val colors = ByteArray(4)
-        colors[3] = (((palette and 0x80) shr 6) + ((palette and 0x40) shr 6)).toByte()
-        colors[2] = (((palette and 0x20) shr 4) + ((palette and 0x10) shr 4)).toByte()
-        colors[1] = (((palette and 0x08) shr 2) + ((palette and 0x04) shr 2)).toByte()
-        colors[0] = ((palette and 0x02) + (palette and 0x01)).toByte()
-
-        return colors[index]
     }
 
     fun requestRepaint() {

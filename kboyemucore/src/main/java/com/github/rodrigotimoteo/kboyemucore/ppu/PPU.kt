@@ -14,15 +14,19 @@ class PPU(
     private val bus: Bus,
 ) {
 
+    /** [MutableStateFlow] of [FrameBuffer] used to update the screen when an update is triggered */
     private val _painting = MutableStateFlow(
         FrameBuffer(WIDTH, HEIGHT, ByteArray(WIDTH * HEIGHT))
     )
 
+    /** [StateFlow] of [FrameBuffer] for use in Emulator implementation */
     val painting = _painting.asStateFlow()
 
+    /** Variable used to control whether the PPU should go to sleep (when in VBlank and nothing changed) */
     private var getToSleep = false
 
-    private var cgb = false
+    /** Variable used to control whether the PPU is in CGB mode or not (affects some drawing operations) */
+    private val cgb = bus.isCGB
 
     /**
      * Reference to [PPUDrawer]
@@ -34,8 +38,47 @@ class PPU(
      */
     internal val ppuRegisters = PPURegisters(bus)
 
+    /** Variables used to calculate and print the FPS of the PPU */
     private var frameCount = 0
+
+    /** Variable used to store the last timestamp when the FPS was calculated */
     private var lastTimestampMs = System.currentTimeMillis()
+
+    /**
+     * Returns the window map address based on the current PPURegisters configuration
+     *
+     * @return windowMapAddress
+     */
+    val windowMapAddress: Int
+        get() = if (ppuRegisters.windowTileMap) {
+            ReservedAddresses.TILE_MAP_1.memoryAddress
+        } else {
+            ReservedAddresses.TILE_MAP_0.memoryAddress
+        }
+
+    /**
+     * Returns the background map address based on the current PPURegisters configuration
+     *
+     * @return backgroundMapAddress
+     */
+    val backgroundMapAddress: Int
+        get() = if (ppuRegisters.backgroundTileMap) {
+            ReservedAddresses.TILE_MAP_1.memoryAddress
+        } else {
+            ReservedAddresses.TILE_MAP_0.memoryAddress
+        }
+
+    /**
+     * Returns the tile data address based on the current PPURegisters configuration
+     *
+     * @return tileDataAddress
+     */
+    val tileDataAddress: Int
+        get() = if (ppuRegisters.tileData) {
+            ReservedAddresses.SWITCH_ROM_END.memoryAddress
+        } else {
+            ReservedAddresses.TILE_DATA_2.memoryAddress
+        }
 
     /**
      * Updates the painting flow providing a new frame to be rendered
@@ -71,15 +114,6 @@ class PPU(
         ppuRegisters.readLCDControl()
     }
 
-    fun isGetToSleep(): Boolean {
-        return getToSleep
-    }
-
-    fun setCgbMode() {
-        cgb = true
-//        display!!.setCgbMode()
-    }
-
     fun tick() {
         ppuRegisters.readLCDControl()
         ppuRegisters.readLCDStatus()
@@ -87,7 +121,7 @@ class PPU(
     }
 
     private fun changeMode(mode: PPUModes) {
-        var statRegister: Int = bus.getValueFromPPU(ReservedAddresses.LCDC.memoryAddress).toInt() and 0xFC
+        var statRegister: Int = ppuRegisters.statRegister.value.toInt() and 0xFC
         var requestInterrupt = false
 
         when (mode) {
@@ -110,7 +144,7 @@ class PPU(
             }
         }
 
-        bus.setValueFromPPU(ReservedAddresses.STAT.memoryAddress, statRegister.toUByte())
+        ppuRegisters.statRegister.value = (statRegister and 0xFF).toUByte()
         val lycInterrupt = ppuRegisters.treatLYC()
         if (requestInterrupt || lycInterrupt) {
             bus.triggerInterrupt(InterruptNames.STAT_INT)
@@ -133,10 +167,7 @@ class PPU(
         if (ppuRegisters.counter == 114) {
             ppuRegisters.counter = 0
             ppuRegisters.currentLine++
-            bus.setValueFromPPU(
-                ReservedAddresses.LY.memoryAddress,
-                ppuRegisters.currentLine.toUByte()
-            )
+            ppuRegisters.lyRegister.value = ppuRegisters.currentLine.toUByte()
             if (ppuRegisters.currentLine > 143) {
                 ppuDrawer.requestRepaint()
                 changeMode(PPUModes.VBLANK)
@@ -151,17 +182,11 @@ class PPU(
         if (ppuRegisters.counter == 114) {
             ppuRegisters.counter = 0
             ppuRegisters.currentLine++
-            bus.setValueFromPPU(
-                ReservedAddresses.LY.memoryAddress,
-                ppuRegisters.currentLine.toUByte()
-            )
+            ppuRegisters.lyRegister.value = ppuRegisters.currentLine.toUByte()
             if (ppuRegisters.currentLine > 153) {
                 ppuRegisters.currentLine = 0
                 ppuRegisters.currentLineWindow = 0
-                bus.setValueFromPPU(
-                    ReservedAddresses.LY.memoryAddress,
-                    ppuRegisters.currentLine.toUByte()
-                )
+                ppuRegisters.lyRegister.value = ppuRegisters.currentLine.toUByte()
                 changeMode(PPUModes.OAM)
                 getToSleep = true
             }
@@ -177,31 +202,8 @@ class PPU(
 
     private fun pixelTransfer() { // NOSONAR
         if (ppuRegisters.counter == 63) {
-            val windowMapAddress: Int = if (ppuRegisters.windowTileMap) {
-                ReservedAddresses.TILE_MAP_1.memoryAddress
-            } else {
-                ReservedAddresses.TILE_MAP_0.memoryAddress
-            }
-
-            val backgroundMapAddress: Int = if (ppuRegisters.backgroundTileMap) {
-                ReservedAddresses.TILE_MAP_1.memoryAddress
-            } else {
-                ReservedAddresses.TILE_MAP_0.memoryAddress
-            }
-
-            // SWITCH_ROM_END is where TILE_DATA_0 starts
-            val tileDataAddress = if (ppuRegisters.tileData) {
-                ReservedAddresses.SWITCH_ROM_END.memoryAddress
-            } else {
-                ReservedAddresses.TILE_DATA_2.memoryAddress
-            }
-
-            if (tileDataAddress == ReservedAddresses.TILE_DATA_2.memoryAddress) {
-                ppuRegisters.negativeTiles = true
-            }
-
-            //System.out.println(currentLine + "  " + Integer.toHexString(backgroundMapAddress));
-//                    System.out.println(scrollX + " " + scrollY + "  " + cpu.getIsHalted());
+            ppuRegisters.negativeTiles =
+                tileDataAddress == ReservedAddresses.TILE_DATA_2.memoryAddress
 
             if (ppuRegisters.backgroundOn) {
                 ppuDrawer.drawBackground(backgroundMapAddress, tileDataAddress)

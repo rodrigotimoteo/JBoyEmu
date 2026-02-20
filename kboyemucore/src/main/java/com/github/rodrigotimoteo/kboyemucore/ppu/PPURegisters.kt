@@ -5,6 +5,7 @@ import com.github.rodrigotimoteo.kboyemucore.ktx.resetBit
 import com.github.rodrigotimoteo.kboyemucore.ktx.setBit
 import com.github.rodrigotimoteo.kboyemucore.ktx.testBit
 import com.github.rodrigotimoteo.kboyemucore.memory.ReservedAddresses
+import kotlin.text.toInt
 
 class PPURegisters(
     private val bus: Bus,
@@ -72,6 +73,15 @@ class PPURegisters(
     /** Always has the value at the [ReservedAddresses.STAT] memory address */
     internal val statRegister = bus.getPermanentRegister(ReservedAddresses.STAT.memoryAddress)
 
+    /** Always has the value at the [ReservedAddresses.LY] memory address */
+    internal val lyRegister = bus.getPermanentRegister(ReservedAddresses.LY.memoryAddress)
+
+    /** Always has the value at the [ReservedAddresses.LYC] memory address */
+    internal val lycRegister = bus.getPermanentRegister(ReservedAddresses.LYC.memoryAddress)
+
+    /** Always has the value at the [ReservedAddresses.LYC] memory address */
+    internal val bgpRegister = bus.getPermanentRegister(ReservedAddresses.BGP.memoryAddress)
+
     /**
      * Reads the content of [ReservedAddresses.LCDC] and translates it into easily accessible flags
      */
@@ -103,7 +113,6 @@ class PPURegisters(
 
         //Read Background and window Enabled Status
         _backgroundOn = lcdcValue.testBit(0)
-        _windowOn = lcdcValue.testBit(0)
     }
 
     /**
@@ -127,13 +136,11 @@ class PPURegisters(
      * TODO NEEDS TO CHECK THIS DOCUMENTATION
      */
     internal fun treatLYC(): Boolean {
-        val lyc = bus.getValueFromPPU(ReservedAddresses.LYC.memoryAddress)
-
-        if (currentLine == lyc.toInt()) {
-            bus.setValueFromPPU(ReservedAddresses.LYC.memoryAddress, lyc.setBit(2))
-            return (bus.getValueFromPPU(ReservedAddresses.LCDC.memoryAddress).toInt() and 0x40) != 0
+        if (currentLine == lycRegister.value.toInt()) {
+            statRegister.value = statRegister.value.setBit(2)
+            return (statRegister.value.toInt() and 0x40) != 0  // bit 6 of STAT = LYC interrupt enable
         } else {
-            bus.setValueFromPPU(ReservedAddresses.LYC.memoryAddress, lyc.resetBit(2))
+            statRegister.value = statRegister.value.resetBit(2)
         }
 
         return false
@@ -143,6 +150,6 @@ class PPURegisters(
      * Reads the LY register and assigns it to currentLine variable
      */
     fun readLY() {
-        currentLine = bus.getValueFromPPU(ReservedAddresses.LY.memoryAddress).toInt()
+        currentLine = lyRegister.value.toInt()
     }
 }

@@ -262,6 +262,32 @@ class MemoryManager(
     }
 
     /**
+     * This is a special method designed to be used by the PPU only and it provides free read access
+     * to each and every memory location currently only bottomRegisters suffer this limitation
+     * Used as an optimization to avoid checking every condition
+     *
+     * @param memoryAddress memory location where to get value
+     * @return value stored in given address
+     */
+    fun getValueFromPPU(memoryAddress: Int): UByte = when (memoryAddress) {
+        in ReservedAddresses.SWITCH_ROM_END.memoryAddress until ReservedAddresses.VRAM_END.memoryAddress -> {
+            vram.getValue(memoryAddress)
+        }
+
+        in ReservedAddresses.OAM_START.memoryAddress until ReservedAddresses.OAM_END.memoryAddress -> {
+            oam.getValue(memoryAddress)
+        }
+
+        in ReservedAddresses.JOYP.memoryAddress..ReservedAddresses.IE.memoryAddress -> {
+            bottomRegisters[memoryAddress - ReservedAddresses.JOYP.memoryAddress].value
+        }
+
+        else -> {
+            error("This should not be accessed here")
+        }
+    }
+
+    /**
      * Converts the full memory map into a readable string containing all the memory addrress' content
      *
      * @return memory dump of GB

@@ -74,18 +74,27 @@ class Interrupts(
                 cpu.setHalted(false)
                 disableIme()
 
+                checkHaltBug()
+
+                repeat(2) { cpu.timers.tick() }
                 bus.storeProgramCounterInStackPointer()
+                cpu.timers.tick()
 
                 checkInterruptTypes(availableInterrupts)
             }
         } else if (cpu.isHalted() && availableInterrupts != 0x00) {
             cpu.setHalted(false)
 
-            val machineCycles = cpu.timers.machineCycles
-            val haltMachineCycles = cpu.timers.haltCycleCounter
-
-            if (machineCycles == haltMachineCycles) _haltBug = true
+            checkHaltBug()
         }
+    }
+
+    /**
+     * Checks if the halt bug should be active, this is done by checking if the machine cycles and the
+     * halt cycle counter are the same, if so it sets the halt bug to true
+     */
+    private fun checkHaltBug() {
+        if (cpu.timers.machineCycles == cpu.timers.haltCycleCounter) _haltBug = true
     }
 
     /**
