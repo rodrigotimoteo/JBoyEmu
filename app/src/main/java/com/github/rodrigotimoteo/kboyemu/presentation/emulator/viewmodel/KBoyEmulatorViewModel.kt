@@ -28,14 +28,11 @@ class KBoyEmulatorViewModel(
     internal val frameBitmap = MutableStateFlow(ImageBitmap(160, 144))
 
     init {
-//        val romBytes = context.assets.open("01-read_timing.gb").readBytes().toUByteArray()
-//        val romBytes = context.assets.open("02-write_timing.gb").readBytes().toUByteArray()
-//        val romBytes = context.assets.open("03-modify_timing.gb").readBytes().toUByteArray()
 //        val romBytes = context.assets.open("instr_timing.gb").readBytes().toUByteArray()
 //        val romBytes = context.assets.open("cpu_instrs.gb").readBytes().toUByteArray()
 //        val romBytes = context.assets.open("rtc3test.gb").readBytes().toUByteArray()
-//        val romBytes = context.assets.open("dmg-acid2.gb").readBytes().toUByteArray()
-        val romBytes = context.assets.open("halt_bug.gb").readBytes().toUByteArray()
+        val romBytes = context.assets.open("dmg-acid2.gb").readBytes().toUByteArray()
+//        val romBytes = context.assets.open("halt_bug.gb").readBytes().toUByteArray()
 //        val romBytes = context.assets.open("mem_timing.gb").readBytes().toUByteArray()
 //        val romBytes = context.assets.open("tetrisAgora.gb").readBytes().toUByteArray()
 //        val romBytes = context.assets.open("pokemon_red.gb").readBytes().toUByteArray()

@@ -3,6 +3,9 @@ package com.github.rodrigotimoteo.kboyemucore.memory
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.cpu.Timers
 import com.github.rodrigotimoteo.kboyemucore.memory.rom.RomModule
+import com.github.rodrigotimoteo.kboyemucore.ppu.PPUModes
+import com.github.rodrigotimoteo.kboyemucore.ppu.writeOAMAble
+import com.github.rodrigotimoteo.kboyemucore.ppu.writeVRAMAble
 import com.github.rodrigotimoteo.kboyemucore.util.MutableUByte
 import com.github.rodrigotimoteo.kboyemucore.util.REGISTER_DOES_NOT_EXIST
 
@@ -70,7 +73,10 @@ class MemoryManager(
     /**
      * Reference to the BottomRegisters [MemoryModule]
      */
-    private val bottomRegisters = Array<MutableUByte>(0x100) { MutableUByte() }
+    private val bottomRegisters = Array(0x100) { MutableUByte() }
+
+    private val ppuMode: PPUModes
+        get() = bus.ppuMode
 
     /**
      * Responsible for initializing the memory with the default values assign by the boot rom
@@ -130,7 +136,11 @@ class MemoryManager(
         }
 
         in ReservedAddresses.SWITCH_ROM_END.memoryAddress until ReservedAddresses.VRAM_END.memoryAddress -> {
-            vram.setValue(memoryAddress, value)
+            if (ppuMode.writeVRAMAble()) {
+                vram.setValue(memoryAddress, value)
+            } else {
+                Unit
+            }
         }
 
         in ReservedAddresses.VRAM_END.memoryAddress until ReservedAddresses.ERAM_END.memoryAddress -> {
@@ -148,7 +158,11 @@ class MemoryManager(
         }
 
         in ReservedAddresses.OAM_START.memoryAddress until ReservedAddresses.OAM_END.memoryAddress -> {
-            oam.setValue(memoryAddress, value)
+            if (ppuMode.writeOAMAble()) {
+                oam.setValue(memoryAddress, value)
+            } else {
+                Unit
+            }
         }
 
         in ReservedAddresses.OAM_END.memoryAddress until ReservedAddresses.JOYP.memoryAddress -> {
@@ -214,7 +228,11 @@ class MemoryManager(
         }
 
         in ReservedAddresses.SWITCH_ROM_END.memoryAddress until ReservedAddresses.VRAM_END.memoryAddress -> {
-            vram.getValue(memoryAddress)
+            if (ppuMode.writeVRAMAble()) {
+                vram.getValue(memoryAddress)
+            } else {
+                0xFFu
+            }
         }
 
         in ReservedAddresses.VRAM_END.memoryAddress until ReservedAddresses.ERAM_END.memoryAddress -> {
@@ -234,7 +252,11 @@ class MemoryManager(
         }
 
         in ReservedAddresses.OAM_START.memoryAddress until ReservedAddresses.OAM_END.memoryAddress -> {
-            oam.getValue(memoryAddress)
+            if (ppuMode.writeOAMAble()) {
+                oam.getValue(memoryAddress)
+            } else {
+                0xFFu
+            }
         }
 
         in ReservedAddresses.OAM_END.memoryAddress until ReservedAddresses.JOYP.memoryAddress -> {
@@ -288,7 +310,7 @@ class MemoryManager(
     }
 
     /**
-     * Converts the full memory map into a readable string containing all the memory addrress' content
+     * Converts the full memory map into a readable string containing all the memory address' content
      *
      * @return memory dump of GB
      */

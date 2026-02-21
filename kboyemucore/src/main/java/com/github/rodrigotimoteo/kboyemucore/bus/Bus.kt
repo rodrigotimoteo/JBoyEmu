@@ -10,6 +10,7 @@ import com.github.rodrigotimoteo.kboyemucore.memory.MemoryManager
 import com.github.rodrigotimoteo.kboyemucore.memory.MemoryModule
 import com.github.rodrigotimoteo.kboyemucore.memory.PpuMemoryOperations
 import com.github.rodrigotimoteo.kboyemucore.ppu.PPU
+import com.github.rodrigotimoteo.kboyemucore.ppu.PPUModes
 import com.github.rodrigotimoteo.kboyemucore.util.FILTER_LOWER_BITS
 import com.github.rodrigotimoteo.kboyemucore.util.FILTER_TOP_BITS
 import com.github.rodrigotimoteo.kboyemucore.util.MutableUByte
@@ -55,6 +56,9 @@ class Bus(
      * [StateFlow] of [FrameBuffer] for use in Emulator implementation
      */
     val frameBuffer = ppu.painting
+
+    internal val ppuMode: PPUModes
+        get() = ppu.ppuRegisters.mode
 
     /**
      * Starts the emulation by launching a new coroutine that ticks the CPU and PPU in the correct

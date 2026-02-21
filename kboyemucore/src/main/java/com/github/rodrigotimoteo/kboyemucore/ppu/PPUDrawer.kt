@@ -19,7 +19,7 @@ class PPUDrawer(
     /**
      * Pre-decoded palette caches - decoded once per scanline, reused per pixel
      */
-    private val bgPalette  = ByteArray(4)
+    private val bgPalette = ByteArray(4)
     private val obp0Palette = ByteArray(4)
     private val obp1Palette = ByteArray(4)
 
@@ -79,21 +79,27 @@ class PPUDrawer(
      * Draws the window part of the screen based on specification provided by the GameBoy PPU
      */
     internal fun drawWindow(tileMapAddress: Int, tileDataAddress: Int) { // NOSONAR
-        val windowY = ppu.ppuRegisters.windowY
-        val windowX = ppu.ppuRegisters.windowX
         val tempY = ppu.ppuRegisters.currentLineWindow
 
-        if (windowY < 0 || windowX > WIDTH || ppu.ppuRegisters.currentLine < windowY) return
+        // WY condition: window not yet reached
+        if (ppu.ppuRegisters.currentLine < ppu.ppuRegisters.windowY) {
+            return
+        }
+
+        // WX >= 167 raw (windowX = WX-7 >= 160) means window is fully off-screen —
+        // no pixels drawn and WLY does NOT increment, per hardware behaviour.
+        if (ppu.ppuRegisters.windowX >= WIDTH) {
+            return
+        }
 
         decodePalette(ppu.ppuRegisters.bgpRegister.value.toInt(), bgPalette)
 
         for (x in 0 until WIDTH) {
-            if (x < windowX) continue
+            if (x < ppu.ppuRegisters.windowX) continue
 
-            val tempX = x - windowX
+            val tempX = x - ppu.ppuRegisters.windowX
 
-            val tileIndexAddress = tileMapAddress + ((tempY / 8) * 0x20) + (tempX / 8)
-            val tile = bus.getValueFromPPU(tileIndexAddress).toInt()
+            val tile = bus.getValueFromPPU(tileMapAddress + ((tempY / 8) * 0x20) + (tempX / 8)).toInt()
             val tileLine = if (ppu.ppuRegisters.negativeTiles) {
                 val signedTile = tile.toByte().toInt()
                 if (signedTile >= 0) {
@@ -124,8 +130,8 @@ class PPUDrawer(
     internal fun drawSprite() { // NOSONAR
         val drawnX = IntArray(10)
 
-        decodePalette(bus.getValueFromPPU(ReservedAddresses.OBP0.memoryAddress).toInt(), obp0Palette)
-        decodePalette(bus.getValueFromPPU(ReservedAddresses.OBP1.memoryAddress).toInt(), obp1Palette)
+        decodePalette(ppu.ppuRegisters.obp0Register.value.toInt(), obp0Palette)
+        decodePalette(ppu.ppuRegisters.obp1Register.value.toInt(), obp1Palette)
 
         var drawnSprites = 0
         val spriteOffset = if (ppu.ppuRegisters.spriteSize) 16 else 8

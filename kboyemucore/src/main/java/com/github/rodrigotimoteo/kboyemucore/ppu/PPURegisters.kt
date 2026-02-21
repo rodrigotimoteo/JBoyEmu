@@ -3,9 +3,7 @@ package com.github.rodrigotimoteo.kboyemucore.ppu
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.ktx.resetBit
 import com.github.rodrigotimoteo.kboyemucore.ktx.setBit
-import com.github.rodrigotimoteo.kboyemucore.ktx.testBit
 import com.github.rodrigotimoteo.kboyemucore.memory.ReservedAddresses
-import kotlin.text.toInt
 
 class PPURegisters(
     private val bus: Bus,
@@ -82,11 +80,17 @@ class PPURegisters(
     /** Always has the value at the [ReservedAddresses.LYC] memory address */
     internal val bgpRegister = bus.getPermanentRegister(ReservedAddresses.BGP.memoryAddress)
 
+    /** Always has the value at the [ReservedAddresses.OBP0] memory address */
+    internal val obp0Register = bus.getPermanentRegister(ReservedAddresses.OBP0.memoryAddress)
+
+    /** Always has the value at the [ReservedAddresses.OBP1] memory address */
+    internal val obp1Register = bus.getPermanentRegister(ReservedAddresses.OBP1.memoryAddress)
+
     /**
      * Reads the content of [ReservedAddresses.LCDC] and translates it into easily accessible flags
      */
     fun readLCDControl() {
-        val lcdcValue = lcdcRegister.value
+        val lcdcValue = lcdcRegister
 
         //Read LCD and main.kotlin.PPU enabled bit
         _lcdOn = lcdcValue.testBit(7)
@@ -113,6 +117,12 @@ class PPURegisters(
 
         //Read Background and window Enabled Status
         _backgroundOn = lcdcValue.testBit(0)
+
+        if (bus.isCGB) {
+
+        } else {
+            _windowOn = _windowOn && _backgroundOn
+        }
     }
 
     /**
@@ -127,13 +137,14 @@ class PPURegisters(
             PPUModes.PIXEL_TRANSFER.bit -> PPUModes.PIXEL_TRANSFER
             else -> return
         }
-
-        // Needs to be addressed later
-        // memory.setPpuMode(mode)
     }
 
     /**
-     * TODO NEEDS TO CHECK THIS DOCUMENTATION
+     * Compares the current line with the value stored in the LYC register, if they are equal it sets
+     * bit 2 of the STAT register and returns whether bit 6 of the STAT register is set
+     * (LYC interrupt enabled)
+     *
+     * @return true if bit 6 of the STAT register is set (LYC interrupt enabled), false otherwise
      */
     internal fun treatLYC(): Boolean {
         if (currentLine == lycRegister.value.toInt()) {
