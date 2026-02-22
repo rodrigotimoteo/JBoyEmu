@@ -145,9 +145,14 @@ class MemoryManager(
         }
 
         in ReservedAddresses.VRAM_END.memoryAddress until ReservedAddresses.ERAM_END.memoryAddress -> {
-            eram?.let {
-                if ((rom as RomModule).ramStatus) eram.setValue(memoryAddress, value)
-            } ?: Unit
+            val romModule = rom as RomModule
+            if (romModule.ramStatus) {
+                if (romModule.hasRtcMapped) {
+                    romModule.writeRtcRegister(value)
+                } else {
+                    eram?.setValue(memoryAddress, value) ?: Unit
+                }
+            } else Unit
         }
 
         in ReservedAddresses.ERAM_END.memoryAddress until ReservedAddresses.WRAM_END.memoryAddress -> {
@@ -193,18 +198,10 @@ class MemoryManager(
     }
 
     /**
-     * This is a special method designed to be used by the PPU only for now and it provides free read
-     * access to each and every memory location currently only bottomRegisters suffer this limitation
-     *
-     * @param memoryAddress memory location where to get value
-     * @return value stored in given address
+     * Advances the RTC by one second if the current cartridge has one.
      */
-    fun getPermanentRegister(memoryAddress: Int): MutableUByte = when (memoryAddress) {
-        in ReservedAddresses.JOYP.memoryAddress..ReservedAddresses.IE.memoryAddress -> {
-            bottomRegisters[memoryAddress - ReservedAddresses.JOYP.memoryAddress]
-        }
-
-        else -> error(REGISTER_DOES_NOT_EXIST)
+    fun tickRtc() {
+        (rom as? RomModule)?.tickRtc()
     }
 
     /**
@@ -218,8 +215,26 @@ class MemoryManager(
         ReservedAddresses.DIV.memoryAddress, ReservedAddresses.LY.memoryAddress ->
             bottomRegisters[memoryAddress - ReservedAddresses.JOYP.memoryAddress].value = 0x00u
 
+        ReservedAddresses.DMA.memoryAddress -> {
+            bottomRegisters[memoryAddress - ReservedAddresses.JOYP.memoryAddress].value = value
+            performDmaTransfer(value.toInt())
+        }
+
         else -> {
             bottomRegisters[memoryAddress - ReservedAddresses.JOYP.memoryAddress].value = value
+        }
+    }
+
+    /**
+     * Performs an OAM DMA transfer. When the game writes X to 0xFF46, copies 0xA0 bytes
+     * from address (X * 0x100) into OAM (0xFE00–0xFE9F).
+     *
+     * @param source high byte of the source address (source address = source * 0x100)
+     */
+    private fun performDmaTransfer(source: Int) {
+        val baseAddress = source * 0x100
+        for (i in 0 until 0xA0) {
+            oam.setValue(ReservedAddresses.OAM_START.memoryAddress + i, getValue(baseAddress + i))
         }
     }
 
@@ -237,8 +252,13 @@ class MemoryManager(
         }
 
         in ReservedAddresses.VRAM_END.memoryAddress until ReservedAddresses.ERAM_END.memoryAddress -> {
-            if (eram != null && (rom as RomModule).ramStatus) {
-                eram.getValue(memoryAddress)
+            val romModule = rom as RomModule
+            if (romModule.ramStatus) {
+                if (romModule.hasRtcMapped) {
+                    romModule.readRtcRegister()
+                } else {
+                    eram?.getValue(memoryAddress) ?: 0x00u
+                }
             } else {
                 0x00u
             }
@@ -267,6 +287,21 @@ class MemoryManager(
         else -> {
             getBottomRegisters(memoryAddress)
         }
+    }
+
+    /**
+     * This is a special method designed to be used by the PPU only for now and it provides free read
+     * access to each and every memory location currently only bottomRegisters suffer this limitation
+     *
+     * @param memoryAddress memory location where to get value
+     * @return value stored in given address
+     */
+    fun getPermanentRegister(memoryAddress: Int): MutableUByte = when (memoryAddress) {
+        in ReservedAddresses.JOYP.memoryAddress..ReservedAddresses.IE.memoryAddress -> {
+            bottomRegisters[memoryAddress - ReservedAddresses.JOYP.memoryAddress]
+        }
+
+        else -> error(REGISTER_DOES_NOT_EXIST)
     }
 
     /**

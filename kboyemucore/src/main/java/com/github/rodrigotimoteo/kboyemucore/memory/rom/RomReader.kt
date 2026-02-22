@@ -5,6 +5,8 @@ import com.github.rodrigotimoteo.kboyemucore.memory.MemoryModule
 import com.github.rodrigotimoteo.kboyemucore.memory.ReservedAddresses
 import com.github.rodrigotimoteo.kboyemucore.memory.rom.cartridge.MBC0
 import com.github.rodrigotimoteo.kboyemucore.memory.rom.cartridge.MBC1
+import com.github.rodrigotimoteo.kboyemucore.memory.rom.cartridge.MBC2
+import com.github.rodrigotimoteo.kboyemucore.memory.rom.cartridge.MBC3
 import com.github.rodrigotimoteo.kboyemucore.util.Logger
 
 /**
@@ -75,12 +77,10 @@ class RomReader(
                 MBC1(getRomSize(), getRamSize(), romContent)
 
             0x05, 0x06 ->
-                //should be 2
-                MBC1(getRomSize(), getRamSize(), romContent)
+                MBC2(getRomSize(), romContent)
 
             0x0F, 0x10, 0x11, 0x12, 0x13 ->
-                //should be 3
-                MBC1(getRomSize(), getRamSize(), romContent)
+                MBC3(getRomSize(), getRamSize(), hasRtc(), romContent)
 
             0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E ->
                 //should be 5
@@ -107,4 +107,11 @@ class RomReader(
 
         return ramBanksMap[ramSize] ?: 0
     }
+
+    /**
+     * Returns whether the cartridge has a Real Time Clock.
+     * Only MBC3 cartridge types 0x0F and 0x10 include an RTC.
+     */
+    private fun hasRtc(): Boolean =
+        romContent[ReservedAddresses.CARTRIDGE_TYPE.memoryAddress].toInt() in setOf(0x0F, 0x10)
 }

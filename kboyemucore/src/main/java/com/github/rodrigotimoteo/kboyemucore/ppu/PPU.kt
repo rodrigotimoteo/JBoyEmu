@@ -88,6 +88,24 @@ class PPU(
      *
      * @return lcdOn
      */
+    /** Set to true for one tick when VBlank starts; consumed by [isVBlankStart]. */
+    private var vblankStart = false
+
+    /**
+     * Returns true once per frame when VBlank has just started, then resets.
+     * Used by the emulation loop to pace frames to 60fps.
+     *
+     * @return true if VBlank has just started, false otherwise
+     */
+    fun isVBlankStart(): Boolean {
+        return if (vblankStart) {
+            vblankStart = false
+            return true
+        } else {
+            false
+        }
+    }
+
     val lcdOn: Boolean
         get() = ppuRegisters.lcdOn
 
@@ -200,6 +218,7 @@ class PPU(
             ppuRegisters.lyRegister.value = ppuRegisters.currentLine.toUByte()
             if (ppuRegisters.currentLine > 143) {
                 ppuDrawer.requestRepaint()
+                vblankStart = true
                 changeMode(PPUModes.VBLANK)
                 bus.triggerInterrupt(InterruptNames.VBLANK_INT)
             } else {

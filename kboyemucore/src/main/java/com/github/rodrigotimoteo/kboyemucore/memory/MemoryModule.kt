@@ -80,6 +80,13 @@ open class MemoryModule(
         }
     }
 
+    /**
+     * The bank index used for the lower (fixed) region when [simultaneousBanks] == 2.
+     * Defaults to 0 (bank 0 is always fixed). Subclasses that need dynamic fixed-bank
+     * remapping (e.g. MBC1 advanced banking mode) can override this.
+     */
+    protected open val fixedBank: Int = 0
+
     override fun getValue(memoryAddress: Int): UByte {
         val realIndex = memoryAddress - memoryOffset
 
@@ -94,7 +101,7 @@ open class MemoryModule(
                 if (realIndex >= moduleSize) {
                     memory[activeBank][realIndex - moduleSize]
                 } else {
-                    memory[0][realIndex]
+                    memory[fixedBank][realIndex]
                 }
             }
         }

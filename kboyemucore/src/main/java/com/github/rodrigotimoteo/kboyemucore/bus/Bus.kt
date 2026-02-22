@@ -13,16 +13,19 @@ import com.github.rodrigotimoteo.kboyemucore.ppu.PPU
 import com.github.rodrigotimoteo.kboyemucore.ppu.PPUModes
 import com.github.rodrigotimoteo.kboyemucore.util.FILTER_LOWER_BITS
 import com.github.rodrigotimoteo.kboyemucore.util.FILTER_TOP_BITS
+import com.github.rodrigotimoteo.kboyemucore.util.FRAME_DURATION_MS_60FPS
 import com.github.rodrigotimoteo.kboyemucore.util.Logger
 import com.github.rodrigotimoteo.kboyemucore.util.MutableUByte
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlin.system.exitProcess
 
 @Suppress("TooManyFunctions")
+@OptIn(ExperimentalUnsignedTypes::class)
 class Bus(
     rom: MemoryModule,
     val isCGB: Boolean,
@@ -75,6 +78,10 @@ class Bus(
             logger.i("Starting emulator job")
             cpu.tick()
             ppu.tick()
+
+            var lastRtcMs = System.currentTimeMillis()
+            var frameStartMs = lastRtcMs
+
             while (true) {
                 try {
                     val cpuCounter: Int = cpu.getCounter()
@@ -87,8 +94,23 @@ class Bus(
                             ppu.tick()
                         }
                     }
+
+                    val now = System.currentTimeMillis()
+
+                    if (now - lastRtcMs >= 1000) {
+                        memoryManager.tickRtc()
+                        lastRtcMs = now
+                    }
+
+                    // Sleep at the end of each VBlank to cap at 60fps
+                    if (ppu.isVBlankStart()) {
+                        val elapsed = System.currentTimeMillis() - frameStartMs
+                        val sleepMs = FRAME_DURATION_MS_60FPS - elapsed
+                        if (sleepMs > 0) delay(sleepMs)
+                        frameStartMs = System.currentTimeMillis()
+                    }
                 } catch (e: InterruptedException) {
-                    logger.e("Emulator job crashed, exitting", e)
+                    logger.e("Emulator job crashed, exiting", e)
                     exitProcess(-1)
                 }
             }
