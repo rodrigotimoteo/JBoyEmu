@@ -4,9 +4,11 @@ import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.cpu.instructions.Decoder
 import com.github.rodrigotimoteo.kboyemucore.cpu.interrupts.Interrupts
 import com.github.rodrigotimoteo.kboyemucore.cpu.registers.CPURegisters
+import com.github.rodrigotimoteo.kboyemucore.util.Logger
 
 class CPU(
-    private val bus: Bus
+    private val bus: Bus,
+    private val logger: Logger,
 ) {
 
     /** Reference to the [CPURegisters] */

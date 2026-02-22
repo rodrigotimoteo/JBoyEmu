@@ -1,11 +1,11 @@
 package com.github.rodrigotimoteo.kboyemucore.memory
 
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
-import com.github.rodrigotimoteo.kboyemucore.cpu.Timers
 import com.github.rodrigotimoteo.kboyemucore.memory.rom.RomModule
 import com.github.rodrigotimoteo.kboyemucore.ppu.PPUModes
 import com.github.rodrigotimoteo.kboyemucore.ppu.writeOAMAble
 import com.github.rodrigotimoteo.kboyemucore.ppu.writeVRAMAble
+import com.github.rodrigotimoteo.kboyemucore.util.Logger
 import com.github.rodrigotimoteo.kboyemucore.util.MutableUByte
 import com.github.rodrigotimoteo.kboyemucore.util.REGISTER_DOES_NOT_EXIST
 
@@ -31,7 +31,8 @@ import com.github.rodrigotimoteo.kboyemucore.util.REGISTER_DOES_NOT_EXIST
 
 class MemoryManager(
     private val bus: Bus,
-    private val rom: MemoryModule
+    private val logger: Logger,
+    private val rom: MemoryModule,
 ) : MemoryManipulation {
 
     /**

@@ -140,16 +140,18 @@ class PPURegisters(
     }
 
     /**
-     * Compares the current line with the value stored in the LYC register, if they are equal it sets
-     * bit 2 of the STAT register and returns whether bit 6 of the STAT register is set
-     * (LYC interrupt enabled)
+     * Compares the current line with the value stored in the LYC register. Sets bit 2 of STAT
+     * when LY==LYC and clears it otherwise. The STAT interrupt is edge-triggered: it fires only
+     * on the 0→1 transition of bit 2, not on every subsequent call while the match holds.
      *
-     * @return true if bit 6 of the STAT register is set (LYC interrupt enabled), false otherwise
+     * @return true if a STAT LYC interrupt should be requested, false otherwise
      */
     internal fun treatLYC(): Boolean {
         if (currentLine == lycRegister.value.toInt()) {
+            val alreadySet = (statRegister.value.toInt() and 0x04) != 0
             statRegister.value = statRegister.value.setBit(2)
-            return (statRegister.value.toInt() and 0x40) != 0  // bit 6 of STAT = LYC interrupt enable
+            if (alreadySet) return false
+            return (statRegister.value.toInt() and 0x40) != 0
         } else {
             statRegister.value = statRegister.value.resetBit(2)
         }

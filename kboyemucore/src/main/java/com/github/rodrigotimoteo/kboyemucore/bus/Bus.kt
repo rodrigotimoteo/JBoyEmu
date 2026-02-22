@@ -13,6 +13,7 @@ import com.github.rodrigotimoteo.kboyemucore.ppu.PPU
 import com.github.rodrigotimoteo.kboyemucore.ppu.PPUModes
 import com.github.rodrigotimoteo.kboyemucore.util.FILTER_LOWER_BITS
 import com.github.rodrigotimoteo.kboyemucore.util.FILTER_TOP_BITS
+import com.github.rodrigotimoteo.kboyemucore.util.Logger
 import com.github.rodrigotimoteo.kboyemucore.util.MutableUByte
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,7 +25,8 @@ import kotlin.system.exitProcess
 @Suppress("TooManyFunctions")
 class Bus(
     rom: MemoryModule,
-    val isCGB: Boolean
+    val isCGB: Boolean,
+    private val logger: Logger,
 ) : CpuMemoryOperations, PpuMemoryOperations {
 
     private var _runningJob: Job? = null
@@ -35,22 +37,22 @@ class Bus(
     /**
      * Memory Manager reference
      */
-    private val memoryManager = MemoryManager(this, rom)
+    private val memoryManager = MemoryManager(this, logger, rom)
 
     /**
      * CPU reference
      */
-    private val cpu = CPU(this)
+    private val cpu = CPU(this, logger)
 
     /**
      * PPU reference
      */
-    private val ppu = PPU(this)
+    private val ppu = PPU(this, logger)
 
     /**
      * Controller reference
      */
-    private val controller = Controller(this)
+    private val controller = Controller(this, logger)
 
     /**
      * [StateFlow] of [FrameBuffer] for use in Emulator implementation
@@ -66,17 +68,17 @@ class Bus(
      */
     fun run() {
         if (_runningJob?.isActive == true) {
+            logger.i("Emulator job is already active quitting run()")
             return
         }
         _runningJob = CoroutineScope(Dispatchers.Default).launch {
+            logger.i("Starting emulator job")
             cpu.tick()
             ppu.tick()
-//        oldTime = System.nanoTime()
             while (true) {
                 try {
                     val cpuCounter: Int = cpu.getCounter()
-//                    if (ppu.isGetToSleep()) Thread.sleep(getSleepTime(oldTime));
-                    if (!ppu.isLCDOn()) {
+                    if (!ppu.lcdOn) {
                         cpu.tick()
                         ppu.checkLCDStatus()
                     } else {
@@ -86,7 +88,7 @@ class Bus(
                         }
                     }
                 } catch (e: InterruptedException) {
-                    e.printStackTrace()
+                    logger.e("Emulator job crashed, exitting", e)
                     exitProcess(-1)
                 }
             }
@@ -97,6 +99,7 @@ class Bus(
      * Stops the [_runningJob] causing the emulation to stop entirely
      */
     fun stop() {
+        logger.i("Emulator job is being stopped")
         _runningJob?.cancel()
     }
 

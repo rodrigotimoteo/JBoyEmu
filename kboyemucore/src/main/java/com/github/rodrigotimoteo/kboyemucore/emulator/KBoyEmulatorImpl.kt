@@ -19,7 +19,7 @@ import kotlinx.coroutines.flow.Flow
  * @author rodrigotimoteo
  */
 class KBoyEmulatorImpl(
-    logger: Logger,
+    private val logger: Logger,
 ): KBoyEmulator {
 
     /**
@@ -40,12 +40,12 @@ class KBoyEmulatorImpl(
 
     override fun loadRom(rom: Rom) {
         romReader.loadRom(rom)
-        bus = Bus(romReader.getRomModule(), romReader.isCgb())
+        bus = Bus(romReader.getRomModule(), romReader.isCgb(), logger)
         _frames = bus?.frameBuffer
     }
 
     override fun reset() {
-        bus = Bus(romReader.getRomModule(), romReader.isCgb())
+        bus = Bus(romReader.getRomModule(), romReader.isCgb(), logger)
         _frames = bus?.frameBuffer
     }
 

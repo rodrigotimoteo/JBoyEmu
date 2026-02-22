@@ -5,13 +5,16 @@ import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.cpu.interrupts.InterruptNames
 import com.github.rodrigotimoteo.kboyemucore.memory.ReservedAddresses
 import com.github.rodrigotimoteo.kboyemucore.util.HEIGHT
+import com.github.rodrigotimoteo.kboyemucore.util.Logger
 import com.github.rodrigotimoteo.kboyemucore.util.WIDTH
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 @Suppress("TooManyFunctions")
 class PPU(
     private val bus: Bus,
+    private val logger: Logger,
 ) {
 
     /** [MutableStateFlow] of [FrameBuffer] used to update the screen when an update is triggered */
@@ -81,6 +84,14 @@ class PPU(
         }
 
     /**
+     * Returns whether or not the LCD is On
+     *
+     * @return lcdOn
+     */
+    val lcdOn: Boolean
+        get() = ppuRegisters.lcdOn
+
+    /**
      * Updates the painting flow providing a new frame to be rendered
      *
      * @param painting content to be rendered (Color coded)
@@ -100,13 +111,6 @@ class PPU(
     }
 
     /**
-     * Returns whether or not the LCD is On
-     *
-     * @return lcdOn
-     */
-    fun isLCDOn(): Boolean = ppuRegisters.lcdOn
-
-    /**
      * Method used when ppu is offline (lcd is not On) to check if anything changed (instead of
      * ticking the PPU)
      */
@@ -114,12 +118,25 @@ class PPU(
         ppuRegisters.readLCDControl()
     }
 
+    /**
+     * Method used to tick the PPU, this is done by first reading the LCD control and status registers
+     * to check if anything changed and then calling the draw method to handle the drawing of the PPU
+     */
     fun tick() {
         ppuRegisters.readLCDControl()
         ppuRegisters.readLCDStatus()
         draw()
     }
 
+    /**
+     * Method used to change the current mode of the PPU, this is done by first updating the STAT
+     * register with the new mode and then checking if an interrupt should be requested based on the
+     * new mode and the current configuration of the STAT register, finally it checks if the LYC
+     * interrupt should be requested and if any of the two interrupts should be requested it triggers a
+     * STAT interrupt
+     *
+     * @param mode to change to
+     */
     private fun changeMode(mode: PPUModes) {
         var statRegister: Int = ppuRegisters.statRegister.value.toInt() and 0xFC
         var requestInterrupt = false
@@ -151,6 +168,11 @@ class PPU(
         }
     }
 
+    /**
+     * Method used to handle the drawing of the PPU, this is done by first incrementing the counter and
+     * reading the current line, then it checks the current mode and calls the corresponding method to
+     * handle it (HBlank, VBlank, OAM or Pixel Transfer)
+     */
     private fun draw() {
         ppuRegisters.counter++
         ppuRegisters.readLY()
@@ -163,6 +185,14 @@ class PPU(
         }
     }
 
+    /**
+     * Method used to handle the HBlank phase of the PPU, this is done by first checking if the counter
+     * is 114 (which is the number of cycles required for the HBlank phase) and if so it increments
+     * the current line and updates the LY register, then it checks if the current line is greater than
+     * 143 (which is the last line of the visible area) and if so it requests a repaint, changes the
+     * mode to VBlank and triggers a VBlank interrupt. If the current line is not greater than 143 it
+     * changes the mode to OAM
+     */
     private fun hBlank() {
         if (ppuRegisters.counter == 114) {
             ppuRegisters.counter = 0
@@ -178,6 +208,14 @@ class PPU(
         }
     }
 
+    /**
+     * Method used to handle the VBlank phase of the PPU, this is done by first checking if the counter
+     * is 114 (which is the number of cycles required for the VBlank phase) and if so it increments
+     * the current line and updates the LY register, then it checks if the current line is greater than
+     * 153 (which is the last line of the VBlank phase) and if so it resets the current line and current
+     * line window, updates the LY register and changes the mode to OAM. If the current line is not
+     * greater than 153 it stays in VBlank mode and waits for the next tick to increment the line again
+     */
     private fun vBlank() {
         if (ppuRegisters.counter == 114) {
             ppuRegisters.counter = 0
@@ -193,6 +231,12 @@ class PPU(
         }
     }
 
+    /**
+     * Method used to handle the OAM phase of the PPU, this is done by first checking if the PPU should
+     * go to sleep (if in VBlank and nothing changed) and if so it sets the getToSleep variable to false
+     * and then it checks if the counter is 20 (which is the number of cycles required for the OAM phase) and
+     * if so it changes the mode to PIXEL_TRANSFER
+     */
     private fun oam() {
         if (getToSleep) getToSleep = false
         if (ppuRegisters.counter == 20) {
@@ -200,6 +244,13 @@ class PPU(
         }
     }
 
+    /**
+     * Method used to draw the current line, this is done by first checking if the counter is 63 (which
+     * is the number of cycles required for the pixel transfer phase), if so it checks if the current
+     * tile data address is the one used for negative tile numbers (which affects how the tile data is
+     * interpreted), then it checks if the background, window and sprite are enabled and draws them if
+     * they are. Finally it changes the mode to HBLANK
+     */
     private fun pixelTransfer() { // NOSONAR
         if (ppuRegisters.counter == 63) {
             ppuRegisters.negativeTiles =
