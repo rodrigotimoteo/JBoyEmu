@@ -129,6 +129,7 @@ class MemoryManager(
             0xFFu
     }
 
+    @Suppress("CyclomaticComplexMethod")
     override fun setValue(memoryAddress: Int, value: UByte) = when (memoryAddress) {
         in 0 until ReservedAddresses.SWITCH_ROM_END.memoryAddress -> {
             rom.setValue(memoryAddress, value).also {
@@ -218,6 +219,11 @@ class MemoryManager(
         ReservedAddresses.DMA.memoryAddress -> {
             bottomRegisters[memoryAddress - ReservedAddresses.JOYP.memoryAddress].value = value
             performDmaTransfer(value.toInt())
+        }
+
+        in ReservedAddresses.NR10.memoryAddress..ReservedAddresses.WAVE_END.memoryAddress -> {
+            bottomRegisters[memoryAddress - ReservedAddresses.JOYP.memoryAddress].value = value
+            bus.spu.writeRegister(memoryAddress, value.toInt())
         }
 
         else -> {
@@ -314,6 +320,10 @@ class MemoryManager(
     private fun getBottomRegisters(memoryAddress: Int): UByte {
         if (memoryAddress == ReservedAddresses.JOYP.memoryAddress) {
             return bus.getJoypad(bottomRegisters[memoryAddress - ReservedAddresses.JOYP.memoryAddress].value)
+        }
+
+        if (memoryAddress in ReservedAddresses.NR10.memoryAddress..ReservedAddresses.WAVE_END.memoryAddress) {
+            return bus.spu.readRegister(memoryAddress).toUByte()
         }
 
         return bottomRegisters[memoryAddress - ReservedAddresses.JOYP.memoryAddress].value

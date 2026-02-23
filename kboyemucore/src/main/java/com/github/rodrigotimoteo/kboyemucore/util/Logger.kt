@@ -15,6 +15,13 @@ interface Logger {
     fun i(message: String)
 
     /**
+     * Logs an debug log
+     *
+     * @param message to log
+     */
+    fun d(message: String)
+
+    /**
      * Logs an error log with the possibility of logging an exception
      *
      * @param message to log

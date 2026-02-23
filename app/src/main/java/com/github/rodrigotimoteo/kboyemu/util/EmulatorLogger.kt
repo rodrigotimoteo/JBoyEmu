@@ -14,6 +14,10 @@ class EmulatorLogger : Logger {
         Timber.i(message)
     }
 
+    override fun d(message: String) {
+        Timber.d(message)
+    }
+
     override fun e(message: String, throwable: Throwable?) {
         Timber.e(throwable, message)
     }

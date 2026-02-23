@@ -11,6 +11,10 @@ class LoggerImpl : Logger {
         println(message)
     }
 
+    override fun d(message: String) {
+        println(message)
+    }
+
     override fun e(message: String, throwable: Throwable?) {
         error("$message $throwable")
     }

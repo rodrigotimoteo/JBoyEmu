@@ -6,6 +6,7 @@ import com.github.rodrigotimoteo.kboyemucore.api.KBoyEmulator
 import com.github.rodrigotimoteo.kboyemucore.api.Rom
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.memory.rom.RomReader
+import com.github.rodrigotimoteo.kboyemucore.spu.AudioRingBuffer
 import com.github.rodrigotimoteo.kboyemucore.util.ACCESSING_FRAME_BEFORE_READY
 import com.github.rodrigotimoteo.kboyemucore.util.Logger
 import kotlinx.coroutines.Job
@@ -38,15 +39,22 @@ class KBoyEmulatorImpl(
      */
     private var _frames: Flow<FrameBuffer>? = null
 
+    /**
+     * Stores the [AudioRingBuffer] for a consumer to play audio
+     */
+    private var _audioRingBuffer: AudioRingBuffer? = null
+
     override fun loadRom(rom: Rom) {
         romReader.loadRom(rom)
         bus = Bus(romReader.getRomModule(), romReader.isCgb(), logger)
         _frames = bus?.frameBuffer
+        _audioRingBuffer = bus?.audioRingBuffer
     }
 
     override fun reset() {
         bus = Bus(romReader.getRomModule(), romReader.isCgb(), logger)
         _frames = bus?.frameBuffer
+        _audioRingBuffer = bus?.audioRingBuffer
     }
 
     override fun press(button: Button) {
@@ -69,4 +77,7 @@ class KBoyEmulatorImpl(
 
     override val frames: Flow<FrameBuffer>
         get() = _frames ?: error(ACCESSING_FRAME_BEFORE_READY)
+
+    override val audioRingBuffer: AudioRingBuffer
+        get() = _audioRingBuffer ?: error(ACCESSING_FRAME_BEFORE_READY)
 }

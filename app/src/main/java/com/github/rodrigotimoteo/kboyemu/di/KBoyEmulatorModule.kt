@@ -10,5 +10,5 @@ import org.koin.dsl.module
 val kBoyEmulatorModule = module {
     single<Logger> { EmulatorLogger() }
     single { KBoyEmulatorFactory(get()) }
-    viewModel { KBoyEmulatorViewModel(get(), get()) }
+    viewModel { KBoyEmulatorViewModel(get(), get(), get()) }
 }

@@ -1,5 +1,6 @@
 package com.github.rodrigotimoteo.kboyemucore.api
 
+import com.github.rodrigotimoteo.kboyemucore.spu.AudioRingBuffer
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 
@@ -66,4 +67,10 @@ interface KBoyEmulator {
      * being shown on the emulator
      */
     val frames: Flow<FrameBuffer>
+
+    /**
+     * Lock-free ring buffer of stereo PCM samples produced by the APU.
+     * The Android layer should read from this on a dedicated audio thread.
+     */
+    val audioRingBuffer: AudioRingBuffer
 }

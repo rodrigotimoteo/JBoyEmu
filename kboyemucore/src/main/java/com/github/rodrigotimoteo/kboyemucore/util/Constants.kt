@@ -26,6 +26,7 @@ internal const val FILTER_16_BITS = 0xFFFF
 
 /** Frame pacing */
 internal const val FRAME_DURATION_MS_60FPS = 1000L / 61
+internal const val FRAME_DURATION_MS_120FPS = 1000L / 120
 
 /** Illegal State Strings */
 internal const val ACCESSING_FRAME_BEFORE_READY =

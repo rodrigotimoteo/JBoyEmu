@@ -11,6 +11,8 @@ import com.github.rodrigotimoteo.kboyemucore.memory.MemoryModule
 import com.github.rodrigotimoteo.kboyemucore.memory.PpuMemoryOperations
 import com.github.rodrigotimoteo.kboyemucore.ppu.PPU
 import com.github.rodrigotimoteo.kboyemucore.ppu.PPUModes
+import com.github.rodrigotimoteo.kboyemucore.spu.AudioRingBuffer
+import com.github.rodrigotimoteo.kboyemucore.spu.SPU
 import com.github.rodrigotimoteo.kboyemucore.util.FILTER_LOWER_BITS
 import com.github.rodrigotimoteo.kboyemucore.util.FILTER_TOP_BITS
 import com.github.rodrigotimoteo.kboyemucore.util.FRAME_DURATION_MS_60FPS
@@ -58,6 +60,16 @@ class Bus(
     private val controller = Controller(this, logger)
 
     /**
+     * SPU (Sound Processing Unit) reference
+     */
+    internal val spu = SPU(logger)
+
+    /**
+     * Audio ring buffer — read from the Android audio thread
+     */
+    val audioRingBuffer: AudioRingBuffer = spu.ringBuffer
+
+    /**
      * [StateFlow] of [FrameBuffer] for use in Emulator implementation
      */
     val frameBuffer = ppu.painting
@@ -88,11 +100,14 @@ class Bus(
                     if (!ppu.lcdOn) {
                         cpu.tick()
                         ppu.checkLCDStatus()
+                        spu.tick((cpu.getCounter() - cpuCounter) * 4)
                     } else {
                         cpu.tick()
-                        repeat(cpu.getCounter() - cpuCounter) {
+                        val elapsed = cpu.getCounter() - cpuCounter
+                        repeat(elapsed) {
                             ppu.tick()
                         }
+                        spu.tick(elapsed * 4)
                     }
 
                     val now = System.currentTimeMillis()

@@ -93,6 +93,7 @@ class MBC3(
         }
     }
 
+    @Suppress("CyclomaticComplexMethod")
     override fun setValue(memoryAddress: Int, value: UByte) {
         when (memoryAddress) {
             // 0x0000–0x1FFF: RAM + RTC enable (0x0A enables, anything else disables)
