@@ -2,7 +2,6 @@ package com.github.rodrigotimoteo.kboyemucore.cpu.instructions
 
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.cpu.CPU
-import com.github.rodrigotimoteo.kboyemucore.memory.ReservedAddresses
 
 /**
  * Responsible for handling control operations on the CPU
@@ -48,10 +47,18 @@ class Control(
     }
 
     /**
-     * Powers down the CPU until the next interrupt occurs. Reduces power consumption
+     * Powers down the CPU until the next interrupt occurs. The behavior depends on the IME flag:
+     * - IME=1: Normal halt, CPU sleeps until an interrupt wakes it and the interrupt is serviced
+     * - IME=0, no pending interrupts: CPU halts, wakes on next interrupt but does not service it
+     * - IME=0, pending interrupts (IE & IF != 0): Halt bug — CPU does NOT halt, and the next
+     *   instruction's fetch will fail to increment PC (the byte after HALT is read twice)
      */
     fun halt() {
-        cpu.setHalted(true)
+        if (!cpu.interrupts.isImeEnabled && cpu.interrupts.hasPendingInterrupts) {
+            cpu.interrupts.enableHaltBug()
+        } else {
+            cpu.setHalted(true)
+        }
 
         cpu.cpuRegisters.incrementProgramCounter(1)
     }
@@ -68,11 +75,11 @@ class Control(
     }
 
     /**
-     * Disables interrupts after execution
+     * Disables interrupts immediately and cancels any pending EI change
      */
     fun di() {
-        cpu.interrupts.setInterruptChange(false)
-        cpu.timers.setInterruptChangedCounter()
+        cpu.interrupts.disableIme()
+        cpu.interrupts.cancelPendingChange()
 
         cpu.cpuRegisters.incrementProgramCounter(1)
     }

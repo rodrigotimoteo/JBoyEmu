@@ -66,17 +66,18 @@ class CPU(
     fun getCounter() = timers.machineCycles
 
     /**
-     * Executes the operation that is currently pointed by the program counter, if the halt bug is
-     * active it decodes the instruction at the program counter and then decrements the program counter
-     * by 1 to make it point to the same instruction for the next tick
+     * Executes the operation that is currently pointed by the program counter. When the halt bug is
+     * active the opcode fetch does not increment PC. Since instructions read operands relative to
+     * the current PC (e.g. calculateNN reads PC+1 and PC+2), we decrement PC by 1 before executing
+     * so the operand reads start from the opcode byte itself, matching real hardware behavior.
      */
     private fun executeOperation() {
         val programCounter = cpuRegisters.getProgramCounter()
 
         if (interrupts.haltBug) {
             interrupts.disableHaltBug()
+            cpuRegisters.setProgramCounter(programCounter - 1)
             decoder.decode(bus.getValueFromCPU(programCounter).toInt())
-            cpuRegisters.setProgramCounter(programCounter)
         } else {
             decoder.decode(bus.getValueFromCPU(programCounter).toInt())
         }
@@ -96,7 +97,6 @@ class CPU(
      */
     fun setHalted(haltedState: Boolean) {
         isHalted = haltedState
-        timers.setHaltCycleCounter()
     }
 
     /**

@@ -36,16 +36,6 @@ class Timers(
     internal val machineCycles
         get() = _machineCycles
 
-    /**
-     * Stores the cycles when halt was last triggered
-     */
-    private var _haltCycleCounter: Int = 0
-
-    /**
-     * Internal getter for the [_haltCycleCounter] variable
-     */
-    internal val haltCycleCounter
-        get() = _haltCycleCounter
 
     /**
      * Stores the cycles when interrupt status was last changed
@@ -168,12 +158,6 @@ class Timers(
         if (previousFrequency != _timerFrequency) _timerClockCounter = 0
     }
 
-    /**
-     * Halt cycles counter for when Halt is triggered
-     */
-    fun setHaltCycleCounter() {
-        _haltCycleCounter = _machineCycles
-    }
 
     /**
      * Setter for the last time interrupt status was changed

@@ -31,6 +31,14 @@ class Interrupts(
      */
     private var interruptMasterEnabled: Boolean = false
 
+    /** Whether the interrupt master enable flag is currently active */
+    val isImeEnabled: Boolean
+        get() = interruptMasterEnabled
+
+    /** Whether there are any pending interrupts that can be serviced (IE & IF != 0) */
+    val hasPendingInterrupts: Boolean
+        get() = decodeServiceableInterrupts() != 0
+
     /**
      * Stores a test for the bug that exists on the halt mode of the CPU, that if the interrupt master enabled flag is
      * inactive and the value of the IE register and IF register with an and operation is different then 0 the
@@ -53,18 +61,10 @@ class Interrupts(
     private var changeToState: Boolean = false
 
     /**
-     * Checks if the IE register is 0, this is used for the halt bug test
-     */
-    internal val isIERegisterZero get() = ieRegister.value.toInt() == 0
-
-    /**
-     * Handles the interrupt process, this is done by first checking if the interrupt master enabled
-     * flag is active, if so it checks if there are any interrupts to be serviced by doing an and
-     * operation between the IE and IF register, if there are interrupts to be serviced it sets the
-     * halted state of the CPU to false, disables the IME flag, stores the program counter in the
-     * stack pointer and then checks which interrupt is being requested and serves it. If the
-     * interrupt master enabled flag is not active but the CPU is halted and there are interrupts
-     * to be serviced it sets the halted state of the CPU to false and checks for the halt bug
+     * Handles the interrupt process. If IME is active and there are serviceable interrupts (IE & IF
+     * != 0), it wakes the CPU from halt, disables IME, pushes PC to the stack and jumps to the
+     * appropriate interrupt vector. If IME is inactive but the CPU is halted and there are pending
+     * interrupts, it simply wakes the CPU without servicing the interrupt.
      */
     fun handleInterrupt() {
         val availableInterrupts = decodeServiceableInterrupts()
@@ -74,8 +74,6 @@ class Interrupts(
                 cpu.setHalted(false)
                 disableIme()
 
-                checkHaltBug()
-
                 repeat(2) { cpu.timers.tick() }
                 bus.storeProgramCounterInStackPointer()
                 cpu.timers.tick()
@@ -84,17 +82,7 @@ class Interrupts(
             }
         } else if (cpu.isHalted() && availableInterrupts != 0x00) {
             cpu.setHalted(false)
-
-            checkHaltBug()
         }
-    }
-
-    /**
-     * Checks if the halt bug should be active, this is done by checking if the machine cycles and the
-     * halt cycle counter are the same, if so it sets the halt bug to true
-     */
-    private fun checkHaltBug() {
-        if (cpu.timers.machineCycles == cpu.timers.haltCycleCounter) _haltBug = true
     }
 
     /**
@@ -113,7 +101,7 @@ class Interrupts(
      * @return value of IE register and IF register after AND operation
      */
     private fun decodeServiceableInterrupts(): Int =
-        ieRegister.value.toInt() and ifRegister.value.toInt()
+        ieRegister.value.toInt() and ifRegister.value.toInt() and 0x1F
 
     /**
      * Based on the available given interrupts to be serviced provided by the integer received that
@@ -173,6 +161,20 @@ class Interrupts(
      */
     fun disableIme() {
         interruptMasterEnabled = false
+    }
+
+    /**
+     * Cancels any pending IME change, used by DI to ensure a queued EI does not re-enable interrupts
+     */
+    fun cancelPendingChange() {
+        interruptChange = false
+    }
+
+    /**
+     * Enables the halt bug flag, called from HALT when IME=0 and there are pending interrupts
+     */
+    fun enableHaltBug() {
+        _haltBug = true
     }
 
     /**

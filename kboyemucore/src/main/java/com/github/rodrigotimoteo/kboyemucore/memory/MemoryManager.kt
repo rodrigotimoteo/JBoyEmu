@@ -226,6 +226,11 @@ class MemoryManager(
             bus.spu.writeRegister(memoryAddress, value.toInt())
         }
 
+        ReservedAddresses.IF.memoryAddress -> {
+            bottomRegisters[memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
+                (value.toInt() and 0x1F).toUByte()
+        }
+
         else -> {
             bottomRegisters[memoryAddress - ReservedAddresses.JOYP.memoryAddress].value = value
         }
@@ -320,6 +325,10 @@ class MemoryManager(
     private fun getBottomRegisters(memoryAddress: Int): UByte {
         if (memoryAddress == ReservedAddresses.JOYP.memoryAddress) {
             return bus.getJoypad(bottomRegisters[memoryAddress - ReservedAddresses.JOYP.memoryAddress].value)
+        }
+
+        if (memoryAddress == ReservedAddresses.IF.memoryAddress) {
+            return (bottomRegisters[memoryAddress - ReservedAddresses.JOYP.memoryAddress].value.toInt() or 0xE0).toUByte()
         }
 
         if (memoryAddress in ReservedAddresses.NR10.memoryAddress..ReservedAddresses.WAVE_END.memoryAddress) {

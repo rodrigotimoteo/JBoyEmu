@@ -126,8 +126,9 @@ class KBoyEmulatorViewModel(
      */
     fun loadRom(uri: Uri) {
         val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: return
-        val romBytes = bytes.toUByteArray()
+//        val romBytes = bytes.toUByteArray()
 
+        val romBytes = context.assets.open("halt_bug.gb").readBytes().toUByteArray()
         emulator.loadRom(Rom(romBytes))
 
         frameCollectorJob?.cancel()
