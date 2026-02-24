@@ -4,6 +4,7 @@ import android.content.Context
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
+import android.net.Uri
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.core.graphics.createBitmap
@@ -15,15 +16,26 @@ import com.github.rodrigotimoteo.kboyemucore.api.KBoyEmulator
 import com.github.rodrigotimoteo.kboyemucore.api.Rom
 import com.github.rodrigotimoteo.kboyemucore.spu.SPU
 import com.github.rodrigotimoteo.kboyemucore.util.Logger
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.koin.android.annotation.KoinViewModel
 import java.util.concurrent.locks.LockSupport
 
+/**
+ * Represents the current state of the emulator screen
+ */
+sealed interface EmulatorState {
+    data object WaitingForRom : EmulatorState
+    data object Running : EmulatorState
+}
+
 @OptIn(ExperimentalUnsignedTypes::class)
 @KoinViewModel
 class KBoyEmulatorViewModel(
-    context: Context,
+    private val context: Context,
     private val emulator: KBoyEmulator,
     private val logger: Logger,
 ) : ViewModel() {
@@ -32,6 +44,11 @@ class KBoyEmulatorViewModel(
 
     private val argbBuffer = IntArray(width * height)
 
+    /** Current state of the emulator — waiting for a ROM or running */
+    private val _state = MutableStateFlow<EmulatorState>(EmulatorState.WaitingForRom)
+    val state: StateFlow<EmulatorState> = _state.asStateFlow()
+
+    /** Current frame bitmap for display */
     internal val frameBitmap = MutableStateFlow(ImageBitmap(160, 144))
 
     /**
@@ -99,42 +116,34 @@ class KBoyEmulatorViewModel(
         priority = Thread.MAX_PRIORITY
     }
 
-    init {
-//        val romBytes = context.assets.open("instr_timing.gb").readBytes().toUByteArray()
-//        val romBytes = context.assets.open("cpu_instrs.gb").readBytes().toUByteArray()
-//        val romBytes = context.assets.open("rtc3test.gb").readBytes().toUByteArray()
-//        val romBytes = context.assets.open("dmg-acid2.gb").readBytes().toUByteArray()
-//        val romBytes = context.assets.open("halt_bug.gb").readBytes().toUByteArray()
-//        val romBytes = context.assets.open("mem_timing.gb").readBytes().toUByteArray()
-//        val romBytes = context.assets.open("tetrisAgora.gb").readBytes().toUByteArray()
-        val romBytes = context.assets.open("pokemon_red.gb").readBytes().toUByteArray()
-//        val romBytes = context.assets.open("pokemon_crystal.gbc").readBytes().toUByteArray()
+    /** Job collecting frames from the emulator */
+    private var frameCollectorJob: Job? = null
+
+    /**
+     * Loads a ROM from the given content [Uri], starts the emulation and audio thread
+     *
+     * @param uri content URI of the ROM file selected by the user
+     */
+    fun loadRom(uri: Uri) {
+        val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: return
+        val romBytes = bytes.toUByteArray()
+
         emulator.loadRom(Rom(romBytes))
 
-        viewModelScope.launch {
+        frameCollectorJob?.cancel()
+        frameCollectorJob = viewModelScope.launch {
             emulator.frames.collect { frameBuffer ->
-                translateGbPixelsToArgb(
-                    frameBuffer.pixels,
-                    argbBuffer
-                )
+                translateGbPixelsToArgb(frameBuffer.pixels, argbBuffer)
 
                 val bitmap = createBitmap(160, 144)
-                bitmap.setPixels(
-                    argbBuffer,
-                    0,
-                    width,
-                    0,
-                    0,
-                    width,
-                    height
-                )
-
+                bitmap.setPixels(argbBuffer, 0, width, 0, 0, width, height)
                 frameBitmap.value = bitmap.asImageBitmap()
             }
         }
 
         audioThread.start()
         emulator.run()
+        _state.value = EmulatorState.Running
     }
 
     fun press(button: Button) {
