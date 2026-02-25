@@ -108,6 +108,19 @@ open class MemoryModule(
     }
 
     /**
+     * Reads a value from a specific bank regardless of which bank is currently active.
+     * Used by the CGB PPU drawer to access VRAM bank 1 for tile map attributes.
+     *
+     * @param memoryAddress the absolute memory address to read
+     * @param bank the bank number to read from
+     * @return the value at the given address in the specified bank
+     */
+    fun getValueFromBank(memoryAddress: Int, bank: Int): UByte {
+        val realIndex = memoryAddress - memoryOffset
+        return memory[bank.coerceIn(0, numberOfBanks - 1)][realIndex]
+    }
+
+    /**
      * Override the toString method to better reflect the way the information for this class should
      * be read, therefore enabling the prints of this class as a readable output, that enabled easier
      * debugging

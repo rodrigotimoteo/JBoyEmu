@@ -4,6 +4,9 @@ import com.github.rodrigotimoteo.kboyemucore.api.FrameBuffer
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.cpu.interrupts.InterruptNames
 import com.github.rodrigotimoteo.kboyemucore.memory.ReservedAddresses
+import com.github.rodrigotimoteo.kboyemucore.ppu.drawer.CGBPPUDrawer
+import com.github.rodrigotimoteo.kboyemucore.ppu.drawer.DMGPPUDrawer
+import com.github.rodrigotimoteo.kboyemucore.ppu.drawer.IPPUDrawer
 import com.github.rodrigotimoteo.kboyemucore.util.HEIGHT
 import com.github.rodrigotimoteo.kboyemucore.util.Logger
 import com.github.rodrigotimoteo.kboyemucore.util.WIDTH
@@ -32,9 +35,9 @@ class PPU(
     private val cgb = bus.isCGB
 
     /**
-     * Reference to [PPUDrawer]
+     * Reference to the PPU drawer — DMG or CGB implementation selected at construction time
      */
-    internal val ppuDrawer = PPUDrawer(this, bus)
+    internal val ppuDrawer: IPPUDrawer = if (cgb) CGBPPUDrawer(this, bus) else DMGPPUDrawer(this, bus)
 
     /**
      * Reference to [PPURegisters]
@@ -112,10 +115,14 @@ class PPU(
     /**
      * Updates the painting flow providing a new frame to be rendered
      *
-     * @param painting content to be rendered (Color coded)
+     * @param painting content to be rendered as 2-bit color indices
+     * @param colorPixels optional 15-bit RGB555 color data for CGB frames
      */
-    internal fun propagatePaintingUpdate(painting: ByteArray) {
-        _painting.value = FrameBuffer(pixels = painting.copyOf())
+    internal fun propagatePaintingUpdate(painting: ByteArray, colorPixels: IntArray? = null) {
+        _painting.value = FrameBuffer(
+            pixels = painting.copyOf(),
+            colorPixels = colorPixels?.copyOf()
+        )
 
         frameCount++
         val nowMs = System.currentTimeMillis()
@@ -275,7 +282,8 @@ class PPU(
             ppuRegisters.negativeTiles =
                 tileDataAddress == ReservedAddresses.TILE_DATA_2.memoryAddress
 
-            if (ppuRegisters.backgroundOn) {
+            // On CGB BG is always drawn; LCDC bit 0 is master priority not BG enable
+            if (ppuRegisters.backgroundOn || cgb) {
                 ppuDrawer.drawBackground(backgroundMapAddress, tileDataAddress)
             }
             if (ppuRegisters.windowOn) {
@@ -286,6 +294,11 @@ class PPU(
             }
 
             changeMode(PPUModes.HBLANK)
+
+            // Tick CGB HBlank HDMA after entering HBlank
+            if (cgb) {
+                bus.tickHdma()
+            }
         }
     }
 }

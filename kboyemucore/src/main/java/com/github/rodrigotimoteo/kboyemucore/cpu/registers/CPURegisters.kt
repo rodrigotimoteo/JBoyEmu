@@ -2,13 +2,17 @@ package com.github.rodrigotimoteo.kboyemucore.cpu.registers
 
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.util.AF_INITIAL_VALUE
+import com.github.rodrigotimoteo.kboyemucore.util.AF_INITIAL_VALUE_CGB
 import com.github.rodrigotimoteo.kboyemucore.util.BC_INITIAL_VALUE
+import com.github.rodrigotimoteo.kboyemucore.util.BC_INITIAL_VALUE_CGB
 import com.github.rodrigotimoteo.kboyemucore.util.DE_INITIAL_VALUE
+import com.github.rodrigotimoteo.kboyemucore.util.DE_INITIAL_VALUE_CGB
 import com.github.rodrigotimoteo.kboyemucore.util.EIGHT_BITS
 import com.github.rodrigotimoteo.kboyemucore.util.FILTER_16_BITS
 import com.github.rodrigotimoteo.kboyemucore.util.FILTER_LOWER_BITS
 import com.github.rodrigotimoteo.kboyemucore.util.FILTER_TOP_BITS
 import com.github.rodrigotimoteo.kboyemucore.util.HL_INITIAL_VALUE
+import com.github.rodrigotimoteo.kboyemucore.util.HL_INITIAL_VALUE_CGB
 import com.github.rodrigotimoteo.kboyemucore.util.MutableUByte
 import com.github.rodrigotimoteo.kboyemucore.util.PROGRAM_COUNTER_INITIAL_VALUE
 import com.github.rodrigotimoteo.kboyemucore.util.STACK_POINTER_INITIAL_VALUE
@@ -47,10 +51,17 @@ class CPURegisters(
      * Initializes the register to their default values
      */
     init {
-        setAF(AF_INITIAL_VALUE)
-        setBC(BC_INITIAL_VALUE)
-        setDE(DE_INITIAL_VALUE)
-        setHL(HL_INITIAL_VALUE)
+        if (bus.isCGB) {
+            setAF(AF_INITIAL_VALUE_CGB)
+            setBC(BC_INITIAL_VALUE_CGB)
+            setDE(DE_INITIAL_VALUE_CGB)
+            setHL(HL_INITIAL_VALUE_CGB)
+        } else {
+            setAF(AF_INITIAL_VALUE)
+            setBC(BC_INITIAL_VALUE)
+            setDE(DE_INITIAL_VALUE)
+            setHL(HL_INITIAL_VALUE)
+        }
     }
 
     /**

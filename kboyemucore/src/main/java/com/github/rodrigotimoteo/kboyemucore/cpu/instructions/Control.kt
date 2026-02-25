@@ -64,11 +64,14 @@ class Control(
     }
 
     /**
-     * Stops the CPU and LCD until a button is pressed
+     * Stops the CPU and LCD until a button is pressed. On CGB, if KEY1 bit 0 is set, performs a
+     * speed switch instead: toggles KEY1 bit 7 (current speed) and clears bit 0 (request).
      */
     fun stop() {
         if (bus.isCGB) {
-
+            bus.performSpeedSwitch()
+        } else {
+            cpu.setStopped(true)
         }
 
         cpu.cpuRegisters.incrementProgramCounter(2)

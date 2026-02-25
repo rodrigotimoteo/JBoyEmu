@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.core.graphics.createBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.rodrigotimoteo.kboyemu.presentation.emulator.translateCgbPixelsToArgb
 import com.github.rodrigotimoteo.kboyemu.presentation.emulator.translateGbPixelsToArgb
 import com.github.rodrigotimoteo.kboyemucore.api.Button
 import com.github.rodrigotimoteo.kboyemucore.api.KBoyEmulator
@@ -127,14 +128,19 @@ class KBoyEmulatorViewModel(
     fun loadRom(uri: Uri) {
         val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: return
 //        val romBytes = bytes.toUByteArray()
+        val romBytes = context.assets.open("pokemon_crystal.gbc").readBytes().toUByteArray()
 
-        val romBytes = context.assets.open("halt_bug.gb").readBytes().toUByteArray()
         emulator.loadRom(Rom(romBytes))
 
         frameCollectorJob?.cancel()
         frameCollectorJob = viewModelScope.launch {
             emulator.frames.collect { frameBuffer ->
-                translateGbPixelsToArgb(frameBuffer.pixels, argbBuffer)
+                val colorPixels = frameBuffer.colorPixels
+                if (colorPixels != null) {
+                    translateCgbPixelsToArgb(colorPixels, argbBuffer)
+                } else {
+                    translateGbPixelsToArgb(frameBuffer.pixels, argbBuffer)
+                }
 
                 val bitmap = createBitmap(160, 144)
                 bitmap.setPixels(argbBuffer, 0, width, 0, 0, width, height)

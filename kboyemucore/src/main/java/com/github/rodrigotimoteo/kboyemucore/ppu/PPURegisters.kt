@@ -59,6 +59,18 @@ class PPURegisters(
     private var _spriteOn: Boolean = false
     internal val spriteOn get() = _spriteOn
 
+    /** Raw LCDC bit 5 — window enabled flag before DMG masking with bit 0 */
+    private var _lcdcWindowEnabled: Boolean = false
+    internal val lcdcWindowEnabled get() = _lcdcWindowEnabled
+
+    /**
+     * On CGB, LCDC bit 0 acts as a master priority flag. When clear, BG and Window always appear
+     * behind sprites (BG tile attribute priority and BG color index are ignored for sprite ordering).
+     * On DMG this flag is not used — [backgroundOn] controls whether BG is drawn.
+     */
+    private var _masterPriority: Boolean = false
+    internal val masterPriority get() = _masterPriority
+
     /**
      * This variable is used to determine whether the tile data should be treated as signed or unsigned,
      * this is determined by the value of the tile data bit in the LCDC register
@@ -102,6 +114,7 @@ class PPURegisters(
 
         //Read Window Enabled state
         _windowOn = lcdcValue.testBit(5)
+        _lcdcWindowEnabled = _windowOn
 
         //Read Window and Background Tile Data
         _tileData = lcdcValue.testBit(4)
@@ -119,7 +132,7 @@ class PPURegisters(
         _backgroundOn = lcdcValue.testBit(0)
 
         if (bus.isCGB) {
-
+            _masterPriority = _backgroundOn
         } else {
             _windowOn = _windowOn && _backgroundOn
         }

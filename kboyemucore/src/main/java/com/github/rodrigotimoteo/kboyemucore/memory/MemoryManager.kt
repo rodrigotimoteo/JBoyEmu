@@ -79,6 +79,15 @@ class MemoryManager(
     private val ppuMode: PPUModes
         get() = bus.ppuMode
 
+    // ── CGB palette RAM ──────────────────────────────────────────────────────
+    /** BG palette auto-increment flag and index (written via BCPS 0xFF68) */
+    private var bgPaletteIndex: Int = 0
+    private var bgPaletteAutoInc: Boolean = false
+
+    /** OBJ palette auto-increment flag and index (written via OCPS 0xFF6A) */
+    private var objPaletteIndex: Int = 0
+    private var objPaletteAutoInc: Boolean = false
+
     /**
      * Responsible for initializing the memory with the default values assign by the boot rom
      * therefore skipping its necessity
@@ -127,57 +136,73 @@ class MemoryManager(
             0xFFu
         bottomRegisters[ReservedAddresses.OBP1.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
             0xFFu
+
+        if (isCGB) {
+            bottomRegisters[ReservedAddresses.VBK.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
+                0xFEu
+            bottomRegisters[ReservedAddresses.SVBK.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
+                0xF8u
+            bottomRegisters[ReservedAddresses.HDMA5.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
+                0xFFu
+            bottomRegisters[ReservedAddresses.KEY1.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
+                0x00u
+            bottomRegisters[ReservedAddresses.OPRI.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
+                0xFEu
+        }
     }
 
     @Suppress("CyclomaticComplexMethod")
-    override fun setValue(memoryAddress: Int, value: UByte) = when (memoryAddress) {
-        in 0 until ReservedAddresses.SWITCH_ROM_END.memoryAddress -> {
-            rom.setValue(memoryAddress, value).also {
-                eram?.let { eram.activeBank = (rom as RomModule).ramBankNumber }
-            }
-        }
-
-        in ReservedAddresses.SWITCH_ROM_END.memoryAddress until ReservedAddresses.VRAM_END.memoryAddress -> {
-            if (ppuMode.writeVRAMAble()) {
-                vram.setValue(memoryAddress, value)
-            } else {
-                Unit
-            }
-        }
-
-        in ReservedAddresses.VRAM_END.memoryAddress until ReservedAddresses.ERAM_END.memoryAddress -> {
-            val romModule = rom as RomModule
-            if (romModule.ramStatus) {
-                if (romModule.hasRtcMapped) {
-                    romModule.writeRtcRegister(value)
-                } else {
-                    eram?.setValue(memoryAddress, value) ?: Unit
+    override fun setValue(memoryAddress: Int, value: UByte) {
+        val addr = memoryAddress and 0xFFFF
+        when (addr) {
+            in 0 until ReservedAddresses.SWITCH_ROM_END.memoryAddress -> {
+                rom.setValue(addr, value).also {
+                    eram?.let { eram.activeBank = (rom as RomModule).ramBankNumber }
                 }
-            } else Unit
-        }
-
-        in ReservedAddresses.ERAM_END.memoryAddress until ReservedAddresses.WRAM_END.memoryAddress -> {
-            wram.setValue(memoryAddress, value)
-        }
-
-        in ReservedAddresses.WRAM_END.memoryAddress until ReservedAddresses.OAM_START.memoryAddress -> {
-            // Nothing should be done here its unusable
-        }
-
-        in ReservedAddresses.OAM_START.memoryAddress until ReservedAddresses.OAM_END.memoryAddress -> {
-            if (ppuMode.writeOAMAble()) {
-                oam.setValue(memoryAddress, value)
-            } else {
-                Unit
             }
-        }
 
-        in ReservedAddresses.OAM_END.memoryAddress until ReservedAddresses.JOYP.memoryAddress -> {
-            // Nothing should be done here its unusable
-        }
+            in ReservedAddresses.SWITCH_ROM_END.memoryAddress until ReservedAddresses.VRAM_END.memoryAddress -> {
+                if (ppuMode.writeVRAMAble()) {
+                    vram.setValue(addr, value)
+                } else {
+                    Unit
+                }
+            }
 
-        else -> {
-            setBottomRegisters(memoryAddress, value)
+            in ReservedAddresses.VRAM_END.memoryAddress until ReservedAddresses.ERAM_END.memoryAddress -> {
+                val romModule = rom as RomModule
+                if (romModule.ramStatus) {
+                    if (romModule.hasRtcMapped) {
+                        romModule.writeRtcRegister(value)
+                    } else {
+                        eram?.setValue(addr, value) ?: Unit
+                    }
+                } else Unit
+            }
+
+            in ReservedAddresses.ERAM_END.memoryAddress until ReservedAddresses.WRAM_END.memoryAddress -> {
+                wram.setValue(addr, value)
+            }
+
+            in ReservedAddresses.WRAM_END.memoryAddress until ReservedAddresses.OAM_START.memoryAddress -> {
+                // Echo RAM — ignore writes
+            }
+
+            in ReservedAddresses.OAM_START.memoryAddress until ReservedAddresses.OAM_END.memoryAddress -> {
+                if (ppuMode.writeOAMAble()) {
+                    oam.setValue(addr, value)
+                } else {
+                    Unit
+                }
+            }
+
+            in ReservedAddresses.OAM_END.memoryAddress until ReservedAddresses.JOYP.memoryAddress -> {
+                // Unusable memory — ignore writes
+            }
+
+            else -> {
+                setBottomRegisters(addr, value)
+            }
         }
     }
 
@@ -212,6 +237,7 @@ class MemoryManager(
      * @param memoryAddress memory location where value should be written
      * @param value content that needs to be written to given address
      */
+    @Suppress("CyclomaticComplexMethod")
     private fun setBottomRegisters(memoryAddress: Int, value: UByte) = when (memoryAddress) {
         ReservedAddresses.DIV.memoryAddress, ReservedAddresses.LY.memoryAddress ->
             bottomRegisters[memoryAddress - ReservedAddresses.JOYP.memoryAddress].value = 0x00u
@@ -231,8 +257,84 @@ class MemoryManager(
                 (value.toInt() and 0x1F).toUByte()
         }
 
+        // ── CGB-only registers ───────────────────────────────────────────────
+        ReservedAddresses.VBK.memoryAddress -> if (isCGB) {
+            val bank = value.toInt() and 0x01
+            vram.activeBank = bank
+            bottomRegisters[memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
+                (0xFE or bank).toUByte()
+        } else Unit
+
+        ReservedAddresses.SVBK.memoryAddress -> if (isCGB) {
+            val bank = (value.toInt() and 0x07).let { if (it == 0) 1 else it }
+            wram.activeBank = bank
+            bottomRegisters[memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
+                (0xF8 or (value.toInt() and 0x07)).toUByte()
+        } else Unit
+
+        ReservedAddresses.BCPS.memoryAddress -> if (isCGB) {
+            bgPaletteIndex = value.toInt() and 0x3F
+            bgPaletteAutoInc = (value.toInt() and 0x80) != 0
+            bottomRegisters[memoryAddress - ReservedAddresses.JOYP.memoryAddress].value = value
+        } else Unit
+
+        ReservedAddresses.BCPD.memoryAddress -> if (isCGB) {
+            bus.cgbDrawer?.writeBgPalette(bgPaletteIndex, value.toInt())
+            if (bgPaletteAutoInc) bgPaletteIndex = (bgPaletteIndex + 1) and 0x3F
+            Unit
+        } else Unit
+
+        ReservedAddresses.OCPS.memoryAddress -> if (isCGB) {
+            objPaletteIndex = value.toInt() and 0x3F
+            objPaletteAutoInc = (value.toInt() and 0x80) != 0
+            bottomRegisters[memoryAddress - ReservedAddresses.JOYP.memoryAddress].value = value
+        } else Unit
+
+        ReservedAddresses.OCPD.memoryAddress -> if (isCGB) {
+            bus.cgbDrawer?.writeObjPalette(objPaletteIndex, value.toInt())
+            if (objPaletteAutoInc) objPaletteIndex = (objPaletteIndex + 1) and 0x3F
+            Unit
+        } else Unit
+
+        ReservedAddresses.OPRI.memoryAddress -> if (isCGB) {
+            bottomRegisters[memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
+                (0xFE or (value.toInt() and 0x01)).toUByte()
+        } else Unit
+
+        ReservedAddresses.KEY1.memoryAddress -> if (isCGB) {
+            val current = bottomRegisters[memoryAddress - ReservedAddresses.JOYP.memoryAddress].value.toInt()
+            bottomRegisters[memoryAddress - ReservedAddresses.JOYP.memoryAddress].value =
+                ((current and 0xFE) or (value.toInt() and 0x01)).toUByte()
+        } else Unit
+
+        ReservedAddresses.HDMA5.memoryAddress -> if (isCGB) {
+            performHdmaTransfer(value.toInt())
+        } else Unit
+
         else -> {
             bottomRegisters[memoryAddress - ReservedAddresses.JOYP.memoryAddress].value = value
+        }
+    }
+
+    // ── CGB HBlank HDMA state ────────────────────────────────────────────────
+    /** Whether an HBlank HDMA transfer is currently active */
+    private var hdmaActive = false
+    /** Current source address for the next HBlank chunk */
+    private var hdmaSource = 0
+    /** Current destination offset (within VRAM) for the next HBlank chunk */
+    private var hdmaDest = 0
+    /** Remaining blocks to transfer (each block = 0x10 bytes) */
+    private var hdmaRemaining = 0
+
+    /**
+     * Performs a CGB speed switch. Toggles KEY1 bit 7 (current speed) and clears bit 0 (request).
+     * Called by STOP instruction when KEY1 bit 0 is set.
+     */
+    fun performSpeedSwitch() {
+        val key1Offset = ReservedAddresses.KEY1.memoryAddress - ReservedAddresses.JOYP.memoryAddress
+        val current = bottomRegisters[key1Offset].value.toInt()
+        if ((current and 0x01) != 0) {
+            bottomRegisters[key1Offset].value = ((current xor 0x80) and 0xFE).toUByte()
         }
     }
 
@@ -249,54 +351,136 @@ class MemoryManager(
         }
     }
 
-    override fun getValue(memoryAddress: Int): UByte = when (memoryAddress) {
-        in 0 until ReservedAddresses.SWITCH_ROM_END.memoryAddress -> {
-            rom.getValue(memoryAddress)
+    /**
+     * Handles a write to HDMA5 (0xFF55).
+     *
+     * - Bit 7 = 0, no active HBlank DMA: general-purpose (immediate) transfer
+     * - Bit 7 = 0, active HBlank DMA: cancel the ongoing HBlank DMA
+     * - Bit 7 = 1: start a new HBlank DMA (0x10 bytes copied per HBlank)
+     *
+     * @param controlByte the value written to HDMA5
+     */
+    private fun performHdmaTransfer(controlByte: Int) {
+        val hdma5Offset = ReservedAddresses.HDMA5.memoryAddress - ReservedAddresses.JOYP.memoryAddress
+
+        // Cancel active HBlank DMA when bit 7 is clear
+        if ((controlByte and 0x80) == 0 && hdmaActive) {
+            hdmaActive = false
+            // HDMA5 reads back remaining blocks with bit 7 set (inactive flag)
+            bottomRegisters[hdma5Offset].value = (0x80 or hdmaRemaining).toUByte()
+            return
         }
 
-        in ReservedAddresses.SWITCH_ROM_END.memoryAddress until ReservedAddresses.VRAM_END.memoryAddress -> {
-            if (ppuMode.writeVRAMAble()) {
-                vram.getValue(memoryAddress)
-            } else {
-                0xFFu
+        val sourceHigh = bottomRegisters[ReservedAddresses.HDMA1.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value.toInt()
+        val sourceLow = bottomRegisters[ReservedAddresses.HDMA2.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value.toInt() and 0xF0
+        val destHigh = bottomRegisters[ReservedAddresses.HDMA3.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value.toInt() and 0x1F
+        val destLow = bottomRegisters[ReservedAddresses.HDMA4.memoryAddress - ReservedAddresses.JOYP.memoryAddress].value.toInt() and 0xF0
+
+        val source = (sourceHigh shl 8) or sourceLow
+        val dest = (destHigh shl 8) or destLow
+        val blocks = (controlByte and 0x7F) + 1
+        val length = blocks * 0x10
+
+        if ((controlByte and 0x80) == 0) {
+            // General-purpose DMA — immediate copy
+            for (i in 0 until length) {
+                val byte = getValue(source + i)
+                val vramAddr = 0x8000 or ((dest + i) and 0x1FFF)
+                vram.setValue(vramAddr, byte)
             }
+            bottomRegisters[hdma5Offset].value = 0xFFu
+        } else {
+            // HBlank DMA — store state, PPU will call tickHdma() each HBlank
+            hdmaActive = true
+            hdmaSource = source
+            hdmaDest = dest
+            hdmaRemaining = blocks - 1  // HDMA5 reads back remaining-1 during transfer
+            // HDMA5 reads back remaining blocks with bit 7 clear (active)
+            bottomRegisters[hdma5Offset].value = hdmaRemaining.toUByte()
+        }
+    }
+
+    /**
+     * Called by the PPU at the start of each HBlank to transfer one 0x10-byte block if an HBlank
+     * HDMA is active. Returns true if a transfer was performed.
+     */
+    fun tickHdma(): Boolean {
+        if (!hdmaActive) return false
+
+        // Copy one 0x10-byte block
+        for (i in 0 until 0x10) {
+            val byte = getValue(hdmaSource + i)
+            val vramAddr = 0x8000 or ((hdmaDest + i) and 0x1FFF)
+            vram.setValue(vramAddr, byte)
         }
 
-        in ReservedAddresses.VRAM_END.memoryAddress until ReservedAddresses.ERAM_END.memoryAddress -> {
-            val romModule = rom as RomModule
-            if (romModule.ramStatus) {
-                if (romModule.hasRtcMapped) {
-                    romModule.readRtcRegister()
+        hdmaSource += 0x10
+        hdmaDest += 0x10
+
+        val hdma5Offset = ReservedAddresses.HDMA5.memoryAddress - ReservedAddresses.JOYP.memoryAddress
+
+        if (hdmaRemaining == 0) {
+            hdmaActive = false
+            bottomRegisters[hdma5Offset].value = 0xFFu
+        } else {
+            hdmaRemaining--
+            bottomRegisters[hdma5Offset].value = hdmaRemaining.toUByte()
+        }
+
+        return true
+    }
+
+    override fun getValue(memoryAddress: Int): UByte {
+        val addr = memoryAddress and 0xFFFF
+        return when (addr) {
+            in 0 until ReservedAddresses.SWITCH_ROM_END.memoryAddress -> {
+                rom.getValue(addr)
+            }
+
+            in ReservedAddresses.SWITCH_ROM_END.memoryAddress until ReservedAddresses.VRAM_END.memoryAddress -> {
+                if (ppuMode.writeVRAMAble()) {
+                    vram.getValue(addr)
                 } else {
-                    eram?.getValue(memoryAddress) ?: 0x00u
+                    0xFFu
                 }
-            } else {
+            }
+
+            in ReservedAddresses.VRAM_END.memoryAddress until ReservedAddresses.ERAM_END.memoryAddress -> {
+                val romModule = rom as RomModule
+                if (romModule.ramStatus) {
+                    if (romModule.hasRtcMapped) {
+                        romModule.readRtcRegister()
+                    } else {
+                        eram?.getValue(addr) ?: 0x00u
+                    }
+                } else {
+                    0x00u
+                }
+            }
+
+            in ReservedAddresses.ERAM_END.memoryAddress until ReservedAddresses.WRAM_END.memoryAddress -> {
+                wram.getValue(addr)
+            }
+
+            in ReservedAddresses.WRAM_END.memoryAddress until ReservedAddresses.OAM_START.memoryAddress -> {
+                wram.getValue(addr - 0x2000)
+            }
+
+            in ReservedAddresses.OAM_START.memoryAddress until ReservedAddresses.OAM_END.memoryAddress -> {
+                if (ppuMode.writeOAMAble()) {
+                    oam.getValue(addr)
+                } else {
+                    0xFFu
+                }
+            }
+
+            in ReservedAddresses.OAM_END.memoryAddress until ReservedAddresses.JOYP.memoryAddress -> {
                 0x00u
             }
-        }
 
-        in ReservedAddresses.ERAM_END.memoryAddress until ReservedAddresses.WRAM_END.memoryAddress -> {
-            wram.getValue(memoryAddress)
-        }
-
-        in ReservedAddresses.WRAM_END.memoryAddress until ReservedAddresses.OAM_START.memoryAddress -> {
-            wram.getValue(memoryAddress - 0x2000)
-        }
-
-        in ReservedAddresses.OAM_START.memoryAddress until ReservedAddresses.OAM_END.memoryAddress -> {
-            if (ppuMode.writeOAMAble()) {
-                oam.getValue(memoryAddress)
-            } else {
-                0xFFu
+            else -> {
+                getBottomRegisters(addr)
             }
-        }
-
-        in ReservedAddresses.OAM_END.memoryAddress until ReservedAddresses.JOYP.memoryAddress -> {
-            0x00u
-        }
-
-        else -> {
-            getBottomRegisters(memoryAddress)
         }
     }
 
@@ -322,6 +506,7 @@ class MemoryManager(
      * @param memoryAddress memory location where value should be retrieved
      * @return value stored in given address
      */
+    @Suppress("CyclomaticComplexMethod")
     private fun getBottomRegisters(memoryAddress: Int): UByte {
         if (memoryAddress == ReservedAddresses.JOYP.memoryAddress) {
             return bus.getJoypad(bottomRegisters[memoryAddress - ReservedAddresses.JOYP.memoryAddress].value)
@@ -333,6 +518,15 @@ class MemoryManager(
 
         if (memoryAddress in ReservedAddresses.NR10.memoryAddress..ReservedAddresses.WAVE_END.memoryAddress) {
             return bus.spu.readRegister(memoryAddress).toUByte()
+        }
+
+        // CGB palette data reads
+        if (isCGB && memoryAddress == ReservedAddresses.BCPD.memoryAddress) {
+            return (bus.cgbDrawer?.readBgPalette(bgPaletteIndex) ?: 0xFF).toUByte()
+        }
+
+        if (isCGB && memoryAddress == ReservedAddresses.OCPD.memoryAddress) {
+            return (bus.cgbDrawer?.readObjPalette(objPaletteIndex) ?: 0xFF).toUByte()
         }
 
         return bottomRegisters[memoryAddress - ReservedAddresses.JOYP.memoryAddress].value
@@ -363,6 +557,43 @@ class MemoryManager(
             error("This should not be accessed here")
         }
     }
+
+    /**
+     * Reads a value from VRAM bank 1 directly, used by the CGB PPU drawer to fetch tile map
+     * attributes. On DMG (single VRAM bank) this returns 0.
+     *
+     * @param memoryAddress VRAM address to read from bank 1
+     * @return value stored in VRAM bank 1, or 0 if not CGB
+     */
+    fun getValueFromPPUBank1(memoryAddress: Int): UByte {
+        if (!isCGB) return 0u
+        if (memoryAddress !in ReservedAddresses.SWITCH_ROM_END.memoryAddress until ReservedAddresses.VRAM_END.memoryAddress) return 0u
+        return vram.getValueFromBank(memoryAddress, 1)
+    }
+
+    /**
+     * Reads a value from a specific VRAM bank, used by the CGB PPU drawer to fetch tile data
+     * from the bank specified in the tile attribute byte. On DMG this reads from the only bank.
+     *
+     * @param memoryAddress VRAM address to read
+     * @param bank VRAM bank number (0 or 1)
+     * @return value stored in the specified VRAM bank
+     */
+    fun getValueFromPPUBank(memoryAddress: Int, bank: Int): UByte {
+        if (!isCGB) return vram.getValue(memoryAddress)
+        if (memoryAddress !in ReservedAddresses.SWITCH_ROM_END.memoryAddress until ReservedAddresses.VRAM_END.memoryAddress) return 0u
+        return vram.getValueFromBank(memoryAddress, bank)
+    }
+
+    /**
+     * Returns the currently active ROM bank number (for debug logging).
+     */
+    fun romActiveBank(): Int = rom.activeBank
+
+    /**
+     * Returns the currently active WRAM bank number (for debug logging).
+     */
+    fun wramActiveBank(): Int = wram.activeBank
 
     /**
      * Converts the full memory map into a readable string containing all the memory address' content

@@ -18,6 +18,12 @@ internal const val BC_INITIAL_VALUE = 0x0013
 internal const val DE_INITIAL_VALUE = 0x00D8
 internal const val HL_INITIAL_VALUE = 0x014D
 
+/** CGB-specific initial values */
+internal const val AF_INITIAL_VALUE_CGB = 0x11B0
+internal const val BC_INITIAL_VALUE_CGB = 0x0000
+internal const val DE_INITIAL_VALUE_CGB = 0xFF56
+internal const val HL_INITIAL_VALUE_CGB = 0x000D
+
 /** Others */
 internal const val EIGHT_BITS = 8
 internal const val FILTER_TOP_BITS = 0xFF00

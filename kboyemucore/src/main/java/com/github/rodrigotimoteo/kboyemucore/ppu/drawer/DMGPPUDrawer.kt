@@ -1,24 +1,30 @@
-package com.github.rodrigotimoteo.kboyemucore.ppu
+package com.github.rodrigotimoteo.kboyemucore.ppu.drawer
 
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.ktx.testBit
 import com.github.rodrigotimoteo.kboyemucore.memory.ReservedAddresses
+import com.github.rodrigotimoteo.kboyemucore.ppu.PPU
 import com.github.rodrigotimoteo.kboyemucore.util.HEIGHT
 import com.github.rodrigotimoteo.kboyemucore.util.WIDTH
 
-class PPUDrawer(
+/**
+ * DMG (original Game Boy) PPU drawer implementation. Renders background, window, and sprite layers
+ * using 4-shade monochrome palettes (BGP, OBP0, OBP1).
+ *
+ * @param ppu reference to the PPU for register access
+ * @param bus reference to the Bus for memory reads
+ *
+ * @author rodrigotimoteo
+ */
+class DMGPPUDrawer(
     private val ppu: PPU,
     private val bus: Bus,
-) {
+) : IPPUDrawer {
 
-    /**
-     * Holds the temporary [ByteArray] used to update the screen when an update is triggered
-     */
+    /** Pixel buffer holding the current frame as 2-bit color indices */
     private val painting = ByteArray(WIDTH * HEIGHT)
 
-    /**
-     * Pre-decoded palette caches - decoded once per scanline, reused per pixel
-     */
+    /** Pre-decoded palette caches — decoded once per scanline, reused per pixel */
     private val bgPalette = ByteArray(4)
     private val obp0Palette = ByteArray(4)
     private val obp1Palette = ByteArray(4)
@@ -34,9 +40,41 @@ class PPUDrawer(
     }
 
     /**
-     * Draws the background part of the screen based on specification provided by the GameBoy PPU
+     * Resolves the VRAM address of a tile line given a tile index, handling both signed and unsigned
+     * tile addressing modes
+     *
+     * @param tile tile index from the tile map
+     * @param tileDataAddress base address of the tile data region
+     * @param lineOffset vertical pixel offset within the tile (0-7)
+     * @return VRAM address of the two bytes that define the tile line
      */
-    internal fun drawBackground(tileMapAddress: Int, tileDataAddress: Int) {
+    private fun resolveTileLineAddress(tile: Int, tileDataAddress: Int, lineOffset: Int): Int {
+        return if (ppu.ppuRegisters.negativeTiles) {
+            val signedTile = tile.toByte().toInt()
+            if (signedTile >= 0) {
+                tileDataAddress + signedTile * 0x10 + lineOffset * 2
+            } else {
+                ReservedAddresses.TILE_DATA_1.memoryAddress + (signedTile + 128) * 0x10 + lineOffset * 2
+            }
+        } else {
+            tileDataAddress + tile * 0x10 + lineOffset * 2
+        }
+    }
+
+    /**
+     * Extracts the 2-bit color number from two tile data bytes at the given bit position
+     *
+     * @param address VRAM address of the first tile data byte
+     * @param bitOffset bit position within the tile line (7 = leftmost, 0 = rightmost)
+     * @return color number in the range 0-3
+     */
+    private fun getColorNumber(address: Int, bitOffset: Int): Int {
+        val low = bus.getValueFromPPU(address).toInt()
+        val high = bus.getValueFromPPU(address + 1).toInt()
+        return ((low shr bitOffset) and 1) + (((high shr bitOffset) and 1) shl 1)
+    }
+
+    override fun drawBackground(tileMapAddress: Int, tileDataAddress: Int) {
         val tempY = (ppu.ppuRegisters.currentLine + ppu.ppuRegisters.scrollY) and 0xFF
 
         decodePalette(ppu.ppuRegisters.bgpRegister.value.toInt(), bgPalette)
@@ -45,52 +83,20 @@ class PPUDrawer(
             val tempX = (ppu.ppuRegisters.scrollX + x) % 0x0100
 
             val address = tileMapAddress + ((tempY / 8) * 0x20)
-            var tile = bus.getValueFromPPU(address + (tempX) / 8).toInt()
+            val tile = bus.getValueFromPPU(address + tempX / 8).toInt()
 
-            if (ppu.ppuRegisters.negativeTiles) {
-                tile = if (((tile and 0x80) shr 7) == 0) {
-                    tile and 0x7f
-                } else {
-                    (tile and 0x7f) - 0x80
-                }
-            }
-
-            val tileLine: Int
-            val i = tileDataAddress + ((tile and 0xff) * 0x10) + ((tempY % 8) * 2)
-            tileLine = if (ppu.ppuRegisters.negativeTiles) {
-                if (((tile and 0x80) shr 7) == 0) {
-                    i
-                } else {
-                    ReservedAddresses.TILE_DATA_1.memoryAddress + (((tile and 0xff) - 128) * 0x10) + ((tempY % 8) * 2)
-                }
-            } else i
-
-            val offset = 7 - (tempX % 8)
-            val colorNum =
-                (((bus.getValueFromPPU(tileLine).toInt() and (1 shl offset)) shr offset) +
-                        (((bus.getValueFromPPU(tileLine + 1)
-                            .toInt() and (1 shl offset)) shr offset) * 2))
+            val tileLine = resolveTileLineAddress(tile, tileDataAddress, tempY % 8)
+            val colorNum = getColorNumber(tileLine, 7 - (tempX % 8))
 
             painting[ppu.ppuRegisters.currentLine * WIDTH + x] = bgPalette[colorNum]
         }
     }
 
-    /**
-     * Draws the window part of the screen based on specification provided by the GameBoy PPU
-     */
-    internal fun drawWindow(tileMapAddress: Int, tileDataAddress: Int) { // NOSONAR
+    override fun drawWindow(tileMapAddress: Int, tileDataAddress: Int) {
         val tempY = ppu.ppuRegisters.currentLineWindow
 
-        // WY condition: window not yet reached
-        if (ppu.ppuRegisters.currentLine < ppu.ppuRegisters.windowY) {
-            return
-        }
-
-        // WX >= 167 raw (windowX = WX-7 >= 160) means window is fully off-screen —
-        // no pixels drawn and WLY does NOT increment, per hardware behaviour.
-        if (ppu.ppuRegisters.windowX >= WIDTH) {
-            return
-        }
+        if (ppu.ppuRegisters.currentLine < ppu.ppuRegisters.windowY) return
+        if (ppu.ppuRegisters.windowX >= WIDTH) return
 
         decodePalette(ppu.ppuRegisters.bgpRegister.value.toInt(), bgPalette)
 
@@ -100,22 +106,8 @@ class PPUDrawer(
             val tempX = x - ppu.ppuRegisters.windowX
 
             val tile = bus.getValueFromPPU(tileMapAddress + ((tempY / 8) * 0x20) + (tempX / 8)).toInt()
-            val tileLine = if (ppu.ppuRegisters.negativeTiles) {
-                val signedTile = tile.toByte().toInt()
-                if (signedTile >= 0) {
-                    tileDataAddress + signedTile * 0x10 + (tempY % 8) * 2
-                } else {
-                    ReservedAddresses.TILE_DATA_1.memoryAddress + (signedTile + 128) * 0x10 + (tempY % 8) * 2
-                }
-            } else {
-                tileDataAddress + tile * 0x10 + (tempY % 8) * 2
-            }
-
-            val offset = 7 - (tempX % 8)
-            val colorNum =
-                (((bus.getValueFromPPU(tileLine).toInt() and (1 shl offset)) shr offset) +
-                        (((bus.getValueFromPPU(tileLine + 1)
-                            .toInt() and (1 shl offset)) shr offset) * 2))
+            val tileLine = resolveTileLineAddress(tile, tileDataAddress, tempY % 8)
+            val colorNum = getColorNumber(tileLine, 7 - (tempX % 8))
 
             painting[ppu.ppuRegisters.currentLine * WIDTH + x] = bgPalette[colorNum]
         }
@@ -123,11 +115,8 @@ class PPUDrawer(
         ppu.ppuRegisters.currentLineWindow++
     }
 
-    /**
-     * Draws the sprite part of the screen based on specification provided by the GameBoy PPU
-     */
     @Suppress("LongMethod", "CyclomaticComplexMethod", "NestedBlockDepth")
-    internal fun drawSprite() { // NOSONAR
+    override fun drawSprite() {
         val drawnX = IntArray(10)
 
         decodePalette(ppu.ppuRegisters.obp0Register.value.toInt(), obp0Palette)
@@ -202,7 +191,7 @@ class PPUDrawer(
         }
     }
 
-    fun requestRepaint() {
+    override fun requestRepaint() {
         if (!ppu.ppuRegisters.lcdOn) {
             painting.fill(0)
         }
@@ -210,3 +199,4 @@ class PPUDrawer(
         ppu.propagatePaintingUpdate(painting)
     }
 }
+

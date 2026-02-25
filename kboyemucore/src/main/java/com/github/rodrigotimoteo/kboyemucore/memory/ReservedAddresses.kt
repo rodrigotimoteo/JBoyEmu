@@ -72,5 +72,21 @@ enum class ReservedAddresses(
     OBP1            (0xFF49),
     WY              (0xFF4A),
     WX              (0xFF4B),
+
+    // CGB-only registers
+    KEY1            (0xFF4D),
+    VBK             (0xFF4F),
+    HDMA1           (0xFF51),
+    HDMA2           (0xFF52),
+    HDMA3           (0xFF53),
+    HDMA4           (0xFF54),
+    HDMA5           (0xFF55),
+    BCPS            (0xFF68),
+    BCPD            (0xFF69),
+    OCPS            (0xFF6A),
+    OCPD            (0xFF6B),
+    OPRI            (0xFF6C),
+    SVBK            (0xFF70),
+
     IE              (0xFFFF);
 }

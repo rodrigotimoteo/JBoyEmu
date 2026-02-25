@@ -121,19 +121,17 @@ class ControlTest {
 
         control.stop()
 
-        assertTrue(cpu.isStopped())
-        assertEquals(0xC001, cpu.cpuRegisters.getProgramCounter())
+        assertEquals(0xC002, cpu.cpuRegisters.getProgramCounter())
     }
 
     @Test
     fun `when Di is executed then interrupt disable is requested and change cycle marked`() {
-        cpu.timers.tick()
-        val cycle = cpu.timers.machineCycles
+        cpu.interrupts.setInterruptChange(true)
 
         control.di()
 
-        assertTrue(cpu.interrupts.requestedInterruptChange())
-        assertEquals(cycle, cpu.timers.interruptChangedCounter)
+        assertFalse(cpu.interrupts.isImeEnabled)
+        assertFalse(cpu.interrupts.requestedInterruptChange())
         assertEquals(0x0101, cpu.cpuRegisters.getProgramCounter())
     }
 

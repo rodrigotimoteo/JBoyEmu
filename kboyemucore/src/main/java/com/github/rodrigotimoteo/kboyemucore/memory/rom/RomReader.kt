@@ -60,10 +60,12 @@ class RomReader(
     }
 
     /**
-     * Checks if the Rom is CGB or DMG Rom
+     * Checks if the Rom is CGB or DMG Rom. 0x80 = CGB+DMG compatible, 0xC0 = CGB only.
      */
-    fun isCgb(): Boolean =
-        (romContent[ReservedAddresses.CONSOLE_TYPE.memoryAddress].and(0xFFu).toInt() == 0x80)
+    fun isCgb(): Boolean {
+        val flag = romContent[ReservedAddresses.CONSOLE_TYPE.memoryAddress].toInt() and 0xFF
+        return flag == 0x80 || flag == 0xC0
+    }
 
     /**
      * Build and return a new MemoryModule for the given rom

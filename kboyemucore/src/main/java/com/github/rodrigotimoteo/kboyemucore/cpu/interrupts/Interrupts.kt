@@ -164,6 +164,15 @@ class Interrupts(
     }
 
     /**
+     * Immediately enables the IME flag. Used by RETI which does not have the one-instruction
+     * delay that EI has.
+     */
+    fun enableIme() {
+        interruptMasterEnabled = true
+        interruptChange = false
+    }
+
+    /**
      * Cancels any pending IME change, used by DI to ensure a queued EI does not re-enable interrupts
      */
     fun cancelPendingChange() {

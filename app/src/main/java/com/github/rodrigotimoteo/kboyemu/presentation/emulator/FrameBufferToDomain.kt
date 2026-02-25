@@ -7,6 +7,9 @@ private val defaultGbPalette = intArrayOf(
     0xFF000000.toInt()  // 3 - Black
 )
 
+/**
+ * Converts DMG 2-bit color indices to ARGB using the given palette
+ */
 fun translateGbPixelsToArgb(
     src: ByteArray,
     dst: IntArray,
@@ -18,3 +21,29 @@ fun translateGbPixelsToArgb(
         dst[i] = palette[src[i].toInt() and 0x03]
     }
 }
+
+/**
+ * Converts CGB 15-bit RGB555 color values to 32-bit ARGB for Android rendering.
+ * Each RGB555 component (5 bits, 0-31) is expanded to 8 bits (0-255) using the
+ * standard (val * 255 / 31) formula for accurate color reproduction.
+ */
+fun translateCgbPixelsToArgb(
+    src: IntArray,
+    dst: IntArray
+) {
+    require(dst.size >= src.size)
+
+    for (i in src.indices) {
+        val rgb555 = src[i]
+        val r5 = rgb555 and 0x1F
+        val g5 = (rgb555 shr 5) and 0x1F
+        val b5 = (rgb555 shr 10) and 0x1F
+
+        val r8 = (r5 * 255 + 15) / 31
+        val g8 = (g5 * 255 + 15) / 31
+        val b8 = (b5 * 255 + 15) / 31
+
+        dst[i] = (0xFF shl 24) or (r8 shl 16) or (g8 shl 8) or b8
+    }
+}
+
