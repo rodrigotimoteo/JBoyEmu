@@ -340,52 +340,13 @@ class Bus(
      *
      * @return calculated address
      */
-    // Debug: track first bad RST 38h
-    @Volatile private var rstTrapFired = false
-
     fun calculateNN(): Int {
         val programCounter = cpu.cpuRegisters.getProgramCounter()
 
         val lowerAddress = getValueFromCPU(programCounter + 1).toInt()
         val upperAddress = getValueFromCPU(programCounter + 2).toInt() shl 8
 
-        val result = lowerAddress + upperAddress
-
-        // Debug: log when JP at an interrupt vector goes to unexpected address
-        if (programCounter in intArrayOf(0x0040, 0x0048, 0x0050, 0x0058, 0x0060)) {
-            // Also read raw bytes from memory (no timer tick) for comparison
-            val raw0 = memoryManager.getValue(programCounter).toInt()
-            val raw1 = memoryManager.getValue(programCounter + 1).toInt()
-            val raw2 = memoryManager.getValue(programCounter + 2).toInt()
-            val rawTarget = raw1 + (raw2 shl 8)
-            if (result != rawTarget || result >= 0x8000) {
-                println("BAD JP at vec %04X → %04X (lo=%02X hi=%02X) raw=[%02X %02X %02X]→%04X romBank=%d".format(
-                    programCounter, result, lowerAddress, upperAddress shr 8,
-                    raw0, raw1, raw2, rawTarget,
-                    memoryManager.romActiveBank()
-                ))
-            }
-        }
-
-        return result
-    }
-
-    /**
-     * Called from CPU when executing an opcode that is 0xFF (RST 38h) at an unexpected address.
-     * Logs once to help debug the hang.
-     */
-    fun trapRst38(pc: Int) {
-        if (!rstTrapFired && pc != 0x0038) {
-            rstTrapFired = true
-            val sp = cpu.cpuRegisters.getStackPointer()
-            val ie = memoryManager.getValue(0xFFFF).toInt()
-            val iff = memoryManager.getValue(0xFF0F).toInt()
-            println("RST38 TRAP: PC=%04X SP=%04X IE=%02X IF=%02X romBank=%d wramBank=%d".format(
-                pc, sp, ie, iff,
-                memoryManager.romActiveBank(),
-                memoryManager.wramActiveBank()
-            ))
-        }
+        return lowerAddress + upperAddress
     }
 
     /**

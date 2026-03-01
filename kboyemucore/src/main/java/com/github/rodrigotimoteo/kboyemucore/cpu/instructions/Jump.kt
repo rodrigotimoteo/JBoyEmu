@@ -39,12 +39,6 @@ class Jump(
         cpu.timers.tick()
         val jumpAddress = bus.calculateNN()
 
-        // Debug: trap when JP goes to VRAM or other non-executable areas
-        if (jumpAddress in 0x8000..0x9FFF) {
-            val pc = cpu.cpuRegisters.getProgramCounter()
-            println("JP TO VRAM: from PC=%04X to %04X".format(pc, jumpAddress))
-        }
-
         cpu.cpuRegisters.setProgramCounter(jumpAddress)
     }
 
@@ -112,11 +106,6 @@ class Jump(
         val stackPointer = cpu.cpuRegisters.getStackPointer()
         val jumpAddress = bus.calculateNN()
 
-        // Debug: trap when CALL goes to VRAM
-        if (jumpAddress in 0x8000..0x9FFF) {
-            println("CALL TO VRAM: from PC=%04X to %04X".format(programCounter, jumpAddress))
-        }
-
         bus.setValueFromCPU(stackPointer - 1, (((programCounter + 3) and 0xFF00) shr 8).toUByte())
         bus.setValueFromCPU(stackPointer - 2, ((programCounter + 3) and 0x00FF).toUByte())
 
@@ -151,11 +140,6 @@ class Jump(
         val stackPointer = cpu.cpuRegisters.getStackPointer()
         val jumpAddress = bus.getValueFromCPU(stackPointer).toInt() +
                 (bus.getValueFromCPU(stackPointer + 1).toInt() shl 8)
-
-        // Debug: trap when RET returns to VRAM
-        if (jumpAddress in 0x8000..0x9FFF) {
-            println("RET TO VRAM: SP=%04X retAddr=%04X".format(stackPointer, jumpAddress))
-        }
 
         cpu.cpuRegisters.setProgramCounter(jumpAddress)
         cpu.cpuRegisters.incrementStackPointer(2)
@@ -199,11 +183,6 @@ class Jump(
         cpu.timers.tick()
 
         val programCounter = cpu.cpuRegisters.getProgramCounter()
-
-        // Debug: trap when RST 38h is executed from unexpected address
-        if (jumpAddress == 0x38) {
-            bus.trapRst38(programCounter)
-        }
 
         val stackPointer = cpu.cpuRegisters.getStackPointer()
 

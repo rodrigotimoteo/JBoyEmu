@@ -129,7 +129,7 @@ class PPU(
         val elapsedMs = nowMs - lastTimestampMs
         if (elapsedMs >= 1000) {
             val fps = (frameCount * 1000.0) / elapsedMs
-            println("PPU FPS: %.1f".format(fps))
+            logger.d("PPU FPS: %.1f".format(fps))
             frameCount = 0
             lastTimestampMs = nowMs
         }

@@ -586,16 +586,6 @@ class MemoryManager(
     }
 
     /**
-     * Returns the currently active ROM bank number (for debug logging).
-     */
-    fun romActiveBank(): Int = rom.activeBank
-
-    /**
-     * Returns the currently active WRAM bank number (for debug logging).
-     */
-    fun wramActiveBank(): Int = wram.activeBank
-
-    /**
      * Converts the full memory map into a readable string containing all the memory address' content
      *
      * @return memory dump of GB
