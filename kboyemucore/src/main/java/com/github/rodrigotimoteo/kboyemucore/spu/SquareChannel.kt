@@ -1,5 +1,7 @@
 package com.github.rodrigotimoteo.kboyemucore.spu
 
+import com.github.rodrigotimoteo.kboyemucore.api.SquareChannelState
+
 /**
  * Square-wave channel used for CH1 and CH2. CH1 includes frequency sweep functionality controlled
  * by the [hasSweep] flag. Produces a square wave with configurable duty cycle, volume envelope,
@@ -212,5 +214,35 @@ class SquareChannel(private val hasSweep: Boolean) {
         sweepPeriod = 0; sweepNegate = false; sweepShift = 0
         sweepTimer = 0; sweepEnabled = false; sweepShadow = 0
         rawNrX0 = 0; rawNrX1 = 0; rawNrX2 = 0; rawNrX4 = 0
+    }
+
+    /**
+     * Captures the current channel state for save state serialization
+     *
+     * @return snapshot of all internal channel state
+     */
+    fun saveState(): SquareChannelState = SquareChannelState(
+        enabled, output, lengthCounter, lengthEnabled, volume,
+        envelopeInitial, envelopeAdd, envelopePeriod, envelopeTimer,
+        frequencyRaw, dutyIndex, dutyStep, frequencyTimer,
+        sweepPeriod, sweepNegate, sweepShift, sweepTimer, sweepEnabled, sweepShadow,
+        rawNrX0, rawNrX1, rawNrX2, rawNrX4,
+    )
+
+    /**
+     * Restores the channel from a previously captured save state
+     *
+     * @param s saved channel state to restore
+     */
+    fun loadState(s: SquareChannelState) {
+        enabled = s.enabled; output = s.output
+        lengthCounter = s.lengthCounter; lengthEnabled = s.lengthEnabled
+        volume = s.volume; envelopeInitial = s.envelopeInitial
+        envelopeAdd = s.envelopeAdd; envelopePeriod = s.envelopePeriod
+        envelopeTimer = s.envelopeTimer; frequencyRaw = s.frequencyRaw
+        dutyIndex = s.dutyIndex; dutyStep = s.dutyStep; frequencyTimer = s.frequencyTimer
+        sweepPeriod = s.sweepPeriod; sweepNegate = s.sweepNegate; sweepShift = s.sweepShift
+        sweepTimer = s.sweepTimer; sweepEnabled = s.sweepEnabled; sweepShadow = s.sweepShadow
+        rawNrX0 = s.rawNrX0; rawNrX1 = s.rawNrX1; rawNrX2 = s.rawNrX2; rawNrX4 = s.rawNrX4
     }
 }

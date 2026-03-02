@@ -1,5 +1,7 @@
 package com.github.rodrigotimoteo.kboyemucore.ppu.drawer
 
+import com.github.rodrigotimoteo.kboyemucore.api.PpuDrawerState
+
 /**
  * Interface for PPU drawing operations shared between DMG and CGB implementations. Each scanline
  * the PPU calls the enabled layer methods in order: background, window, then sprites.
@@ -34,4 +36,19 @@ interface IPPUDrawer {
      * the buffer when the LCD is off.
      */
     fun requestRepaint()
+
+    /**
+     * Captures the drawer-specific state for save state serialization. On DMG this returns an
+     * empty [PpuDrawerState]; on CGB it includes the palette RAM contents.
+     *
+     * @return snapshot of drawer-specific state
+     */
+    fun saveState(): PpuDrawerState
+
+    /**
+     * Restores the drawer-specific state from a previously captured save state
+     *
+     * @param state saved drawer state to restore
+     */
+    fun loadState(state: PpuDrawerState)
 }

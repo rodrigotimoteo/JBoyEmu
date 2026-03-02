@@ -1,6 +1,7 @@
 package com.github.rodrigotimoteo.kboyemucore.ppu
 
 import com.github.rodrigotimoteo.kboyemucore.api.FrameBuffer
+import com.github.rodrigotimoteo.kboyemucore.api.PpuState
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.cpu.interrupts.InterruptNames
 import com.github.rodrigotimoteo.kboyemucore.memory.ReservedAddresses
@@ -300,5 +301,33 @@ class PPU(
                 bus.tickHdma()
             }
         }
+    }
+
+    /**
+     * Captures the current PPU state for save state serialization. Includes mode, counters,
+     * and drawer-specific state (e.g. CGB palette RAM).
+     *
+     * @return snapshot of all PPU state
+     */
+    fun saveState(): PpuState = PpuState(
+        mode = ppuRegisters.mode.ordinal,
+        counter = ppuRegisters.counter,
+        currentLine = ppuRegisters.currentLine,
+        currentLineWindow = ppuRegisters.currentLineWindow,
+        drawer = ppuDrawer.saveState(),
+    )
+
+    /**
+     * Restores the PPU from a previously captured save state
+     *
+     * @param s saved PPU state to restore
+     */
+    fun loadState(s: PpuState) {
+        ppuRegisters.mode = PPUModes.entries[s.mode]
+        ppuRegisters.counter = s.counter
+        ppuRegisters.currentLine = s.currentLine
+        ppuRegisters.currentLineWindow = s.currentLineWindow
+        ppuDrawer.loadState(s.drawer)
+        ppuRegisters.readLCDControl()
     }
 }

@@ -1,5 +1,6 @@
 package com.github.rodrigotimoteo.kboyemucore.cpu
 
+import com.github.rodrigotimoteo.kboyemucore.api.TimerState
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.cpu.interrupts.InterruptNames
 import com.github.rodrigotimoteo.kboyemucore.memory.ReservedAddresses
@@ -164,5 +165,32 @@ class Timers(
      */
     fun setInterruptChangedCounter() {
         _interruptChangedCounter = _machineCycles
+    }
+
+    /**
+     * Captures the current timer state for save state serialization
+     *
+     * @return snapshot of all timer counters and configuration
+     */
+    fun saveState(): TimerState = TimerState(
+        _machineCycles, _interruptChangedCounter, _timerClockCounter,
+        _dividerClockTimer, _totalDividerTimer, _timerFrequency,
+        timerEnabled, handleOverflow,
+    )
+
+    /**
+     * Restores the timers from a previously captured save state
+     *
+     * @param s saved timer state to restore
+     */
+    fun loadState(s: TimerState) {
+        _machineCycles = s.machineCycles
+        _interruptChangedCounter = s.interruptChangedCounter
+        _timerClockCounter = s.timerClockCounter
+        _dividerClockTimer = s.dividerClockTimer
+        _totalDividerTimer = s.totalDividerTimer
+        _timerFrequency = s.timerFrequency
+        timerEnabled = s.timerEnabled
+        handleOverflow = s.handleOverflow
     }
 }

@@ -1,5 +1,7 @@
 package com.github.rodrigotimoteo.kboyemucore.spu
 
+import com.github.rodrigotimoteo.kboyemucore.api.NoiseChannelState
+
 /**
  * Noise channel (CH4) that generates pseudo-random noise using a linear feedback shift register
  * (LFSR). Supports configurable clock frequency, 7-bit or 15-bit LFSR width, volume envelope,
@@ -152,5 +154,33 @@ class NoiseChannel {
         lfsr = 0x7FFF; width7 = false; clockShift = 0; divisorCode = 0
         frequencyTimer = 0
         rawNr42 = 0; rawNr43 = 0; rawNr44 = 0
+    }
+
+    /**
+     * Captures the current channel state for save state serialization
+     *
+     * @return snapshot of all internal channel state
+     */
+    fun saveState(): NoiseChannelState = NoiseChannelState(
+        enabled, output, lengthCounter, lengthEnabled, volume,
+        envelopeInitial, envelopeAdd, envelopePeriod, envelopeTimer,
+        lfsr, width7, clockShift, divisorCode, frequencyTimer,
+        rawNr42, rawNr43, rawNr44,
+    )
+
+    /**
+     * Restores the channel from a previously captured save state
+     *
+     * @param s saved channel state to restore
+     */
+    fun loadState(s: NoiseChannelState) {
+        enabled = s.enabled; output = s.output
+        lengthCounter = s.lengthCounter; lengthEnabled = s.lengthEnabled
+        volume = s.volume; envelopeInitial = s.envelopeInitial
+        envelopeAdd = s.envelopeAdd; envelopePeriod = s.envelopePeriod
+        envelopeTimer = s.envelopeTimer; lfsr = s.lfsr; width7 = s.width7
+        clockShift = s.clockShift; divisorCode = s.divisorCode
+        frequencyTimer = s.frequencyTimer
+        rawNr42 = s.rawNr42; rawNr43 = s.rawNr43; rawNr44 = s.rawNr44
     }
 }

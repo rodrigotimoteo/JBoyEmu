@@ -1,5 +1,6 @@
 package com.github.rodrigotimoteo.kboyemucore.ppu.drawer
 
+import com.github.rodrigotimoteo.kboyemucore.api.PpuDrawerState
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.ktx.testBit
 import com.github.rodrigotimoteo.kboyemucore.memory.ReservedAddresses
@@ -197,6 +198,12 @@ class DMGPPUDrawer(
         }
 
         ppu.propagatePaintingUpdate(painting)
+    }
+
+    override fun saveState(): PpuDrawerState = PpuDrawerState()
+
+    override fun loadState(state: PpuDrawerState) {
+        // DMG drawer has no persistent state beyond what memory registers already capture
     }
 }
 

@@ -1,9 +1,11 @@
 package com.github.rodrigotimoteo.kboyemucore.cpu
 
+import com.github.rodrigotimoteo.kboyemucore.api.CpuState
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.cpu.instructions.Decoder
 import com.github.rodrigotimoteo.kboyemucore.cpu.interrupts.Interrupts
 import com.github.rodrigotimoteo.kboyemucore.cpu.registers.CPURegisters
+import com.github.rodrigotimoteo.kboyemucore.cpu.registers.RegisterNames
 import com.github.rodrigotimoteo.kboyemucore.util.Logger
 
 class CPU(
@@ -113,5 +115,45 @@ class CPU(
      */
     fun setStopped(stoppedState: Boolean) {
         isStopped = stoppedState
+    }
+
+    /**
+     * Captures the complete CPU state for save state serialization
+     *
+     * @return snapshot of registers, timers, interrupts, and execution flags
+     */
+    fun saveState(): CpuState = CpuState(
+        a = cpuRegisters.getRegister(RegisterNames.A).value.toInt(),
+        f = cpuRegisters.getRegister(RegisterNames.F).value.toInt(),
+        b = cpuRegisters.getRegister(RegisterNames.B).value.toInt(),
+        c = cpuRegisters.getRegister(RegisterNames.C).value.toInt(),
+        d = cpuRegisters.getRegister(RegisterNames.D).value.toInt(),
+        e = cpuRegisters.getRegister(RegisterNames.E).value.toInt(),
+        h = cpuRegisters.getRegister(RegisterNames.H).value.toInt(),
+        l = cpuRegisters.getRegister(RegisterNames.L).value.toInt(),
+        programCounter = cpuRegisters.getProgramCounter(),
+        stackPointer = cpuRegisters.getStackPointer(),
+        halted = isHalted,
+        stopped = isStopped,
+    )
+
+    /**
+     * Restores the CPU from a previously captured save state
+     *
+     * @param s saved CPU state to restore
+     */
+    fun loadState(s: CpuState) {
+        cpuRegisters.setRegister(RegisterNames.A, s.a.toUByte())
+        cpuRegisters.setRegister(RegisterNames.F, (s.f and 0xF0).toUByte())
+        cpuRegisters.setRegister(RegisterNames.B, s.b.toUByte())
+        cpuRegisters.setRegister(RegisterNames.C, s.c.toUByte())
+        cpuRegisters.setRegister(RegisterNames.D, s.d.toUByte())
+        cpuRegisters.setRegister(RegisterNames.E, s.e.toUByte())
+        cpuRegisters.setRegister(RegisterNames.H, s.h.toUByte())
+        cpuRegisters.setRegister(RegisterNames.L, s.l.toUByte())
+        cpuRegisters.setProgramCounter(s.programCounter)
+        cpuRegisters.setStackPointer(s.stackPointer)
+        isHalted = s.halted
+        isStopped = s.stopped
     }
 }

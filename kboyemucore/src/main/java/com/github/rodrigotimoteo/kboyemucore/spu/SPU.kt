@@ -1,5 +1,6 @@
 package com.github.rodrigotimoteo.kboyemucore.spu
 
+import com.github.rodrigotimoteo.kboyemucore.api.SpuState
 import com.github.rodrigotimoteo.kboyemucore.memory.ReservedAddresses
 import com.github.rodrigotimoteo.kboyemucore.util.Logger
 
@@ -246,5 +247,28 @@ class SPU(
     private fun powerOff() {
         ch1.reset(); ch2.reset(); ch3.reset(); ch4.reset()
         nr50 = 0; nr51 = 0
+    }
+
+    /**
+     * Captures the complete SPU state for save state serialization
+     *
+     * @return snapshot of all SPU and channel state
+     */
+    fun saveState(): SpuState = SpuState(
+        masterOn, nr50, nr51, frameSeqTimer, frameSeqStep, sampleAccumulator,
+        ch1.saveState(), ch2.saveState(), ch3.saveState(), ch4.saveState(),
+    )
+
+    /**
+     * Restores the SPU from a previously captured save state
+     *
+     * @param s saved SPU state to restore
+     */
+    fun loadState(s: SpuState) {
+        masterOn = s.masterOn; nr50 = s.nr50; nr51 = s.nr51
+        frameSeqTimer = s.frameSeqTimer; frameSeqStep = s.frameSeqStep
+        sampleAccumulator = s.sampleAccumulator
+        ch1.loadState(s.ch1); ch2.loadState(s.ch2)
+        ch3.loadState(s.ch3); ch4.loadState(s.ch4)
     }
 }

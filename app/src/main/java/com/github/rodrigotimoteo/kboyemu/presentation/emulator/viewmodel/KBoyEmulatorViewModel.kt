@@ -15,6 +15,8 @@ import com.github.rodrigotimoteo.kboyemu.presentation.emulator.translateGbPixels
 import com.github.rodrigotimoteo.kboyemucore.api.Button
 import com.github.rodrigotimoteo.kboyemucore.api.KBoyEmulator
 import com.github.rodrigotimoteo.kboyemucore.api.Rom
+import com.github.rodrigotimoteo.kboyemucore.api.SaveState
+import com.github.rodrigotimoteo.kboyemucore.api.SaveState.Companion.toByteArray
 import com.github.rodrigotimoteo.kboyemucore.spu.SPU
 import com.github.rodrigotimoteo.kboyemucore.util.Logger
 import kotlinx.coroutines.Job
@@ -23,6 +25,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.koin.android.annotation.KoinViewModel
+import java.security.MessageDigest
 import java.util.concurrent.locks.LockSupport
 
 /**
@@ -120,6 +123,9 @@ class KBoyEmulatorViewModel(
     /** Job collecting frames from the emulator */
     private var frameCollectorJob: Job? = null
 
+    /** Hash of the currently loaded ROM — used to create per-game save state files */
+    private var romHash: String? = null
+
     /**
      * Loads a ROM from the given content [Uri], starts the emulation and audio thread
      *
@@ -129,6 +135,10 @@ class KBoyEmulatorViewModel(
         val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: return
 //        val romBytes = bytes.toUByteArray()
         val romBytes = context.assets.open("pokemon_crystal.gbc").readBytes().toUByteArray()
+
+        romHash = MessageDigest.getInstance("MD5")
+            .digest(romBytes.asByteArray())
+            .joinToString("") { "%02x".format(it) }
 
         emulator.loadRom(Rom(romBytes))
 
@@ -159,6 +169,34 @@ class KBoyEmulatorViewModel(
 
     fun release(button: Button) {
         emulator.release(button)
+    }
+
+    fun saveState() {
+        val hash = romHash ?: return
+        val state = emulator.saveState() ?: return
+        try {
+            val file = context.filesDir.resolve("savestate_$hash.bin")
+            file.writeBytes(state.toByteArray())
+            logger.i("Save state written (${file.length()} bytes)")
+        } catch (e: Exception) {
+            logger.e("Failed to write save state", e)
+        }
+    }
+
+    fun loadState() {
+        val hash = romHash ?: return
+        try {
+            val file = context.filesDir.resolve("savestate_$hash.bin")
+            if (!file.exists()) {
+                logger.i("No save state found")
+                return
+            }
+            val state = SaveState.fromByteArray(file.readBytes())
+            emulator.loadState(state)
+            logger.i("Save state loaded")
+        } catch (e: Exception) {
+            logger.e("Failed to load save state", e)
+        }
     }
 
     override fun onCleared() {

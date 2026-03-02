@@ -1,5 +1,6 @@
 package com.github.rodrigotimoteo.kboyemucore.ppu.drawer
 
+import com.github.rodrigotimoteo.kboyemucore.api.PpuDrawerState
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.ktx.testBit
 import com.github.rodrigotimoteo.kboyemucore.memory.ReservedAddresses
@@ -92,6 +93,16 @@ class CGBPPUDrawer(
      * @return byte value at the given index
      */
     fun readObjPalette(index: Int): Int = objPaletteRam[index and 0x3F]
+
+    override fun saveState(): PpuDrawerState = PpuDrawerState(
+        bgPaletteRam = bgPaletteRam.copyOf(),
+        objPaletteRam = objPaletteRam.copyOf(),
+    )
+
+    override fun loadState(state: PpuDrawerState) {
+        state.bgPaletteRam?.copyInto(bgPaletteRam, endIndex = minOf(state.bgPaletteRam.size, bgPaletteRam.size))
+        state.objPaletteRam?.copyInto(objPaletteRam, endIndex = minOf(state.objPaletteRam.size, objPaletteRam.size))
+    }
 
     /**
      * Resolves a 15-bit RGB555 color from the given palette RAM at the specified palette and

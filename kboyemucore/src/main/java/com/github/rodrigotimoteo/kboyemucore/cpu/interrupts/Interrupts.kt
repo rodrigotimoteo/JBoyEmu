@@ -1,5 +1,6 @@
 package com.github.rodrigotimoteo.kboyemucore.cpu.interrupts
 
+import com.github.rodrigotimoteo.kboyemucore.api.InterruptState
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.cpu.CPU
 import com.github.rodrigotimoteo.kboyemucore.ktx.testBit
@@ -191,5 +192,26 @@ class Interrupts(
      */
     fun disableHaltBug() {
         _haltBug = false
+    }
+
+    /**
+     * Captures the current interrupt controller state for save state serialization
+     *
+     * @return snapshot of all interrupt flags
+     */
+    fun saveState(): InterruptState = InterruptState(
+        interruptMasterEnabled, _haltBug, interruptChange, changeToState,
+    )
+
+    /**
+     * Restores the interrupt controller from a previously captured save state
+     *
+     * @param s saved interrupt state to restore
+     */
+    fun loadState(s: InterruptState) {
+        interruptMasterEnabled = s.interruptMasterEnabled
+        _haltBug = s.haltBug
+        interruptChange = s.interruptChange
+        changeToState = s.changeToState
     }
 }

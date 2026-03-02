@@ -1,5 +1,7 @@
 package com.github.rodrigotimoteo.kboyemucore.spu
 
+import com.github.rodrigotimoteo.kboyemucore.api.WaveChannelState
+
 /**
  * Wave channel (CH3) that plays 4-bit samples from 16 bytes of Wave RAM (0xFF30-0xFF3F).
  * The 16 bytes contain 32 nibbles which are played back sequentially at a configurable frequency
@@ -161,5 +163,30 @@ class WaveChannel {
         frequencyRaw = 0; frequencyTimer = 0; wavePosition = 0
         outputLevel = 0; dacOn = false
         rawNr30 = 0; rawNr32 = 0; rawNr34 = 0
+    }
+
+    /**
+     * Captures the current channel state for save state serialization
+     *
+     * @return snapshot of all internal channel state
+     */
+    fun saveState(): WaveChannelState = WaveChannelState(
+        enabled, output, waveRam.copyOf(), lengthCounter, lengthEnabled,
+        frequencyRaw, frequencyTimer, wavePosition, outputLevel, dacOn,
+        rawNr30, rawNr32, rawNr34,
+    )
+
+    /**
+     * Restores the channel from a previously captured save state
+     *
+     * @param s saved channel state to restore
+     */
+    fun loadState(s: WaveChannelState) {
+        enabled = s.enabled; output = s.output
+        s.waveRam.copyInto(waveRam)
+        lengthCounter = s.lengthCounter; lengthEnabled = s.lengthEnabled
+        frequencyRaw = s.frequencyRaw; frequencyTimer = s.frequencyTimer
+        wavePosition = s.wavePosition; outputLevel = s.outputLevel; dacOn = s.dacOn
+        rawNr30 = s.rawNr30; rawNr32 = s.rawNr32; rawNr34 = s.rawNr34
     }
 }

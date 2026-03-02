@@ -1,5 +1,6 @@
 package com.github.rodrigotimoteo.kboyemucore.memory
 
+import com.github.rodrigotimoteo.kboyemucore.api.MemoryState
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.memory.rom.RomModule
 import com.github.rodrigotimoteo.kboyemucore.ppu.PPUModes
@@ -583,6 +584,76 @@ class MemoryManager(
         if (!isCGB) return vram.getValue(memoryAddress)
         if (memoryAddress !in ReservedAddresses.SWITCH_ROM_END.memoryAddress until ReservedAddresses.VRAM_END.memoryAddress) return 0u
         return vram.getValueFromBank(memoryAddress, bank)
+    }
+
+    /**
+     * Captures the complete memory state for save state serialization. Includes all banked memory
+     * modules, bottom registers, HDMA state, and CGB palette indices.
+     *
+     * @return snapshot of all memory state
+     */
+    fun saveState(): MemoryState {
+        val bottomRegsBytes = ByteArray(bottomRegisters.size) { bottomRegisters[it].value.toByte() }
+
+        return MemoryState(
+            vram = vram.snapshotBanks(),
+            wram = wram.snapshotBanks(),
+            oam = oam.snapshotBanks().first(),
+            eram = eram?.snapshotBanks(),
+            bottomRegisters = bottomRegsBytes,
+            vramBank = vram.activeBank,
+            wramBank = wram.activeBank,
+            romBank = rom.activeBank,
+            eramBank = eram?.activeBank ?: 0,
+            ramEnabled = (rom as? RomModule)?.ramStatus ?: false,
+            hdmaActive = hdmaActive,
+            hdmaSource = hdmaSource,
+            hdmaDest = hdmaDest,
+            hdmaRemaining = hdmaRemaining,
+            bgPaletteIndex = bgPaletteIndex,
+            bgPaletteAutoInc = bgPaletteAutoInc,
+            objPaletteIndex = objPaletteIndex,
+            objPaletteAutoInc = objPaletteAutoInc,
+        )
+    }
+
+    /**
+     * Restores the memory from a previously captured save state. Rebuilds all banked modules,
+     * bottom registers, HDMA state, and CGB palette indices.
+     *
+     * @param s saved memory state to restore
+     */
+    fun loadState(s: MemoryState) {
+        vram.restoreBanks(s.vram)
+        vram.activeBank = s.vramBank
+
+        wram.restoreBanks(s.wram)
+        wram.activeBank = s.wramBank
+
+        oam.restoreBanks(listOf(s.oam))
+
+        s.eram?.let { eramData ->
+            eram?.restoreBanks(eramData)
+        }
+        eram?.activeBank = s.eramBank
+
+        rom.activeBank = s.romBank
+
+        for (i in s.bottomRegisters.indices) {
+            if (i < bottomRegisters.size) {
+                bottomRegisters[i].value = s.bottomRegisters[i].toUByte()
+            }
+        }
+
+        hdmaActive = s.hdmaActive
+        hdmaSource = s.hdmaSource
+        hdmaDest = s.hdmaDest
+        hdmaRemaining = s.hdmaRemaining
+
+        bgPaletteIndex = s.bgPaletteIndex
+        bgPaletteAutoInc = s.bgPaletteAutoInc
+        objPaletteIndex = s.objPaletteIndex
+        objPaletteAutoInc = s.objPaletteAutoInc
     }
 
     /**

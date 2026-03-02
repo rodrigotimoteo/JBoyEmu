@@ -4,6 +4,7 @@ import com.github.rodrigotimoteo.kboyemucore.api.Button
 import com.github.rodrigotimoteo.kboyemucore.api.FrameBuffer
 import com.github.rodrigotimoteo.kboyemucore.api.KBoyEmulator
 import com.github.rodrigotimoteo.kboyemucore.api.Rom
+import com.github.rodrigotimoteo.kboyemucore.api.SaveState
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.memory.rom.RomReader
 import com.github.rodrigotimoteo.kboyemucore.spu.AudioRingBuffer
@@ -73,6 +74,12 @@ class KBoyEmulatorImpl(
 
     override fun pause() {
         bus?.stop()
+    }
+
+    override fun saveState(): SaveState? = bus?.saveState()
+
+    override fun loadState(state: SaveState) {
+        bus?.loadState(state)
     }
 
     override val frames: Flow<FrameBuffer>

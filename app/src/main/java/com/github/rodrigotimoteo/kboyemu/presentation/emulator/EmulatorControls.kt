@@ -57,6 +57,11 @@ fun EmulatorControls(
             onPress = viewModel::press,
             onRelease = viewModel::release
         )
+
+        SaveLoadButtons(
+            onSave = viewModel::saveState,
+            onLoad = viewModel::loadState
+        )
     }
 }
 
@@ -122,6 +127,24 @@ private fun StartSelectButtons(
     }
 }
 
+@Composable
+private fun SaveLoadButtons(
+    onSave: () -> Unit,
+    onLoad: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(24.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        TapButton("Save", onSave, size = 72.dp)
+        TapButton("Load", onLoad, size = 72.dp)
+    }
+}
+
+
+
 @Suppress("LongParameterList")
 @Composable
 private fun PressableButton(
@@ -149,6 +172,33 @@ private fun PressableButton(
                         }
                     }
                 )
+            },
+        tonalElevation = 2.dp,
+        shadowElevation = 2.dp
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+private fun TapButton(
+    label: String,
+    onClick: () -> Unit,
+    size: Dp,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier
+            .size(size)
+            .clip(MaterialTheme.shapes.medium)
+            .pointerInput(label) {
+                detectTapGestures(onTap = { onClick() })
             },
         tonalElevation = 2.dp,
         shadowElevation = 2.dp

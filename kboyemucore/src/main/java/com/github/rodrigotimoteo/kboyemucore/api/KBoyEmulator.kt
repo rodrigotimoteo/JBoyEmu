@@ -63,6 +63,22 @@ interface KBoyEmulator {
     fun pause()
 
     /**
+     * Captures a complete snapshot of the emulator state that can be serialized and persisted.
+     * Must be called while the emulator is paused or from the emulation thread.
+     *
+     * @return complete save state, or null if no ROM is loaded
+     */
+    fun saveState(): SaveState?
+
+    /**
+     * Restores the emulator to a previously captured state. Must be called while the emulator is
+     * paused or from the emulation thread. The same ROM must be loaded before calling this.
+     *
+     * @param state previously saved emulator state
+     */
+    fun loadState(state: SaveState)
+
+    /**
      * [Flow] of [FrameBuffer] that exposes a [IntArray] that a consumer can use to display what is
      * being shown on the emulator
      */

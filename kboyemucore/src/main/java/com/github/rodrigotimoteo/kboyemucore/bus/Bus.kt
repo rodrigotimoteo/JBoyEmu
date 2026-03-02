@@ -2,6 +2,7 @@ package com.github.rodrigotimoteo.kboyemucore.bus
 
 import com.github.rodrigotimoteo.kboyemucore.api.Button
 import com.github.rodrigotimoteo.kboyemucore.api.FrameBuffer
+import com.github.rodrigotimoteo.kboyemucore.api.SaveState
 import com.github.rodrigotimoteo.kboyemucore.controller.Controller
 import com.github.rodrigotimoteo.kboyemucore.cpu.CPU
 import com.github.rodrigotimoteo.kboyemucore.cpu.interrupts.InterruptNames
@@ -356,5 +357,35 @@ class Bus(
      */
     fun triggerInterrupt(interrupt: InterruptNames) {
         cpu.interrupts.requestInterrupt(interrupt.testBit)
+    }
+
+    /**
+     * Captures a complete snapshot of the emulator state. Should be called from the emulation
+     * thread to ensure consistency.
+     *
+     * @return full emulator save state
+     */
+    fun saveState(): SaveState = SaveState(
+        cpu = cpu.saveState(),
+        timers = cpu.timers.saveState(),
+        interrupts = cpu.interrupts.saveState(),
+        memory = memoryManager.saveState(),
+        ppu = ppu.saveState(),
+        spu = spu.saveState(),
+    )
+
+    /**
+     * Restores the emulator to a previously captured state. Should be called from the emulation
+     * thread to ensure consistency.
+     *
+     * @param state previously saved emulator state
+     */
+    fun loadState(state: SaveState) {
+        cpu.loadState(state.cpu)
+        cpu.timers.loadState(state.timers)
+        cpu.interrupts.loadState(state.interrupts)
+        memoryManager.loadState(state.memory)
+        ppu.loadState(state.ppu)
+        spu.loadState(state.spu)
     }
 }

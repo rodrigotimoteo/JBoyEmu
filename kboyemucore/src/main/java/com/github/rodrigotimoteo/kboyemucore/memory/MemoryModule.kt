@@ -121,6 +121,32 @@ open class MemoryModule(
     }
 
     /**
+     * Returns a snapshot of all memory banks as a list of byte arrays for save state serialization.
+     * Each bank is copied to prevent mutation of the snapshot.
+     *
+     * @return list of byte arrays, one per bank
+     */
+    fun snapshotBanks(): List<ByteArray> = memory.map { bank ->
+        ByteArray(bank.size) { bank[it].toByte() }
+    }
+
+    /**
+     * Restores memory banks from a previously captured snapshot. The number and size of banks
+     * must match the current module configuration.
+     *
+     * @param banks list of byte arrays to restore, one per bank
+     */
+    fun restoreBanks(banks: List<ByteArray>) {
+        for ((i, bankData) in banks.withIndex()) {
+            if (i >= memory.size) break
+            for ((j, byte) in bankData.withIndex()) {
+                if (j >= memory[i].size) break
+                memory[i][j] = byte.toUByte()
+            }
+        }
+    }
+
+    /**
      * Override the toString method to better reflect the way the information for this class should
      * be read, therefore enabling the prints of this class as a readable output, that enabled easier
      * debugging
