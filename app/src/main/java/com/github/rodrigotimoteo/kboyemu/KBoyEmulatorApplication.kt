@@ -1,14 +1,14 @@
 package com.github.rodrigotimoteo.kboyemu
 
 import android.app.Application
+import com.github.rodrigotimoteo.kboyemu.di.AppModule
 import com.github.rodrigotimoteo.kboyemu.di.kBoyEmulatorModule
 import org.koin.android.ext.koin.androidContext
-import org.koin.core.annotation.KoinApplication
 import org.koin.core.context.startKoin
+import org.koin.ksp.generated.module
 import timber.log.Timber
 
 /** [Application] class for KBoyEmulator Android App */
-@KoinApplication
 class KBoyEmulatorApplication: Application() {
 
     /** [onCreate]: Setup Timber logging */
@@ -18,7 +18,7 @@ class KBoyEmulatorApplication: Application() {
 
         startKoin {
             androidContext(this@KBoyEmulatorApplication)
-            modules(kBoyEmulatorModule)
+            modules(AppModule().module, kBoyEmulatorModule)
         }
     }
 

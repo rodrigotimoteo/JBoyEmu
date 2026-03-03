@@ -20,7 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.github.rodrigotimoteo.kboyemu.presentation.emulator.viewmodel.EmulatorState
+import com.github.rodrigotimoteo.kboyemu.presentation.emulator.uistate.EmulatorUiState
 import com.github.rodrigotimoteo.kboyemu.presentation.emulator.viewmodel.KBoyEmulatorViewModel
 import org.koin.androidx.compose.koinViewModel
 
@@ -32,12 +32,12 @@ fun EmulatorScreen(
     val state by viewModel.state.collectAsState()
 
     when (state) {
-        EmulatorState.WaitingForRom -> RomPickerScreen(
+        EmulatorUiState.WaitingForRom -> RomPickerScreen(
             modifier = modifier,
             onRomSelected = { uri -> viewModel.loadRom(uri) }
         )
 
-        EmulatorState.Running -> RunningEmulatorScreen(
+        EmulatorUiState.Running -> RunningEmulatorScreen(
             modifier = modifier,
             viewModel = viewModel
         )

@@ -1,23 +1,24 @@
 [versions]
 agp = "8.13.2"
-kotlin = "2.3.0"
+kotlin = "2.3.10"
+ksp = "2.3.6"
 coreKtx = "1.17.0"
 junit = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
 lifecycleRuntimeKtx = "2.10.0"
-activityCompose = "1.12.3"
-composeBom = "2026.01.01"
+activityCompose = "1.12.4"
+composeBom = "2026.02.01"
 detekt = "1.23.8"
-jetbrainsKotlinJvm = "2.3.0"
-junitJupiter = "6.0.2"
+jetbrainsKotlinJvm = "2.3.10"
+junitJupiter = "6.0.3"
 turbine = "1.2.1"
 mockk = "1.14.9"
 timber = "5.0.1"
 koin = "4.1.1"
 koin-annotations = "2.3.1"
 coroutines = "1.10.2"
-serialization = "1.8.0"
+serialization = "1.10.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -58,3 +59,4 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "jetbrainsKotlinJvm" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

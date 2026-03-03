@@ -1,14 +1,14 @@
 package com.github.rodrigotimoteo.kboyemu.di
 
-import com.github.rodrigotimoteo.kboyemu.util.EmulatorLogger
-import com.github.rodrigotimoteo.kboyemu.presentation.emulator.viewmodel.KBoyEmulatorViewModel
+import com.github.rodrigotimoteo.kboyemucore.api.KBoyEmulator
 import com.github.rodrigotimoteo.kboyemucore.emulator.KBoyEmulatorFactory
-import com.github.rodrigotimoteo.kboyemucore.util.Logger
-import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
+/**
+ * Manual Koin module for dependencies that live outside this module's annotation scan scope
+ * (e.g. types produced by factory methods in `kboyemucore`). Everything else is auto-discovered
+ * by KSP via [AppModule].
+ */
 val kBoyEmulatorModule = module {
-    single<Logger> { EmulatorLogger() }
-    single { KBoyEmulatorFactory(get()) }
-    viewModel { KBoyEmulatorViewModel(get(), get(), get()) }
+    single<KBoyEmulator> { KBoyEmulatorFactory(get()) }
 }
