@@ -101,15 +101,6 @@ class Bus(
             var lastRtcMs = System.currentTimeMillis()
             var frameStartMs = lastRtcMs
 
-            // ── Debug: detect hangs ──────────────────────────────────────────
-            var debugLastLogMs = System.currentTimeMillis()
-            var debugLastPC = -1
-            var debugSamePcCount = 0
-            var debugHaltTicks = 0L
-            var debugStopTicks = 0L
-            var debugInstrCount = 0L
-            // ─────────────────────────────────────────────────────────────────
-
             while (true) {
                 try {
                     val cpuCounter: Int = cpu.getCounter()
@@ -126,59 +117,6 @@ class Bus(
                         spu.tick(elapsed * 4)
                     }
 
-                    // ── Debug tracking ───────────────────────────────────────
-                    debugInstrCount++
-                    if (cpu.isHalted()) debugHaltTicks++
-                    if (cpu.isStopped()) debugStopTicks++
-
-                    val currentPC = cpu.cpuRegisters.getProgramCounter()
-                    if (currentPC == debugLastPC) {
-                        debugSamePcCount++
-                    } else {
-                        debugSamePcCount = 0
-                        debugLastPC = currentPC
-                    }
-
-                    val debugNow = System.currentTimeMillis()
-                    if (debugNow - debugLastLogMs >= 2000) {
-                        val ie = memoryManager.getValue(0xFFFF).toInt()
-                        val iff = memoryManager.getValue(0xFF0F).toInt()
-                        val lcdc = memoryManager.getValue(0xFF40).toInt()
-                        val stat = memoryManager.getValue(0xFF41).toInt()
-                        val ly = memoryManager.getValue(0xFF44).toInt()
-                        val opcode = memoryManager.getValue(currentPC).toInt()
-
-                        logger.d(
-                            "DBG: PC=%04X op=%02X halted=%b stopped=%b IME=%b IE=%02X IF=%02X LCDC=%02X STAT=%02X LY=%d samePc=%d haltT=%d stopT=%d instr=%d".format(
-                                currentPC, opcode,
-                                cpu.isHalted(), cpu.isStopped(),
-                                cpu.interrupts.isImeEnabled,
-                                ie, iff, lcdc, stat, ly,
-                                debugSamePcCount, debugHaltTicks, debugStopTicks, debugInstrCount
-                            )
-                        )
-                        debugHaltTicks = 0
-                        debugStopTicks = 0
-                        debugInstrCount = 0
-                        debugLastLogMs = debugNow
-                    }
-
-                    if (debugSamePcCount > 500_000) {
-                        val ie = memoryManager.getValue(0xFFFF).toInt()
-                        val iff = memoryManager.getValue(0xFF0F).toInt()
-                        val opcode = memoryManager.getValue(currentPC).toInt()
-                        logger.e(
-                            "HANG DETECTED: PC=%04X op=%02X halted=%b stopped=%b IME=%b IE=%02X IF=%02X".format(
-                                currentPC, opcode,
-                                cpu.isHalted(), cpu.isStopped(),
-                                cpu.interrupts.isImeEnabled,
-                                ie, iff
-                            ),
-                            null
-                        )
-                        debugSamePcCount = 0
-                    }
-                    // ─────────────────────────────────────────────────────────
 
                     val now = System.currentTimeMillis()
 

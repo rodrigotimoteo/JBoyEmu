@@ -1,4 +1,4 @@
-package com.github.rodrigotimoteo.kboyemu.domain.buttons
+package com.github.rodrigotimoteo.kboyemu.domain.buttons.usecase
 
 import com.github.rodrigotimoteo.kboyemucore.api.Button
 import com.github.rodrigotimoteo.kboyemucore.api.KBoyEmulator

@@ -20,6 +20,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import com.github.rodrigotimoteo.kboyemu.presentation.emulator.uistate.EmulatorUiState
 import com.github.rodrigotimoteo.kboyemu.presentation.emulator.viewmodel.KBoyEmulatorViewModel
 import org.koin.androidx.compose.koinViewModel
@@ -30,6 +32,14 @@ fun EmulatorScreen(
     viewModel: KBoyEmulatorViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+
+    LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) {
+        viewModel.pauseEmulation()
+    }
+
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        viewModel.resumeEmulation()
+    }
 
     when (state) {
         EmulatorUiState.WaitingForRom -> RomPickerScreen(

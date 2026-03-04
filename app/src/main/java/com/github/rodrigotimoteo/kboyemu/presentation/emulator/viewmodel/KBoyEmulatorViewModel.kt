@@ -6,9 +6,10 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.core.graphics.createBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.github.rodrigotimoteo.kboyemu.data.audio.AudioPlayer
-import com.github.rodrigotimoteo.kboyemu.domain.buttons.PressButtonUseCase
-import com.github.rodrigotimoteo.kboyemu.domain.buttons.ReleaseButtonUseCase
+import com.github.rodrigotimoteo.kboyemu.domain.buttons.usecase.PressButtonUseCase
+import com.github.rodrigotimoteo.kboyemu.domain.buttons.usecase.ReleaseButtonUseCase
+import com.github.rodrigotimoteo.kboyemu.domain.emulation.usecase.ResumeEmulationUseCase
+import com.github.rodrigotimoteo.kboyemu.domain.emulation.usecase.StopEmulationUseCase
 import com.github.rodrigotimoteo.kboyemu.domain.rom.usecase.LoadRomUseCase
 import com.github.rodrigotimoteo.kboyemu.domain.savestate.usecase.LoadSaveStateUseCase
 import com.github.rodrigotimoteo.kboyemu.domain.savestate.usecase.SaveSaveStateUseCase
@@ -41,7 +42,8 @@ class KBoyEmulatorViewModel(
     private val releaseButtonUseCase: ReleaseButtonUseCase,
     private val saveSaveStateUseCase: SaveSaveStateUseCase,
     private val loadSaveStateUseCase: LoadSaveStateUseCase,
-    private val audioPlayer: AudioPlayer,
+    private val stopEmulationUseCase: StopEmulationUseCase,
+    private val resumeEmulationUseCase: ResumeEmulationUseCase,
 ) : ViewModel() {
 
     /** Buffer for translating emulator pixel data to ARGB format for Android Bitmap rendering */
@@ -65,23 +67,31 @@ class KBoyEmulatorViewModel(
     fun loadRom(uri: Uri) {
         if (!loadRomUseCase(uri.toString())) return
 
-        frameCollectorJob?.cancel()
-        frameCollectorJob = viewModelScope.launch {
-            emulator.frames.collect { frameBuffer ->
-                val colorPixels = frameBuffer.colorPixels
-                if (colorPixels != null) {
-                    translateCgbPixelsToArgb(colorPixels, argbBuffer)
-                } else {
-                    translateGbPixelsToArgb(frameBuffer.pixels, argbBuffer)
-                }
-
-                val bitmap = createBitmap(WIDTH, HEIGHT)
-                bitmap.setPixels(argbBuffer, 0, WIDTH, 0, 0, WIDTH, HEIGHT)
-                frameBitmap.value = bitmap.asImageBitmap()
-            }
-        }
-
+        startFrameCollection()
         _state.value = EmulatorUiState.Running
+    }
+
+    /**
+     * Resumes emulation and audio after the app returns to the foreground. Only takes effect
+     * if a ROM was already loaded.
+     */
+    fun resumeEmulation() {
+        if (_state.value != EmulatorUiState.Running) return
+
+        resumeEmulationUseCase()
+        startFrameCollection()
+    }
+
+    /**
+     * Pauses emulation and stops audio when the app goes to the background. Only takes effect
+     * if the emulator is currently running.
+     */
+    fun pauseEmulation() {
+        if (_state.value != EmulatorUiState.Running) return
+
+        frameCollectorJob?.cancel()
+        frameCollectorJob = null
+        stopEmulationUseCase()
     }
 
     /**
@@ -113,6 +123,28 @@ class KBoyEmulatorViewModel(
      */
     override fun onCleared() {
         super.onCleared()
-        audioPlayer.stop()
+        stopEmulationUseCase()
+    }
+
+    /**
+     * Starts or restarts the coroutine that collects frames from the emulator and translates
+     * them into [ImageBitmap] for the UI
+     */
+    private fun startFrameCollection() {
+        frameCollectorJob?.cancel()
+        frameCollectorJob = viewModelScope.launch {
+            emulator.frames.collect { frameBuffer ->
+                val colorPixels = frameBuffer.colorPixels
+                if (colorPixels != null) {
+                    translateCgbPixelsToArgb(colorPixels, argbBuffer)
+                } else {
+                    translateGbPixelsToArgb(frameBuffer.pixels, argbBuffer)
+                }
+
+                val bitmap = createBitmap(WIDTH, HEIGHT)
+                bitmap.setPixels(argbBuffer, 0, WIDTH, 0, 0, WIDTH, HEIGHT)
+                frameBitmap.value = bitmap.asImageBitmap()
+            }
+        }
     }
 }

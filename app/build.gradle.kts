@@ -39,6 +39,13 @@ android {
         compose = true
     }
 
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+        unitTests.all {
+            it.useJUnitPlatform()
+        }
+    }
+
     applicationVariants.all {
         val variantName = name
         sourceSets {
@@ -72,7 +79,9 @@ dependencies {
     ksp(libs.koin.annotations.ksp)
     implementation(libs.timber)
 
-    testImplementation(libs.junit)
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.platform.launcher)
+    testImplementation(libs.mockk)
 
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

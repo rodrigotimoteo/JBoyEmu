@@ -29,6 +29,7 @@ class Controller(
 
         _joypadValue = _joypadValue and ((1 shl keyPressed).inv())
         bus.triggerInterrupt(InterruptNames.JOYPAD_INT)
+        logger.d("Button ${button.name} pressed, joypad value: 0x${_joypadValue.toString(16)}")
     }
 
     /**
@@ -40,6 +41,7 @@ class Controller(
         val keyPressed = button.code
 
         _joypadValue = _joypadValue or (1 shl keyPressed)
+        logger.d("Button ${button.name} released, joypad value: 0x${_joypadValue.toString(16)}")
     }
 
     /**

@@ -46,8 +46,8 @@ class MBC3(
 
     // RTC register indices: 0=seconds, 1=minutes, 2=hours, 3=day-low, 4=day-high+flags
     private val rtcRegisters = IntArray(5)
-    private val rtcLatched   = IntArray(5)
-    private var rtcSelected  = -1      // -1 = RAM mapped, 0–4 = RTC register index
+    private val rtcLatched = IntArray(5)
+    private var rtcSelected = -1      // -1 = RAM mapped, 0–4 = RTC register index
     private var rtcLatchState = 0xFF   // tracks the 0x00→0x01 latch sequence
 
     // ── RomModule RTC interface ──────────────────────────────────────────────
@@ -66,6 +66,7 @@ class MBC3(
      * Handles carry propagation: seconds→minutes→hours→day counter.
      * The halt flag (bit 6 of day-high register) stops counting when set.
      */
+    @Suppress("ReturnCount")
     override fun tickRtc() {
         if (!hasRtc) return
         if ((rtcRegisters[4] and 0x40) != 0) return  // halt flag set — RTC stopped

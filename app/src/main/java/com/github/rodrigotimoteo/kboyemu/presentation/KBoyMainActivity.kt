@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import com.github.rodrigotimoteo.kboyemu.presentation.emulator.EmulatorScreen
 import com.github.rodrigotimoteo.kboyemu.presentation.theme.KBoyEmuTheme
 
@@ -33,9 +32,6 @@ class KBoyMainActivity : ComponentActivity() {
         }
     }
 
-    override fun onPause() {
-        super.onPause()
-    }
 
     /**
      * Composable function that sets up the main content of the activity
@@ -51,12 +47,5 @@ class KBoyMainActivity : ComponentActivity() {
                 )
             }
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    KBoyEmuTheme {
     }
 }

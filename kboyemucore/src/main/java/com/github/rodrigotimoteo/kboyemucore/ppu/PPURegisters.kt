@@ -159,6 +159,7 @@ class PPURegisters(
      *
      * @return true if a STAT LYC interrupt should be requested, false otherwise
      */
+    @Suppress("ReturnCount")
     internal fun treatLYC(): Boolean {
         if (currentLine == lycRegister.value.toInt()) {
             val alreadySet = (statRegister.value.toInt() and 0x04) != 0
