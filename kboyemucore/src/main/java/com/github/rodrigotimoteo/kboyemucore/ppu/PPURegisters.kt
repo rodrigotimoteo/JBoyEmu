@@ -3,7 +3,6 @@ package com.github.rodrigotimoteo.kboyemucore.ppu
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.ktx.resetBit
 import com.github.rodrigotimoteo.kboyemucore.ktx.setBit
-import com.github.rodrigotimoteo.kboyemucore.ktx.testBit
 import com.github.rodrigotimoteo.kboyemucore.memory.ReservedAddresses
 
 class PPURegisters(
@@ -24,17 +23,17 @@ class PPURegisters(
     internal var currentLine = 0
     internal var currentLineWindow = 0
 
-    private var _scrollY = 0
-    internal val scrollY get() = _scrollY
+    private var _scrollY = bus.getPermanentRegister(ReservedAddresses.SCY.memoryAddress)
+    internal val scrollY get() = _scrollY.value.toInt()
 
-    private var _scrollX = 0
-    internal val scrollX get() = _scrollX
+    private var _scrollX = bus.getPermanentRegister(ReservedAddresses.SCX.memoryAddress)
+    internal val scrollX get() = _scrollX.value.toInt()
 
-    private var _windowX = 0
-    internal val windowX get() = _windowX
+    private val _windowX = bus.getPermanentRegister(ReservedAddresses.WX.memoryAddress)
+    internal val windowX get() = (_windowX.value.toInt() - 7) and 0xFF
 
-    private var _windowY = 0
-    internal val windowY get() = _windowY
+    private val _windowY = bus.getPermanentRegister(ReservedAddresses.WY.memoryAddress)
+    internal val windowY get() = _windowY.value.toInt()
 
     private var _lcdOn: Boolean = false
     internal val lcdOn get() = _lcdOn
@@ -60,13 +59,50 @@ class PPURegisters(
     private var _spriteOn: Boolean = false
     internal val spriteOn get() = _spriteOn
 
+    /** Raw LCDC bit 5 — window enabled flag before DMG masking with bit 0 */
+    private var _lcdcWindowEnabled: Boolean = false
+    internal val lcdcWindowEnabled get() = _lcdcWindowEnabled
+
+    /**
+     * On CGB, LCDC bit 0 acts as a master priority flag. When clear, BG and Window always appear
+     * behind sprites (BG tile attribute priority and BG color index are ignored for sprite ordering).
+     * On DMG this flag is not used — [backgroundOn] controls whether BG is drawn.
+     */
+    private var _masterPriority: Boolean = false
+    internal val masterPriority get() = _masterPriority
+
+    /**
+     * This variable is used to determine whether the tile data should be treated as signed or unsigned,
+     * this is determined by the value of the tile data bit in the LCDC register
+     */
     internal var negativeTiles = false
+
+    /** Always has the value at the [ReservedAddresses.LCDC] memory address */
+    private val lcdcRegister = bus.getPermanentRegister(ReservedAddresses.LCDC.memoryAddress)
+
+    /** Always has the value at the [ReservedAddresses.STAT] memory address */
+    internal val statRegister = bus.getPermanentRegister(ReservedAddresses.STAT.memoryAddress)
+
+    /** Always has the value at the [ReservedAddresses.LY] memory address */
+    internal val lyRegister = bus.getPermanentRegister(ReservedAddresses.LY.memoryAddress)
+
+    /** Always has the value at the [ReservedAddresses.LYC] memory address */
+    internal val lycRegister = bus.getPermanentRegister(ReservedAddresses.LYC.memoryAddress)
+
+    /** Always has the value at the [ReservedAddresses.LYC] memory address */
+    internal val bgpRegister = bus.getPermanentRegister(ReservedAddresses.BGP.memoryAddress)
+
+    /** Always has the value at the [ReservedAddresses.OBP0] memory address */
+    internal val obp0Register = bus.getPermanentRegister(ReservedAddresses.OBP0.memoryAddress)
+
+    /** Always has the value at the [ReservedAddresses.OBP1] memory address */
+    internal val obp1Register = bus.getPermanentRegister(ReservedAddresses.OBP1.memoryAddress)
 
     /**
      * Reads the content of [ReservedAddresses.LCDC] and translates it into easily accessible flags
      */
     fun readLCDControl() {
-        val lcdcValue = bus.getValue(ReservedAddresses.LCDC.memoryAddress)
+        val lcdcValue = lcdcRegister
 
         //Read LCD and main.kotlin.PPU enabled bit
         _lcdOn = lcdcValue.testBit(7)
@@ -78,6 +114,7 @@ class PPURegisters(
 
         //Read Window Enabled state
         _windowOn = lcdcValue.testBit(5)
+        _lcdcWindowEnabled = _windowOn
 
         //Read Window and Background Tile Data
         _tileData = lcdcValue.testBit(4)
@@ -93,72 +130,52 @@ class PPURegisters(
 
         //Read Background and window Enabled Status
         _backgroundOn = lcdcValue.testBit(0)
-        _windowOn = lcdcValue.testBit(0)
+
+        if (bus.isCGB) {
+            _masterPriority = _backgroundOn
+        } else {
+            _windowOn = _windowOn && _backgroundOn
+        }
     }
 
     /**
      * Updates the current [PPUModes] based on the value stored in [ReservedAddresses.LCDC]
      */
     internal fun readLCDStatus() {
-        mode = PPUModes.entries.find { ppuMode ->
-            bus.getValue(ReservedAddresses.STAT.memoryAddress).toInt() and 0x03 == ppuMode.bit
-        } ?: return
-
-        // Needs to be addressed later
-        // memory.setPpuMode(mode)
+        val modeBits = statRegister.value.toInt() and 0x03
+        mode = when (modeBits) {
+            PPUModes.HBLANK.bit -> PPUModes.HBLANK
+            PPUModes.VBLANK.bit -> PPUModes.VBLANK
+            PPUModes.OAM.bit -> PPUModes.OAM
+            PPUModes.PIXEL_TRANSFER.bit -> PPUModes.PIXEL_TRANSFER
+            else -> return
+        }
     }
 
     /**
-     * Updates the [windowY] and [windowX] value by getting them from their respective registers
-     */
-    internal fun readWindow() {
-        _windowY = bus.getValue(ReservedAddresses.WY.memoryAddress).toInt()
-        _windowX = (bus.getValue(ReservedAddresses.WX.memoryAddress).toInt() - 7) and 0xFF
-    }
-
-    /**
-     * TODO NEEDS TO CHECK THIS DOCUMENTATION
+     * Compares the current line with the value stored in the LYC register. Sets bit 2 of STAT
+     * when LY==LYC and clears it otherwise. The STAT interrupt is edge-triggered: it fires only
+     * on the 0→1 transition of bit 2, not on every subsequent call while the match holds.
+     *
+     * @return true if a STAT LYC interrupt should be requested, false otherwise
      */
     internal fun treatLYC(): Boolean {
-        val lyc = bus.getValue(ReservedAddresses.LYC.memoryAddress)
-
-        if (currentLine == lyc.toInt()) {
-            bus.setValueFromPPU(ReservedAddresses.LYC.memoryAddress, lyc.setBit(2))
-            return (bus.getValue(ReservedAddresses.LCDC.memoryAddress).toInt() and 0x40) != 0
+        if (currentLine == lycRegister.value.toInt()) {
+            val alreadySet = (statRegister.value.toInt() and 0x04) != 0
+            statRegister.value = statRegister.value.setBit(2)
+            if (alreadySet) return false
+            return (statRegister.value.toInt() and 0x40) != 0
         } else {
-            bus.setValueFromPPU(ReservedAddresses.LYC.memoryAddress, lyc.resetBit(2))
+            statRegister.value = statRegister.value.resetBit(2)
         }
 
         return false
     }
 
     /**
-     * Sets both [scrollX] and [scrollY] to the value stored in their respective registers
-     */
-    fun setScrolls() {
-        readScrollX()
-        readScrollY()
-    }
-
-    /**
-     * Reads and sets the SCY register to [scrollY]
-     */
-    private fun readScrollY() {
-        _scrollY = bus.getValue(ReservedAddresses.SCY.memoryAddress).toInt()
-    }
-
-    /**
-     * Reads and sets the SCX register to [scrollX]
-     */
-    private fun readScrollX() {
-        _scrollY = bus.getValue(ReservedAddresses.SCX.memoryAddress).toInt()
-    }
-
-    /**
      * Reads the LY register and assigns it to currentLine variable
      */
     fun readLY() {
-        currentLine = bus.getValue(ReservedAddresses.LY.memoryAddress).toInt()
+        currentLine = lyRegister.value.toInt()
     }
-
 }

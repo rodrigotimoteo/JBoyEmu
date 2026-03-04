@@ -6,12 +6,12 @@ package com.github.rodrigotimoteo.kboyemucore.api
  * @author rodrigotimoteo
  */
 enum class Button(val code: Int) {
-    A     (0),
-    B     (1),
-    SELECT(2),
-    START (3),
-    RIGHT (4),
-    LEFT  (5),
-    UP    (6),
-    DOWN  (7)
+    RIGHT (0),
+    LEFT  (1),
+    UP    (2),
+    DOWN  (3),
+    A     (4),
+    B     (5),
+    SELECT(6),
+    START (7)
 }

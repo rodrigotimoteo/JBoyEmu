@@ -12,7 +12,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.KBoyEmu">
         <activity
-            android:name=".presentation.MainActivity"
+            android:name=".presentation.KBoyMainActivity"
             android:exported="true"
             android:theme="@style/Theme.KBoyEmu">
             <intent-filter>

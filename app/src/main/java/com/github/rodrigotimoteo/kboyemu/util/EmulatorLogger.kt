@@ -9,11 +9,15 @@ import timber.log.Timber
  *
  * @author rodrigotimoteo
  */
-@Single
+@Single(binds = [Logger::class])
 class EmulatorLogger : Logger {
 
     override fun i(message: String) {
         Timber.i(message)
+    }
+
+    override fun d(message: String) {
+        Timber.d(message)
     }
 
     override fun e(message: String, throwable: Throwable?) {

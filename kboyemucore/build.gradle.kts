@@ -1,6 +1,7 @@
 plugins {
     id("java-library")
     alias(libs.plugins.jetbrains.kotlin.jvm)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 java {
@@ -21,6 +22,7 @@ tasks.test {
 
 dependencies {
     implementation(libs.coroutines.core)
+    implementation(libs.serialization.protobuf)
 
     testImplementation(libs.coroutines.test)
     testImplementation(libs.junit.jupiter)

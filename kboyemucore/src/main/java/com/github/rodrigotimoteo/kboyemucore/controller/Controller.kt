@@ -3,6 +3,7 @@ package com.github.rodrigotimoteo.kboyemucore.controller
 import com.github.rodrigotimoteo.kboyemucore.api.Button
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.cpu.interrupts.InterruptNames
+import com.github.rodrigotimoteo.kboyemucore.util.Logger
 
 /**
  * This class is responsible for handling the joypad input and updating the joypad value accordingly.
@@ -10,7 +11,8 @@ import com.github.rodrigotimoteo.kboyemucore.cpu.interrupts.InterruptNames
  * @author rodrigotimoteo
  */
 class Controller(
-    private val bus: Bus
+    private val bus: Bus,
+    private val logger: Logger,
 ) {
     /**
      * Stores the current value of the joypad, which is updated when buttons are pressed and released
@@ -48,12 +50,11 @@ class Controller(
      * @return current value of the joypad based on the provided [joypadInfo]
      */
     fun getJoypad(joypadInfo: UByte): UByte {
-        return if ((joypadInfo.toInt() and 0x10) == 0) {
-            ((_joypadValue and 0xF0) shr 4).toUByte()
-        } else if ((joypadInfo.toInt() and 0x20) == 0) {
-            (_joypadValue and 0x0F).toUByte()
-        } else {
-            0x00u
+        val info = joypadInfo.toInt()
+        return when {
+            (info and 0x20) == 0 -> ((_joypadValue shr 4) and 0x0F).toUByte()
+            (info and 0x10) == 0 -> (_joypadValue and 0x0F).toUByte()
+            else -> 0x00u
         }
     }
 }

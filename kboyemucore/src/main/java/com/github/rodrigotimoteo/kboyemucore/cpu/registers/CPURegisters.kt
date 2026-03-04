@@ -2,13 +2,17 @@ package com.github.rodrigotimoteo.kboyemucore.cpu.registers
 
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.util.AF_INITIAL_VALUE
+import com.github.rodrigotimoteo.kboyemucore.util.AF_INITIAL_VALUE_CGB
 import com.github.rodrigotimoteo.kboyemucore.util.BC_INITIAL_VALUE
+import com.github.rodrigotimoteo.kboyemucore.util.BC_INITIAL_VALUE_CGB
 import com.github.rodrigotimoteo.kboyemucore.util.DE_INITIAL_VALUE
+import com.github.rodrigotimoteo.kboyemucore.util.DE_INITIAL_VALUE_CGB
 import com.github.rodrigotimoteo.kboyemucore.util.EIGHT_BITS
 import com.github.rodrigotimoteo.kboyemucore.util.FILTER_16_BITS
 import com.github.rodrigotimoteo.kboyemucore.util.FILTER_LOWER_BITS
 import com.github.rodrigotimoteo.kboyemucore.util.FILTER_TOP_BITS
 import com.github.rodrigotimoteo.kboyemucore.util.HL_INITIAL_VALUE
+import com.github.rodrigotimoteo.kboyemucore.util.HL_INITIAL_VALUE_CGB
 import com.github.rodrigotimoteo.kboyemucore.util.MutableUByte
 import com.github.rodrigotimoteo.kboyemucore.util.PROGRAM_COUNTER_INITIAL_VALUE
 import com.github.rodrigotimoteo.kboyemucore.util.STACK_POINTER_INITIAL_VALUE
@@ -47,10 +51,17 @@ class CPURegisters(
      * Initializes the register to their default values
      */
     init {
-        setAF(AF_INITIAL_VALUE)
-        setBC(BC_INITIAL_VALUE)
-        setDE(DE_INITIAL_VALUE)
-        setHL(HL_INITIAL_VALUE)
+        if (bus.isCGB) {
+            setAF(AF_INITIAL_VALUE_CGB)
+            setBC(BC_INITIAL_VALUE_CGB)
+            setDE(DE_INITIAL_VALUE_CGB)
+            setHL(HL_INITIAL_VALUE_CGB)
+        } else {
+            setAF(AF_INITIAL_VALUE)
+            setBC(BC_INITIAL_VALUE)
+            setDE(DE_INITIAL_VALUE)
+            setHL(HL_INITIAL_VALUE)
+        }
     }
 
     /**
@@ -208,42 +219,47 @@ class CPURegisters(
      */
     @Suppress("ImplicitDefaultLocale")
     override fun toString(): String {
-        val stringBuilder = StringBuilder();
+        val stringBuilder = StringBuilder()
 
         stringBuilder.append(RegisterNames.A).append(": ")
             .append(String.format("%02X", getRegister(RegisterNames.A).value.toInt()))
-            .append(" ");
+            .append(" ")
         stringBuilder.append(RegisterNames.F).append(": ")
             .append(String.format("%02X", getRegister(RegisterNames.F).value.toInt()))
-            .append(" ");
+            .append(" ")
         stringBuilder.append(RegisterNames.B).append(": ")
             .append(String.format("%02X", getRegister(RegisterNames.B).value.toInt()))
-            .append(" ");
+            .append(" ")
         stringBuilder.append(RegisterNames.C).append(": ")
             .append(String.format("%02X", getRegister(RegisterNames.C).value.toInt()))
-            .append(" ");
+            .append(" ")
         stringBuilder.append(RegisterNames.D).append(": ")
             .append(String.format("%02X", getRegister(RegisterNames.D).value.toInt()))
-            .append(" ");
+            .append(" ")
         stringBuilder.append(RegisterNames.E).append(": ")
             .append(String.format("%02X", getRegister(RegisterNames.E).value.toInt()))
-            .append(" ");
+            .append(" ")
         stringBuilder.append(RegisterNames.H).append(": ")
             .append(String.format("%02X", getRegister(RegisterNames.H).value.toInt()))
-            .append(" ");
+            .append(" ")
         stringBuilder.append(RegisterNames.L).append(": ")
             .append(String.format("%02X", getRegister(RegisterNames.L).value.toInt()))
-            .append(" ");
+            .append(" ")
 
-        stringBuilder.append("SP: ").append(String.format("%04X", stackPointer)).append(" ");
-        stringBuilder.append("PC: 00:").append(String.format("%04X", programCounter)).append(" ");
+        stringBuilder.append("SP: ").append(String.format("%04X", stackPointer)).append(" ")
+        stringBuilder.append("PC: 00:").append(String.format("%04X", programCounter)).append(" ")
 
-        stringBuilder.append("(").append(String.format("%02X", bus.getValue(programCounter).toInt()));
-        stringBuilder.append(" ").append(String.format("%02X", bus.getValue(programCounter + 1).toInt()));
-        stringBuilder.append(" ").append(String.format("%02X", bus.getValue(programCounter + 2).toInt()));
-        stringBuilder.append(" ").append(String.format("%02X", bus.getValue(programCounter + 3).toInt()));
-        stringBuilder.append(")");
+        // Using from PPU to avoid ticking timers and changing state of the emulator, debug only
+        stringBuilder.append("(")
+            .append(String.format("%02X", bus.getValueFromPPU(programCounter).toInt()))
+        stringBuilder.append(" ")
+            .append(String.format("%02X", bus.getValueFromPPU(programCounter + 1).toInt()))
+        stringBuilder.append(" ")
+            .append(String.format("%02X", bus.getValueFromPPU(programCounter + 2).toInt()))
+        stringBuilder.append(" ")
+            .append(String.format("%02X", bus.getValueFromPPU(programCounter + 3).toInt()))
+        stringBuilder.append(")")
 
-        return stringBuilder.toString();
+        return stringBuilder.toString()
     }
 }

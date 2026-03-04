@@ -47,9 +47,7 @@ class SingleBit(
      * @param memoryAddress retrieve memory to test bit
      */
     fun bitHL(bit: Int, memoryAddress: Int) {
-        cpu.timers.tick()
-
-        val testResult = bus.getValue(memoryAddress).testBit(bit)
+        val testResult = bus.getValueFromCPU(memoryAddress).testBit(bit)
 
         cpu.cpuRegisters.flags.setFlags(
             zero = !testResult,
@@ -57,7 +55,6 @@ class SingleBit(
             half = true,
             carry = null
         )
-
 
         cpu.cpuRegisters.incrementProgramCounter(1)
     }
@@ -82,9 +79,7 @@ class SingleBit(
      * @param memoryAddress retrieve memory to test bit
      */
     fun setHL(bit: Int, memoryAddress: Int) {
-        repeat(2) { cpu.timers.tick() }
-
-        bus.setValue(memoryAddress, bus.getValue(memoryAddress).setBit(bit))
+        bus.setValueFromCPU(memoryAddress, bus.getValueFromCPU(memoryAddress).setBit(bit))
 
         cpu.cpuRegisters.incrementProgramCounter(1)
     }
@@ -109,9 +104,7 @@ class SingleBit(
      * @param memoryAddress retrieve memory to test bit
      */
     fun resHL(bit: Int, memoryAddress: Int) {
-        repeat(2) { cpu.timers.tick() }
-
-        bus.setValue(memoryAddress, bus.getValue(memoryAddress).resetBit(bit))
+        bus.setValueFromCPU(memoryAddress, bus.getValueFromCPU(memoryAddress).resetBit(bit))
 
         cpu.cpuRegisters.incrementProgramCounter(1)
     }

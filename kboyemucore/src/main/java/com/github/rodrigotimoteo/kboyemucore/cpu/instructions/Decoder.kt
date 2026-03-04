@@ -297,7 +297,7 @@ class Decoder(
         regularOperations[0xCB] = {
             cbInstruction = true
             cpu.cpuRegisters.incrementProgramCounter(1)
-            decode(bus.getValue(cpu.cpuRegisters.getProgramCounter()).toInt())
+            decode(bus.getValueFromCPU(cpu.cpuRegisters.getProgramCounter()).toInt())
         }
         regularOperations[0xCC] = { jump.callCond(JumpConstants.Z) } // CALL Z, nn
         regularOperations[0xCD] = { jump.call() } // CALL u16
@@ -613,8 +613,6 @@ class Decoder(
      * @param operationCode to be executed
      */
     fun decode(operationCode: Int) {
-        cpu.timers.tick()
-
         if (!cbInstruction) {
             regularOperations[operationCode].invoke()
         } else {

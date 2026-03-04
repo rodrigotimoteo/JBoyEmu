@@ -80,6 +80,13 @@ open class MemoryModule(
         }
     }
 
+    /**
+     * The bank index used for the lower (fixed) region when [simultaneousBanks] == 2.
+     * Defaults to 0 (bank 0 is always fixed). Subclasses that need dynamic fixed-bank
+     * remapping (e.g. MBC1 advanced banking mode) can override this.
+     */
+    protected open val fixedBank: Int = 0
+
     override fun getValue(memoryAddress: Int): UByte {
         val realIndex = memoryAddress - memoryOffset
 
@@ -94,8 +101,47 @@ open class MemoryModule(
                 if (realIndex >= moduleSize) {
                     memory[activeBank][realIndex - moduleSize]
                 } else {
-                    memory[0][realIndex]
+                    memory[fixedBank][realIndex]
                 }
+            }
+        }
+    }
+
+    /**
+     * Reads a value from a specific bank regardless of which bank is currently active.
+     * Used by the CGB PPU drawer to access VRAM bank 1 for tile map attributes.
+     *
+     * @param memoryAddress the absolute memory address to read
+     * @param bank the bank number to read from
+     * @return the value at the given address in the specified bank
+     */
+    fun getValueFromBank(memoryAddress: Int, bank: Int): UByte {
+        val realIndex = memoryAddress - memoryOffset
+        return memory[bank.coerceIn(0, numberOfBanks - 1)][realIndex]
+    }
+
+    /**
+     * Returns a snapshot of all memory banks as a list of byte arrays for save state serialization.
+     * Each bank is copied to prevent mutation of the snapshot.
+     *
+     * @return list of byte arrays, one per bank
+     */
+    fun snapshotBanks(): List<ByteArray> = memory.map { bank ->
+        ByteArray(bank.size) { bank[it].toByte() }
+    }
+
+    /**
+     * Restores memory banks from a previously captured snapshot. The number and size of banks
+     * must match the current module configuration.
+     *
+     * @param banks list of byte arrays to restore, one per bank
+     */
+    fun restoreBanks(banks: List<ByteArray>) {
+        for ((i, bankData) in banks.withIndex()) {
+            if (i >= memory.size) break
+            for ((j, byte) in bankData.withIndex()) {
+                if (j >= memory[i].size) break
+                memory[i][j] = byte.toUByte()
             }
         }
     }

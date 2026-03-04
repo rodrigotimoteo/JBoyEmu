@@ -96,10 +96,8 @@ class Alu(
      * @param useHL if should retrieve from HL register
      */
     fun addSpecial(memoryAddress: Int, useHL: Boolean) {
-        cpu.timers.tick()
-
         val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
-        val valueInAddress = bus.getValue(memoryAddress).toInt()
+        val valueInAddress = bus.getValueFromCPU(memoryAddress).toInt()
         val finalValue = valueInAddress + valueInRegisterA
 
         val halfCarry = checkHalfCarryAdd(valueInAddress, valueInRegisterA, 0)
@@ -148,10 +146,8 @@ class Alu(
      * @param useHL      if HL is being used or not
      */
     fun adcSpecial(memoryAddress: Int, useHL: Boolean) {
-        cpu.timers.tick()
-
         val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
-        val valueInAddress = bus.getValue(memoryAddress).toInt()
+        val valueInAddress = bus.getValueFromCPU(memoryAddress).toInt()
 
         val carryAsValue = if (cpu.cpuRegisters.flags.getCarryFlag()) 1 else 0
         val halfCarry = checkHalfCarryAdd(valueInAddress, valueInRegisterA, carryAsValue)
@@ -199,10 +195,8 @@ class Alu(
      * @param useHL if HL is being used or not
      */
     fun subSpecial(memoryAddress: Int, useHL: Boolean) {
-        cpu.timers.tick()
-
         val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
-        val valueInAddress = bus.getValue(memoryAddress).toInt()
+        val valueInAddress = bus.getValueFromCPU(memoryAddress).toInt()
 
         val halfCarry = checkHalfCarrySub(valueInRegisterA, valueInAddress, 0)
         val finalValue = (valueInRegisterA - valueInAddress)
@@ -254,10 +248,8 @@ class Alu(
      * @param useHL If true, increments PC by 1 (HL indirect); otherwise, by 2 (immediate address).
      */
     fun sbcSpecial(memoryAddress: Int, useHL: Boolean) {
-        cpu.timers.tick()
-
         val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
-        val valueInAddress = bus.getValue(memoryAddress).toInt()
+        val valueInAddress = bus.getValueFromCPU(memoryAddress).toInt()
 
         val carryAsValue = if (cpu.cpuRegisters.flags.getCarryFlag()) 1 else 0
         val halfCarry = checkHalfCarrySub(valueInRegisterA, valueInAddress, carryAsValue)
@@ -306,10 +298,8 @@ class Alu(
      * @param useHL If true, increments PC by 1 (HL); otherwise by 2 (immediate address).
      */
     fun andSpecial(memoryAddress: Int, useHL: Boolean) {
-        cpu.timers.tick()
-
         val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
-        val valueInAddress = bus.getValue(memoryAddress).toInt()
+        val valueInAddress = bus.getValueFromCPU(memoryAddress).toInt()
         val finalValue = valueInRegisterA and valueInAddress
 
         val zero = checkZero(finalValue)
@@ -354,10 +344,8 @@ class Alu(
      * @param useHL If true, increments PC by 1 (HL); otherwise by 2 (immediate address).
      */
     fun orSpecial(memoryAddress: Int, useHL: Boolean) {
-        cpu.timers.tick()
-
         val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
-        val valueInAddress = bus.getValue(memoryAddress).toInt()
+        val valueInAddress = bus.getValueFromCPU(memoryAddress).toInt()
         val finalValue = valueInRegisterA or valueInAddress
 
         val zero = checkZero(finalValue)
@@ -401,10 +389,8 @@ class Alu(
      * @param useHL If true, increments PC by 1 (HL); otherwise by 2 (immediate address).
      */
     fun xorSpecial(memoryAddress: Int, useHL: Boolean) {
-        cpu.timers.tick()
-
         val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
-        val valueInAddress = bus.getValue(memoryAddress).toInt()
+        val valueInAddress = bus.getValueFromCPU(memoryAddress).toInt()
         val finalValue = valueInRegisterA xor valueInAddress
 
         val zero = checkZero(finalValue)
@@ -450,10 +436,8 @@ class Alu(
      * @param useHL If true, increments PC by 1 (HL); otherwise by 2 (immediate address).
      */
     fun cpSpecial(memoryAddress: Int, useHL: Boolean) {
-        cpu.timers.tick()
-
         val valueInRegisterA = cpu.cpuRegisters.getRegister(RegisterNames.A).value.toInt()
-        val valueInAddress = bus.getValue(memoryAddress).toInt()
+        val valueInAddress = bus.getValueFromCPU(memoryAddress).toInt()
         val finalValue = valueInRegisterA - valueInAddress
 
         val zero = checkZero(finalValue)
@@ -495,17 +479,14 @@ class Alu(
      * @param memoryAddress The memory address to increment.
      */
     fun incSpecial(memoryAddress: Int) {
-        cpu.timers.tick()
-
-        val valueInAddress = bus.getValue(memoryAddress).toInt()
+        val valueInAddress = bus.getValueFromCPU(memoryAddress).toInt()
         val finalValue = (valueInAddress + 1) and 0xFF
 
         val halfCarry = checkHalfCarryAdd(valueInAddress, 1, 0)
         val zero = checkZero(finalValue)
 
         cpu.cpuRegisters.flags.setFlags(zero = zero, subtract = false, half = halfCarry, carry = null)
-        bus.setValue(memoryAddress, finalValue.toUByte())
-        cpu.timers.tick()
+        bus.setValueFromCPU(memoryAddress, finalValue.toUByte())
         cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
@@ -536,16 +517,14 @@ class Alu(
      * @param memoryAddress The memory address to decrement.
      */
     fun decSpecial(memoryAddress: Int) {
-        repeat(2) { cpu.timers.tick() }
-
-        val valueInAddress = bus.getValue(memoryAddress).toInt()
+        val valueInAddress = bus.getValueFromCPU(memoryAddress).toInt()
         val finalValue = valueInAddress - 1
 
         val halfCarry = checkHalfCarrySub(valueInAddress, 1, 0)
         val zero = checkZero(finalValue)
 
         cpu.cpuRegisters.flags.setFlags(zero = zero, subtract = true, half = halfCarry, carry = null)
-        bus.setValue(memoryAddress, finalValue.toUByte())
+        bus.setValueFromCPU(memoryAddress, finalValue.toUByte())
         cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
@@ -605,10 +584,10 @@ class Alu(
      * @param memoryAddress The memory address of the signed 8-bit immediate value to add.
      */
     fun addSP(memoryAddress: Int) {
-        repeat(3) { cpu.timers.tick() }
+        repeat(2) { cpu.timers.tick() }
 
         val stackPointer = cpu.cpuRegisters.getStackPointer()
-        val valueInAddress = bus.getValue(memoryAddress)
+        val valueInAddress = bus.getValueFromCPU(memoryAddress)
         val valueSigned = valueInAddress.toByte().toInt()
         val finalValue = (stackPointer + valueSigned) and 0xFFFF
 
@@ -658,7 +637,7 @@ class Alu(
      * @param type maps which two word register should be decremented
      */
     fun decR(type: Int) {
-        repeat(2) { cpu.timers.tick() }
+        cpu.timers.tick()
 
         when (type) {
             0 -> {
@@ -685,6 +664,7 @@ class Alu(
      */
     fun incSP() {
         cpu.timers.tick()
+
         cpu.cpuRegisters.incrementStackPointer(1)
         cpu.cpuRegisters.incrementProgramCounter(1)
     }
@@ -696,6 +676,7 @@ class Alu(
      */
     fun decSP() {
         cpu.timers.tick()
+
         cpu.cpuRegisters.incrementStackPointer(-1)
         cpu.cpuRegisters.incrementProgramCounter(1)
     }

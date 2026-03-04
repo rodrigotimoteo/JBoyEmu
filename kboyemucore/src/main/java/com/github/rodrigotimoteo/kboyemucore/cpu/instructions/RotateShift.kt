@@ -111,9 +111,7 @@ class RotateShift(
      * @param memoryAddress HL value
      */
     fun rlcHL(memoryAddress: Int) {
-        repeat(2) { cpu.timers.tick() }
-
-        val givenValue = bus.getValue(memoryAddress).toInt()
+        val givenValue = bus.getValueFromCPU(memoryAddress).toInt()
         val carry = givenValue.toUByte().testBit(7)
         val finalValue = (((givenValue shl 1) and 0xFF) or ((givenValue and 0xFF) shr 7)) and 0xFF
 
@@ -124,7 +122,7 @@ class RotateShift(
             carry = carry
         )
 
-        bus.setValue(memoryAddress, finalValue.toUByte())
+        bus.setValueFromCPU(memoryAddress, finalValue.toUByte())
         cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
@@ -156,9 +154,7 @@ class RotateShift(
      * @param memoryAddress HL value
      */
     fun rlHL(memoryAddress: Int) {
-        repeat(2) { cpu.timers.tick() }
-
-        val givenValue = bus.getValue(memoryAddress).toInt()
+        val givenValue = bus.getValueFromCPU(memoryAddress).toInt()
         val carry = givenValue.toUByte().testBit(7)
         val finalValue = (((givenValue shl 1) and 0xFF)
                 or (if (cpu.cpuRegisters.flags.getCarryFlag()) 1 else 0)) and 0xFF
@@ -170,7 +166,7 @@ class RotateShift(
             carry = carry
         )
 
-        bus.setValue(memoryAddress, finalValue.toUByte())
+        bus.setValueFromCPU(memoryAddress, finalValue.toUByte())
         cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
@@ -204,9 +200,7 @@ class RotateShift(
      * @param memoryAddress HL value
      */
     fun rrcHL(memoryAddress: Int) {
-        repeat(2) { cpu.timers.tick() }
-
-        val givenValue = bus.getValue(memoryAddress).toInt()
+        val givenValue = bus.getValueFromCPU(memoryAddress).toInt()
         val carry = givenValue.toUByte().testBit(0)
         val finalValue = (((givenValue shr 1) and 0xFF) or ((givenValue and 0x01) shl 7)) and 0xFF
 
@@ -217,7 +211,7 @@ class RotateShift(
             carry = carry
         )
 
-        bus.setValue(memoryAddress, finalValue.toUByte())
+        bus.setValueFromCPU(memoryAddress, finalValue.toUByte())
         cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
@@ -249,9 +243,7 @@ class RotateShift(
      * @param memoryAddress HL value
      */
     fun rrHL(memoryAddress: Int) {
-        repeat(2) { cpu.timers.tick() }
-
-        val givenValue = bus.getValue(memoryAddress).toInt()
+        val givenValue = bus.getValueFromCPU(memoryAddress).toInt()
         val carry = givenValue.toUByte().testBit(0)
         val finalValue = (((givenValue shr 1) and 0xFF)
                 or ((if (cpu.cpuRegisters.flags.getCarryFlag()) 1 else 0) shl 7)) and 0xFF
@@ -263,7 +255,7 @@ class RotateShift(
             carry = carry
         )
 
-        bus.setValue(memoryAddress, finalValue.toUByte())
+        bus.setValueFromCPU(memoryAddress, finalValue.toUByte())
         cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
@@ -294,9 +286,7 @@ class RotateShift(
      * @param memoryAddress HL value
      */
     fun slaHL(memoryAddress: Int) {
-        repeat(2) { cpu.timers.tick() }
-
-        val givenValue = bus.getValue(memoryAddress).toInt()
+        val givenValue = bus.getValueFromCPU(memoryAddress).toInt()
         val carry = givenValue.toUByte().testBit(7)
         val finalValue = (givenValue shl 1) and 0xFF
 
@@ -307,7 +297,7 @@ class RotateShift(
             carry = carry
         )
 
-        bus.setValue(memoryAddress, finalValue.toUByte())
+        bus.setValueFromCPU(memoryAddress, finalValue.toUByte())
         cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
@@ -339,9 +329,7 @@ class RotateShift(
      * @param memoryAddress HL value
      */
     fun swapHL(memoryAddress: Int) {
-        repeat(2) { cpu.timers.tick() }
-
-        val givenValue = bus.getValue(memoryAddress).toInt()
+        val givenValue = bus.getValueFromCPU(memoryAddress).toInt()
         val finalValue = (((givenValue and 0x0F) shl 4) or ((givenValue and 0xF0) shr 4)) and 0xFF
 
         cpu.cpuRegisters.flags.setFlags(
@@ -351,7 +339,7 @@ class RotateShift(
             carry = false
         )
 
-        bus.setValue(memoryAddress, finalValue.toUByte())
+        bus.setValueFromCPU(memoryAddress, finalValue.toUByte())
         cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
@@ -385,9 +373,7 @@ class RotateShift(
      * @param memoryAddress HL value
      */
     fun sraHL(memoryAddress: Int) {
-        repeat(2) { cpu.timers.tick() }
-
-        val givenValue = bus.getValue(memoryAddress).toInt()
+        val givenValue = bus.getValueFromCPU(memoryAddress).toInt()
         val topBit = givenValue and 0x80
         val carry = givenValue.toUByte().testBit(0)
         val finalValue = ((givenValue shr 1) or topBit) and 0xFF
@@ -399,7 +385,7 @@ class RotateShift(
             carry = carry
         )
 
-        bus.setValue(memoryAddress, finalValue.toUByte())
+        bus.setValueFromCPU(memoryAddress, finalValue.toUByte())
         cpu.cpuRegisters.incrementProgramCounter(1)
     }
 
@@ -432,9 +418,7 @@ class RotateShift(
      * @param memoryAddress HL value
      */
     fun srlHL(memoryAddress: Int) {
-        repeat(2) { cpu.timers.tick() }
-
-        val givenValue = bus.getValue(memoryAddress).toInt()
+        val givenValue = bus.getValueFromCPU(memoryAddress).toInt()
         val carry = givenValue.toUByte().testBit(0)
         val finalValue = (givenValue shr 1) and 0xFF
 
@@ -445,7 +429,7 @@ class RotateShift(
             carry = carry
         )
 
-        bus.setValue(memoryAddress, finalValue.toUByte())
+        bus.setValueFromCPU(memoryAddress, finalValue.toUByte())
         cpu.cpuRegisters.incrementProgramCounter(1)
     }
 }

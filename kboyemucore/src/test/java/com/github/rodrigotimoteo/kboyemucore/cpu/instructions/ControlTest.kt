@@ -4,6 +4,7 @@ import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.cpu.CPU
 import com.github.rodrigotimoteo.kboyemucore.memory.ReservedAddresses
 import com.github.rodrigotimoteo.kboyemucore.memory.rom.cartridge.MBC0
+import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -23,11 +24,11 @@ class ControlTest {
     private lateinit var bus: Bus
 
     @BeforeEach
-    fun setUp() {
+    fun setup() {
         val romContent = UByteArray(0x8000)
         val rom = MBC0(romBanks = 2, ramBanks = 0, romContent = romContent)
-        bus = Bus(rom = rom, isCGB = false)
-        cpu = CPU(bus)
+        bus = Bus(rom = rom, isCGB = false, mockk())
+        cpu = CPU(bus, mockk())
         control = Control(cpu, bus)
     }
 
@@ -120,19 +121,17 @@ class ControlTest {
 
         control.stop()
 
-        assertTrue(cpu.isStopped())
-        assertEquals(0xC001, cpu.cpuRegisters.getProgramCounter())
+        assertEquals(0xC002, cpu.cpuRegisters.getProgramCounter())
     }
 
     @Test
     fun `when Di is executed then interrupt disable is requested and change cycle marked`() {
-        cpu.timers.tick()
-        val cycle = cpu.timers.machineCycles
+        cpu.interrupts.setInterruptChange(true)
 
         control.di()
 
-        assertTrue(cpu.interrupts.requestedInterruptChange())
-        assertEquals(cycle, cpu.timers.interruptChangedCounter)
+        assertFalse(cpu.interrupts.isImeEnabled)
+        assertFalse(cpu.interrupts.requestedInterruptChange())
         assertEquals(0x0101, cpu.cpuRegisters.getProgramCounter())
     }
 

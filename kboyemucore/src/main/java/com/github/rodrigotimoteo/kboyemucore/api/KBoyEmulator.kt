@@ -1,5 +1,6 @@
 package com.github.rodrigotimoteo.kboyemucore.api
 
+import com.github.rodrigotimoteo.kboyemucore.spu.AudioRingBuffer
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 
@@ -62,8 +63,30 @@ interface KBoyEmulator {
     fun pause()
 
     /**
+     * Captures a complete snapshot of the emulator state that can be serialized and persisted.
+     * Must be called while the emulator is paused or from the emulation thread.
+     *
+     * @return complete save state, or null if no ROM is loaded
+     */
+    fun saveState(): SaveState?
+
+    /**
+     * Restores the emulator to a previously captured state. Must be called while the emulator is
+     * paused or from the emulation thread. The same ROM must be loaded before calling this.
+     *
+     * @param state previously saved emulator state
+     */
+    fun loadState(state: SaveState)
+
+    /**
      * [Flow] of [FrameBuffer] that exposes a [IntArray] that a consumer can use to display what is
      * being shown on the emulator
      */
     val frames: Flow<FrameBuffer>
+
+    /**
+     * Lock-free ring buffer of stereo PCM samples produced by the APU.
+     * The Android layer should read from this on a dedicated audio thread.
+     */
+    val audioRingBuffer: AudioRingBuffer
 }

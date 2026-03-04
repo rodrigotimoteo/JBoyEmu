@@ -1,5 +1,6 @@
 package com.github.rodrigotimoteo.kboyemucore.memory.rom.cartridge
 
+import com.github.rodrigotimoteo.kboyemucore.ktx.testBit
 import com.github.rodrigotimoteo.kboyemucore.memory.MemoryModule
 import com.github.rodrigotimoteo.kboyemucore.memory.ReservedAddresses
 import com.github.rodrigotimoteo.kboyemucore.memory.rom.RomModule
@@ -30,13 +31,22 @@ class MBC1(
     private var _ramBankNumber = 0
     private var romBankLow = 1
     private var romBankHigh = 0
-    private var bankingMode = 0
+    private var advancedBanking = false
 
-    override val ramStatus
-        get() = _ramStatus
+    override val ramStatus get() = _ramStatus
+    override val ramBankNumber get() = _ramBankNumber
 
-    override val ramBankNumber
-        get() = _ramBankNumber
+    /**
+     * In advanced banking mode the fixed region 0x0000–0x3FFF maps to bank
+     * (romBankHigh << 5) instead of always bank 0.
+     */
+    override val fixedBank: Int
+        get() = if (advancedBanking) {
+            val max = if (romBanks == 0) 1 else romBanks
+            (romBankHigh shl 5) % max
+        } else {
+            0
+        }
 
     override fun setValue(memoryAddress: Int, value: UByte) = when (memoryAddress) {
         in 0 until ReservedAddresses.RAM_ENABLE.memoryAddress -> {
@@ -51,7 +61,7 @@ class MBC1(
 
         in ReservedAddresses.ROM_BANK0_END.memoryAddress until ReservedAddresses.RAM_BANK.memoryAddress -> {
             val bankBits = value.toInt() and 0x03
-            if (bankingMode == 0) {
+            if (!advancedBanking) {
                 romBankHigh = bankBits
                 updateActiveRomBank()
             } else {
@@ -60,7 +70,7 @@ class MBC1(
         }
 
         in ReservedAddresses.RAM_BANK.memoryAddress until ReservedAddresses.SWITCH_ROM_END.memoryAddress -> {
-            bankingMode = value.toInt() and 0x01
+            advancedBanking = value.testBit(0)
             updateActiveRomBank()
         }
 
@@ -68,10 +78,10 @@ class MBC1(
     }
 
     /**
-     * Updates the active ROM bank based on the current values of romBankLow, romBankHigh, and bankingMode.
+     * Updates the active ROM bank based on the current values of romBankLow, romBankHigh, and advancedBanking.
      */
     private fun updateActiveRomBank() {
-        val selected = if (bankingMode == 0) {
+        val selected = if (!advancedBanking) {
             (romBankHigh shl 5) or romBankLow
         } else {
             romBankLow
