@@ -79,6 +79,22 @@ interface KBoyEmulator {
     fun loadState(state: SaveState)
 
     /**
+     * Dumps all external RAM banks as a flat byte array for battery-backed save games (.sav).
+     * Returns null if the cartridge has no external RAM.
+     *
+     * @return raw ERAM bytes, or null
+     */
+    fun dumpEram(): ByteArray?
+
+    /**
+     * Restores external RAM from a previously dumped byte array. Used to load battery saves
+     * (.sav files) after a ROM is loaded but before (or during) emulation.
+     *
+     * @param data flat ERAM dump previously obtained from [dumpEram]
+     */
+    fun loadEram(data: ByteArray)
+
+    /**
      * [Flow] of [FrameBuffer] that exposes a [IntArray] that a consumer can use to display what is
      * being shown on the emulator
      */

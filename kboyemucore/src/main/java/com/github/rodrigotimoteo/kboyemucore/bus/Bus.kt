@@ -326,4 +326,18 @@ class Bus(
         ppu.loadState(state.ppu)
         spu.loadState(state.spu)
     }
+
+    /**
+     * Dumps all ERAM banks as a flat byte array for battery-backed save games
+     *
+     * @return raw ERAM bytes, or null if the cartridge has no external RAM
+     */
+    fun dumpEram(): ByteArray? = memoryManager.dumpEram()
+
+    /**
+     * Restores ERAM from a previously dumped byte array
+     *
+     * @param data flat ERAM dump previously obtained from [dumpEram]
+     */
+    fun loadEram(data: ByteArray) = memoryManager.loadEram(data)
 }

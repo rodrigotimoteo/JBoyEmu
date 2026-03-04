@@ -667,6 +667,42 @@ class MemoryManager(
      *
      * @return memory dump of GB
      */
+    /**
+     * Dumps the entire external RAM (all banks) as a flat byte array for battery-backed save
+     * games (.sav files). Returns null if no ERAM exists.
+     *
+     * @return flat byte array of all ERAM banks concatenated, or null
+     */
+    fun dumpEram(): ByteArray? {
+        val banks = eram?.snapshotBanks() ?: return null
+        val totalSize = banks.sumOf { it.size }
+        val result = ByteArray(totalSize)
+        var offset = 0
+        for (bank in banks) {
+            bank.copyInto(result, offset)
+            offset += bank.size
+        }
+        return result
+    }
+
+    /**
+     * Restores external RAM from a previously dumped flat byte array. The data is split back
+     * into banks matching the ERAM module configuration.
+     *
+     * @param data flat byte array previously obtained from [dumpEram]
+     */
+    fun loadEram(data: ByteArray) {
+        val eramModule = eram ?: return
+        val bankSize = 0x2000
+        val bankCount = eramModule.snapshotBanks().size
+        val banks = (0 until bankCount).map { i ->
+            val start = i * bankSize
+            val end = minOf(start + bankSize, data.size)
+            if (start < data.size) data.copyOfRange(start, end) else ByteArray(bankSize)
+        }
+        eramModule.restoreBanks(banks)
+    }
+
     override fun toString(): String {
         val stringBuilder = StringBuilder()
         stringBuilder.append("0 ")
