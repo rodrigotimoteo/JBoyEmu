@@ -88,6 +88,13 @@ class KBoyEmulatorImpl(
         bus?.loadEram(data)
     }
 
+    override var speedMultiplier: Int
+        get() = bus?.speedMultiplier ?: 1
+        set(value) { bus?.speedMultiplier = value }
+
+    override val romTitle: String
+        get() = romReader.getTitle()
+
     override val frames: Flow<FrameBuffer>
         get() = _frames ?: error(ACCESSING_FRAME_BEFORE_READY)
 

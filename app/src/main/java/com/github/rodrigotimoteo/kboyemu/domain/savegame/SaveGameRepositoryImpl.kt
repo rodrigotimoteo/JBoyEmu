@@ -1,10 +1,11 @@
 package com.github.rodrigotimoteo.kboyemu.domain.savegame
 
 import android.content.Context
+import androidx.core.net.toUri
 import com.github.rodrigotimoteo.kboyemu.data.savegame.SaveGameRepository
+import com.github.rodrigotimoteo.kboyemu.util.md5Hex
 import com.github.rodrigotimoteo.kboyemucore.util.Logger
 import org.koin.core.annotation.Single
-import java.security.MessageDigest
 
 /**
  * Default implementation of [SaveGameRepository] that persists ERAM dumps as .sav files in
@@ -23,9 +24,7 @@ class SaveGameRepositoryImpl(
 
     @OptIn(ExperimentalUnsignedTypes::class)
     override fun setRomHash(romBytes: UByteArray) {
-        romHash = MessageDigest.getInstance("MD5")
-            .digest(romBytes.asByteArray())
-            .joinToString("") { "%02x".format(it) }
+        romHash = md5Hex(romBytes)
     }
 
     override fun save(data: ByteArray): Boolean {
@@ -63,6 +62,28 @@ class SaveGameRepositoryImpl(
         } catch (e: Exception) {
             logger.e("Failed to load save game", e)
             null
+        }
+    }
+
+    override fun importFrom(uri: String): ByteArray? {
+        return try {
+            val parsedUri = uri.toUri()
+            context.contentResolver.openInputStream(parsedUri)?.use { it.readBytes() }
+        } catch (e: Exception) {
+            logger.e("Failed to import save game from URI: $uri", e)
+            null
+        }
+    }
+
+    override fun exportTo(uri: String, data: ByteArray): Boolean {
+        return try {
+            val parsedUri = uri.toUri()
+            context.contentResolver.openOutputStream(parsedUri)?.use { it.write(data) }
+            logger.i("Save game exported (${data.size} bytes)")
+            true
+        } catch (e: Exception) {
+            logger.e("Failed to export save game to URI: $uri", e)
+            false
         }
     }
 }

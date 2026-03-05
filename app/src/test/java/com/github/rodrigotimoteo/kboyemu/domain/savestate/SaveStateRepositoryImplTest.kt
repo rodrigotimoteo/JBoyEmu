@@ -1,6 +1,7 @@
 package com.github.rodrigotimoteo.kboyemu.domain.savestate
 
 import android.content.Context
+import com.github.rodrigotimoteo.kboyemu.util.md5Hex
 import com.github.rodrigotimoteo.kboyemucore.api.SaveState
 import com.github.rodrigotimoteo.kboyemucore.api.SaveState.Companion.toByteArray
 import com.github.rodrigotimoteo.kboyemucore.util.Logger
@@ -218,7 +219,7 @@ class SaveStateRepositoryImplTest {
     fun `when loading and deserialization throws then returns null and logs error`() {
         sut.setRomHash(sampleRomBytes)
 
-        val savedFile = tempDir.resolve("savestate_${computeHash(sampleRomBytes)}.bin")
+        val savedFile = tempDir.resolve("savestate_${md5Hex(sampleRomBytes)}.bin")
         savedFile.writeBytes(byteArrayOf(0xFF.toByte(), 0xFF.toByte()))
 
         val exception = RuntimeException("Corrupt data")
@@ -261,13 +262,4 @@ class SaveStateRepositoryImplTest {
         assertNull(result)
         verify { loggerMock.i("No save state found") }
     }
-
-    /**
-     * Helper that computes the same MD5 hash the repository uses internally, so tests can
-     * construct file names that match what the implementation would produce
-     */
-    private fun computeHash(romBytes: UByteArray): String =
-        java.security.MessageDigest.getInstance("MD5")
-            .digest(romBytes.asByteArray())
-            .joinToString("") { "%02x".format(it) }
 }

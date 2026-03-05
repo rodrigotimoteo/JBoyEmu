@@ -95,6 +95,18 @@ interface KBoyEmulator {
     fun loadEram(data: ByteArray)
 
     /**
+     * Emulation speed multiplier. 1 = normal (60 fps), 2 = 200%, 3 = 300%, 5 = 500%.
+     * A value of 0 means unlimited (no frame pacing sleep).
+     */
+    var speedMultiplier: Int
+
+    /**
+     * Title of the currently loaded ROM as read from the cartridge header.
+     * Returns "Unknown" if no ROM is loaded.
+     */
+    val romTitle: String
+
+    /**
      * [Flow] of [FrameBuffer] that exposes a [IntArray] that a consumer can use to display what is
      * being shown on the emulator
      */

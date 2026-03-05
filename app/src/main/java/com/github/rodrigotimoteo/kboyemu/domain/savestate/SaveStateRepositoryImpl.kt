@@ -2,11 +2,11 @@ package com.github.rodrigotimoteo.kboyemu.domain.savestate
 
 import android.content.Context
 import com.github.rodrigotimoteo.kboyemu.data.savestate.SaveStateRepository
+import com.github.rodrigotimoteo.kboyemu.util.md5Hex
 import com.github.rodrigotimoteo.kboyemucore.api.SaveState
 import com.github.rodrigotimoteo.kboyemucore.api.SaveState.Companion.toByteArray
 import com.github.rodrigotimoteo.kboyemucore.util.Logger
 import org.koin.core.annotation.Single
-import java.security.MessageDigest
 
 /**
  * Default implementation of [com.github.rodrigotimoteo.kboyemu.data.savestate.SaveStateRepository] that persists save states as files in internal
@@ -25,9 +25,7 @@ class SaveStateRepositoryImpl(
 
     @OptIn(ExperimentalUnsignedTypes::class)
     override fun setRomHash(romBytes: UByteArray) {
-        romHash = MessageDigest.getInstance("MD5")
-            .digest(romBytes.asByteArray())
-            .joinToString("") { "%02x".format(it) }
+        romHash = md5Hex(romBytes)
     }
 
     override fun save(state: SaveState): Boolean {

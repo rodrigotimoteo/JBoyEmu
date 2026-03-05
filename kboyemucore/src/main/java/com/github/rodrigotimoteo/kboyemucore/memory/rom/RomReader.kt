@@ -68,6 +68,26 @@ class RomReader(
     }
 
     /**
+     * Reads the game title from the ROM header (0x0134–0x0142). Trims trailing null bytes
+     * and non-printable characters.
+     *
+     * @return game title string, or "Unknown" if the ROM is not loaded
+     */
+    fun getTitle(): String {
+        if (romContent.isEmpty()) return "Unknown"
+
+        val start = ReservedAddresses.TITLE_START.memoryAddress
+        val end = ReservedAddresses.TITLE_END.memoryAddress
+
+        return romContent.sliceArray(start..end)
+            .map { it.toByte().toInt().toChar() }
+            .filter { it.code in 0x20..0x7E }
+            .joinToString("")
+            .trim()
+            .ifEmpty { "Unknown" }
+    }
+
+    /**
      * Build and return a new MemoryModule for the given rom
      */
     fun getRomModule(): MemoryModule =

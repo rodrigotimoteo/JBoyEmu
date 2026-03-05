@@ -32,5 +32,22 @@ interface SaveGameRepository {
      * @return previously saved ERAM bytes, or null if no save exists
      */
     fun load(): ByteArray?
+
+    /**
+     * Reads a .sav file from a content URI
+     *
+     * @param uri string representation of the content URI to read
+     * @return raw ERAM bytes, or null if reading failed
+     */
+    fun importFrom(uri: String): ByteArray?
+
+    /**
+     * Writes the given ERAM dump to a content URI
+     *
+     * @param uri string representation of the content URI to write to
+     * @param data flat byte array of all ERAM banks
+     * @return true if the export succeeded, false otherwise
+     */
+    fun exportTo(uri: String, data: ByteArray): Boolean
 }
 

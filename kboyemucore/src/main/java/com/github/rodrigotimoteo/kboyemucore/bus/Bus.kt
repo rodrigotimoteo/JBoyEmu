@@ -42,6 +42,13 @@ class Bus(
         get() = _runningJob
 
     /**
+     * Speed multiplier for frame pacing. 1 = normal (60 fps), 2 = 200%, etc.
+     * A value of 0 means unlimited (no sleep between frames).
+     */
+    @Volatile
+    var speedMultiplier: Int = 1
+
+    /**
      * Memory Manager reference
      */
     private val memoryManager = MemoryManager(this, logger, rom)
@@ -125,11 +132,15 @@ class Bus(
                         lastRtcMs = now
                     }
 
-                    // Sleep at the end of each VBlank to cap at 60fps
+                    // Sleep at the end of each VBlank to cap frame rate
                     if (ppu.isVBlankStart()) {
-                        val elapsed = System.currentTimeMillis() - frameStartMs
-                        val sleepMs = FRAME_DURATION_MS_60FPS - elapsed
-                        if (sleepMs > 0) delay(sleepMs)
+                        val speed = speedMultiplier
+                        if (speed > 0) {
+                            val targetMs = FRAME_DURATION_MS_60FPS / speed
+                            val elapsed = System.currentTimeMillis() - frameStartMs
+                            val sleepMs = targetMs - elapsed
+                            if (sleepMs > 0) delay(sleepMs)
+                        }
                         frameStartMs = System.currentTimeMillis()
                     }
                 } catch (e: InterruptedException) {
