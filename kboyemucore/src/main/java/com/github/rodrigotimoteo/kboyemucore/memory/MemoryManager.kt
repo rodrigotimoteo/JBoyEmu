@@ -663,11 +663,6 @@ class MemoryManager(
     }
 
     /**
-     * Converts the full memory map into a readable string containing all the memory address' content
-     *
-     * @return memory dump of GB
-     */
-    /**
      * Dumps the entire external RAM (all banks) as a flat byte array for battery-backed save
      * games (.sav files). Returns null if no ERAM exists.
      *
@@ -693,16 +688,26 @@ class MemoryManager(
      */
     fun loadEram(data: ByteArray) {
         val eramModule = eram ?: return
-        val bankSize = 0x2000
-        val bankCount = eramModule.snapshotBanks().size
+        val existingBanks = eramModule.snapshotBanks()
+        val bankCount = existingBanks.size
         val banks = (0 until bankCount).map { i ->
+            val bankSize = existingBanks[i].size
             val start = i * bankSize
-            val end = minOf(start + bankSize, data.size)
-            if (start < data.size) data.copyOfRange(start, end) else ByteArray(bankSize)
+            val bank = ByteArray(bankSize)
+            if (start < data.size) {
+                val end = minOf(start + bankSize, data.size)
+                data.copyInto(bank, 0, start, end)
+            }
+            bank
         }
         eramModule.restoreBanks(banks)
     }
 
+    /**
+     * Converts the full memory map into a readable string containing all the memory address' content
+     *
+     * @return memory dump of GB
+     */
     override fun toString(): String {
         val stringBuilder = StringBuilder()
         stringBuilder.append("0 ")

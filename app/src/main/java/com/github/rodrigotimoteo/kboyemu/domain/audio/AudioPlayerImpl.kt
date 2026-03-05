@@ -52,6 +52,7 @@ class AudioPlayerImpl(
             when (focusChange) {
                 AudioManager.AUDIOFOCUS_GAIN -> {
                     logger.d("Audio focus gained")
+                    audioTrack?.play()
                     audioTrack?.setVolume(1f)
                     playing = true
                 }
@@ -59,6 +60,8 @@ class AudioPlayerImpl(
                 AudioManager.AUDIOFOCUS_LOSS -> {
                     logger.d("Audio focus lost")
                     playing = false
+                    audioTrack?.pause()
+                    audioTrack?.flush()
                 }
                 AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
                     logger.d("Audio focus ducking")

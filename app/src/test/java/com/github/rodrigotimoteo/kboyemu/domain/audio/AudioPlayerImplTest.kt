@@ -17,6 +17,8 @@ import io.mockk.unmockkStatic
 import io.mockk.verify
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -199,8 +201,8 @@ class AudioPlayerImplTest {
         Thread.sleep(50)
 
         val audioThread = Thread.getAllStackTraces().keys.firstOrNull { it.name == "KBoy-Audio" }
-        assert(audioThread != null) { "Expected a thread named KBoy-Audio" }
-        assert(audioThread!!.isDaemon) { "Audio thread should be a daemon" }
+        assertNotNull(audioThread) { "Expected a thread named KBoy-Audio" }
+        assertTrue(audioThread!!.isDaemon) { "Audio thread should be a daemon" }
     }
 
     @Test
@@ -212,6 +214,6 @@ class AudioPlayerImplTest {
         Thread.sleep(50)
 
         val audioThread = Thread.getAllStackTraces().keys.firstOrNull { it.name == "KBoy-Audio" }
-        assert(audioThread == null || !audioThread.isAlive) { "Audio thread should be stopped" }
+        assertTrue(audioThread == null || !audioThread.isAlive) { "Audio thread should be stopped" }
     }
 }

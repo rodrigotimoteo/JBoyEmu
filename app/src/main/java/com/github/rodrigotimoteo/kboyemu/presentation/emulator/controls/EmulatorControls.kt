@@ -182,13 +182,13 @@ private fun DPadTouchZone(
         modifier = modifier.pointerInput(button) {
             detectTapGestures(
                 onPress = {
-                    Timber.i("Button $button pressed")
+                    Timber.d("Button $button pressed")
                     onPress(button)
                     try {
                         tryAwaitRelease()
                     } finally {
                         onRelease(button)
-                        Timber.i("Button $button released")
+                        Timber.d("Button $button released")
                     }
                 },
             )
@@ -277,13 +277,13 @@ private fun CircleButton(
             .pointerInput(button) {
                 detectTapGestures(
                     onPress = {
-                        Timber.i("Button $button pressed")
+                        Timber.d("Button $button pressed")
                         onPress(button)
                         try {
                             tryAwaitRelease()
                         } finally {
                             onRelease(button)
-                            Timber.i("Button $button released")
+                            Timber.d("Button $button released")
                         }
                     },
                 )
@@ -353,13 +353,13 @@ private fun PillButton(
                 .pointerInput(button) {
                     detectTapGestures(
                         onPress = {
-                            Timber.i("Button $button pressed")
+                            Timber.d("Button $button pressed")
                             onPress(button)
                             try {
                                 tryAwaitRelease()
                             } finally {
                                 onRelease(button)
-                                Timber.i("Button $button released")
+                                Timber.d("Button $button released")
                             }
                         },
                     )
