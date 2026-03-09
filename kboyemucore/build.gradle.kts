@@ -26,7 +26,6 @@ dependencies {
 
     testImplementation(libs.coroutines.test)
     testImplementation(libs.junit.jupiter)
-    testImplementation(libs.junit.jupiter)
     testImplementation(libs.turbine)
     testImplementation(libs.mockk)
     testImplementation(kotlin("test"))

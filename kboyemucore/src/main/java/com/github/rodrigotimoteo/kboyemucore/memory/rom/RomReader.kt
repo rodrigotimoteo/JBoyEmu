@@ -142,7 +142,10 @@ class RomReader(
      * Cartridge types: 0x03 (MBC1+RAM+BATT), 0x06 (MBC2+BATT), 0x09 (ROM+RAM+BATT),
      * 0x0F/0x10 (MBC3+TIMER+BATT), 0x13 (MBC3+RAM+BATT), 0x1B/0x1E (MBC5+RAM+BATT).
      */
-    fun hasBattery(): Boolean =
-        romContent[ReservedAddresses.CARTRIDGE_TYPE.memoryAddress].toInt() in
-            setOf(0x03, 0x06, 0x09, 0x0F, 0x10, 0x13, 0x1B, 0x1E)
+    fun hasBattery(): Boolean {
+        val index = ReservedAddresses.CARTRIDGE_TYPE.memoryAddress
+        val cartridgeType = romContent.getOrNull(index)?.toInt() ?: return false
+
+        return cartridgeType in setOf(0x03, 0x06, 0x09, 0x0F, 0x10, 0x13, 0x1B, 0x1E)
+    }
 }

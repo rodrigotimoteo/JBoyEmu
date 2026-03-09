@@ -2,7 +2,6 @@ package com.github.rodrigotimoteo.kboyemucore.ppu.drawer
 
 import com.github.rodrigotimoteo.kboyemucore.api.PpuDrawerState
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
-import com.github.rodrigotimoteo.kboyemucore.ktx.testBit
 import com.github.rodrigotimoteo.kboyemucore.memory.ReservedAddresses
 import com.github.rodrigotimoteo.kboyemucore.ppu.PPU
 import com.github.rodrigotimoteo.kboyemucore.util.HEIGHT
@@ -34,10 +33,10 @@ class DMGPPUDrawer(
      * Decodes a Game Boy palette register into 4 color values and stores them in [dest]
      */
     private fun decodePalette(palette: Int, dest: ByteArray) {
-        dest[0] = ((palette and 0x03)).toByte()
-        dest[1] = (((palette shr 2) and 0x03)).toByte()
-        dest[2] = (((palette shr 4) and 0x03)).toByte()
-        dest[3] = (((palette shr 6) and 0x03)).toByte()
+        dest[0] = (palette and 0x03).toByte()
+        dest[1] = ((palette shr 2) and 0x03).toByte()
+        dest[2] = ((palette shr 4) and 0x03).toByte()
+        dest[3] = ((palette shr 6) and 0x03).toByte()
     }
 
     /**
@@ -62,34 +61,39 @@ class DMGPPUDrawer(
         }
     }
 
-    /**
-     * Extracts the 2-bit color number from two tile data bytes at the given bit position
-     *
-     * @param address VRAM address of the first tile data byte
-     * @param bitOffset bit position within the tile line (7 = leftmost, 0 = rightmost)
-     * @return color number in the range 0-3
-     */
-    private fun getColorNumber(address: Int, bitOffset: Int): Int {
-        val low = bus.getValueFromPPU(address).toInt()
-        val high = bus.getValueFromPPU(address + 1).toInt()
-        return ((low shr bitOffset) and 1) + (((high shr bitOffset) and 1) shl 1)
-    }
-
     override fun drawBackground(tileMapAddress: Int, tileDataAddress: Int) {
         val tempY = (ppu.ppuRegisters.currentLine + ppu.ppuRegisters.scrollY) and 0xFF
+        val lineBase = ppu.ppuRegisters.currentLine * WIDTH
+        val tileRow = tempY shr 3            // tempY / 8
+        val tileLineOffset = tempY and 7     // tempY % 8
+        val mapRowBase = tileMapAddress + (tileRow shl 5) // tileRow * 32
 
         decodePalette(ppu.ppuRegisters.bgpRegister.value.toInt(), bgPalette)
 
-        for (x in 0 until WIDTH) {
-            val tempX = (ppu.ppuRegisters.scrollX + x) % 0x0100
+        val scrollX = ppu.ppuRegisters.scrollX
 
-            val address = tileMapAddress + ((tempY / 8) * 0x20)
-            val tile = bus.getValueFromPPU(address + tempX / 8).toInt()
+        // Cache tile data bytes so they are only read once per 8-pixel tile
+        var cachedTileCol = -1
+        var low = 0
+        var high = 0
 
-            val tileLine = resolveTileLineAddress(tile, tileDataAddress, tempY % 8)
-            val colorNum = getColorNumber(tileLine, 7 - (tempX % 8))
+        var x = 0
+        while (x < WIDTH) {
+            val tempX = (scrollX + x) and 0xFF
+            val tileCol = tempX shr 3   // tempX / 8
+            val bitOffset = 7 - (tempX and 7)
 
-            painting[ppu.ppuRegisters.currentLine * WIDTH + x] = bgPalette[colorNum]
+            if (tileCol != cachedTileCol) {
+                cachedTileCol = tileCol
+                val tile = bus.getValueFromPPU(mapRowBase + tileCol).toInt()
+                val tileAddr = resolveTileLineAddress(tile, tileDataAddress, tileLineOffset)
+                low = bus.getValueFromPPU(tileAddr).toInt()
+                high = bus.getValueFromPPU(tileAddr + 1).toInt()
+            }
+
+            val colorNum = ((low shr bitOffset) and 1) or (((high shr bitOffset) and 1) shl 1)
+            painting[lineBase + x] = bgPalette[colorNum]
+            x++
         }
     }
 
@@ -97,20 +101,39 @@ class DMGPPUDrawer(
         val tempY = ppu.ppuRegisters.currentLineWindow
 
         if (ppu.ppuRegisters.currentLine < ppu.ppuRegisters.windowY) return
-        if (ppu.ppuRegisters.windowX >= WIDTH) return
+        val winX = ppu.ppuRegisters.windowX
+        if (winX >= WIDTH) return
+
+        val lineBase = ppu.ppuRegisters.currentLine * WIDTH
+        val tileRow = tempY shr 3
+        val tileLineOffset = tempY and 7
+        val mapRowBase = tileMapAddress + (tileRow shl 5)
 
         decodePalette(ppu.ppuRegisters.bgpRegister.value.toInt(), bgPalette)
 
-        for (x in 0 until WIDTH) {
-            if (x < ppu.ppuRegisters.windowX) continue
+        // Cache tile data bytes per tile column
+        var cachedTileCol = -1
+        var low = 0
+        var high = 0
 
-            val tempX = x - ppu.ppuRegisters.windowX
+        // Start at winX directly instead of iterating from 0 and skipping
+        var x = if (winX > 0) winX else 0
+        while (x < WIDTH) {
+            val localX = x - winX
+            val tileCol = localX shr 3
+            val bitOffset = 7 - (localX and 7)
 
-            val tile = bus.getValueFromPPU(tileMapAddress + ((tempY / 8) * 0x20) + (tempX / 8)).toInt()
-            val tileLine = resolveTileLineAddress(tile, tileDataAddress, tempY % 8)
-            val colorNum = getColorNumber(tileLine, 7 - (tempX % 8))
+            if (tileCol != cachedTileCol) {
+                cachedTileCol = tileCol
+                val tile = bus.getValueFromPPU(mapRowBase + tileCol).toInt()
+                val tileAddr = resolveTileLineAddress(tile, tileDataAddress, tileLineOffset)
+                low = bus.getValueFromPPU(tileAddr).toInt()
+                high = bus.getValueFromPPU(tileAddr + 1).toInt()
+            }
 
-            painting[ppu.ppuRegisters.currentLine * WIDTH + x] = bgPalette[colorNum]
+            val colorNum = ((low shr bitOffset) and 1) or (((high shr bitOffset) and 1) shl 1)
+            painting[lineBase + x] = bgPalette[colorNum]
+            x++
         }
 
         ppu.ppuRegisters.currentLineWindow++
@@ -119,27 +142,31 @@ class DMGPPUDrawer(
     @Suppress("LongMethod", "CyclomaticComplexMethod", "NestedBlockDepth")
     override fun drawSprite() {
         val drawnX = IntArray(10)
+        val currentLine = ppu.ppuRegisters.currentLine
+        val lineBase = currentLine * WIDTH
 
         decodePalette(ppu.ppuRegisters.obp0Register.value.toInt(), obp0Palette)
         decodePalette(ppu.ppuRegisters.obp1Register.value.toInt(), obp1Palette)
 
         var drawnSprites = 0
         val spriteOffset = if (ppu.ppuRegisters.spriteSize) 16 else 8
+        val oamBase = ReservedAddresses.OAM_START.memoryAddress
+        val vramBase = ReservedAddresses.SWITCH_ROM_END.memoryAddress
 
         var spriteNumber = 0
         while (spriteNumber < 40 && drawnSprites < 10) {
-            val tempY =
-                bus.getValueFromPPU(ReservedAddresses.OAM_START.memoryAddress + (spriteNumber * 4))
-                    .toInt() - 16
-            val tempX =
-                bus.getValueFromPPU(ReservedAddresses.OAM_START.memoryAddress + (spriteNumber * 4) + 1)
-                    .toInt() - 8
-            var tile =
-                bus.getValueFromPPU(ReservedAddresses.OAM_START.memoryAddress + (spriteNumber * 4) + 2)
-                    .toInt()
+            val oamAddr = oamBase + (spriteNumber shl 2) // spriteNumber * 4
+            val tempY = bus.getValueFromPPU(oamAddr).toInt() - 16
+            val tempX = bus.getValueFromPPU(oamAddr + 1).toInt() - 8
+            var tile = bus.getValueFromPPU(oamAddr + 2).toInt()
 
+            // Check for duplicate X positions among already-drawn sprites
             var quit = false
-            if (drawnSprites > 1) for (x in drawnX) if (x == tempX) quit = true
+            if (drawnSprites > 1) {
+                for (i in 0 until drawnSprites) {
+                    if (drawnX[i] == tempX) { quit = true; break }
+                }
+            }
             if (quit) {
                 spriteNumber++
                 continue
@@ -147,41 +174,38 @@ class DMGPPUDrawer(
 
             if (spriteOffset == 16) tile = tile and 0xFE
 
-            val attributesAddress =
-                ReservedAddresses.OAM_START.memoryAddress + (spriteNumber * 4) + 3
+            if (currentLine >= tempY && currentLine < tempY + spriteOffset) {
+                val attributes = bus.getValueFromPPU(oamAddr + 3).toInt()
+                val priority = (attributes and 0x80) != 0
+                val yFlipped = (attributes and 0x40) != 0
+                val xFlipped = (attributes and 0x20) != 0
 
-            if ((ppu.ppuRegisters.currentLine >= tempY) && (ppu.ppuRegisters.currentLine < (tempY + spriteOffset))) {
-                val attributes = bus.getValueFromPPU(attributesAddress)
-                val priority: Boolean = attributes.testBit(7)
-                val yFlipped: Boolean = attributes.testBit(6)
-                val xFlipped: Boolean = attributes.testBit(5)
+                val spritePalette = if ((attributes and 0x10) != 0) obp1Palette else obp0Palette
 
-                val spritePalette = if (attributes.testBit(4)) obp1Palette else obp0Palette
-
-                val tileLine = spriteOffset - (ppu.ppuRegisters.currentLine - tempY)
+                val tileLine = spriteOffset - (currentLine - tempY)
                 val offset: Int = if (!yFlipped) {
-                    2 * (ppu.ppuRegisters.currentLine - tempY)
+                    2 * (currentLine - tempY)
                 } else {
                     2 * (tileLine - 1)
                 }
 
-                val pixelDataAddress =
-                    ReservedAddresses.SWITCH_ROM_END.memoryAddress + tile * 16 + offset
+                val pixelDataAddress = vramBase + tile * 16 + offset
+                // Hoist tile data reads out of the per-pixel loop
+                val lowByte = bus.getValueFromPPU(pixelDataAddress).toInt()
+                val highByte = bus.getValueFromPPU(pixelDataAddress + 1).toInt()
 
                 @Suppress("LoopWithTooManyJumpStatements")
                 for (pixelPrinted in 0..7) {
-                    if (tempX + pixelPrinted !in 0..<160) continue
-                    if (priority && painting[ppu.ppuRegisters.currentLine * WIDTH + tempX + pixelPrinted] > 0) continue
+                    val screenX = tempX + pixelPrinted
+                    if (screenX !in 0 until 160) continue
+                    if (priority && painting[lineBase + screenX] > 0) continue
 
-                    val x = if (xFlipped) pixelPrinted else 7 - pixelPrinted
-                    val colorNum: Int =
-                        ((bus.getValueFromPPU(pixelDataAddress).toInt() and (1 shl x)) shr x) +
-                                (((bus.getValueFromPPU(pixelDataAddress + 1)
-                                    .toInt() and (1 shl x)) shr x) * 2)
+                    val bitPos = if (xFlipped) pixelPrinted else 7 - pixelPrinted
+                    val colorNum = ((lowByte shr bitPos) and 1) or
+                            (((highByte shr bitPos) and 1) shl 1)
 
-                    if ((tempX + pixelPrinted < 160) && (tempX + pixelPrinted >= 0) && (colorNum != 0)) {
-                        painting[ppu.ppuRegisters.currentLine * WIDTH + tempX + pixelPrinted] =
-                            spritePalette[colorNum]
+                    if (colorNum != 0) {
+                        painting[lineBase + screenX] = spritePalette[colorNum]
                     }
                 }
 
@@ -206,4 +230,3 @@ class DMGPPUDrawer(
         // DMG drawer has no persistent state beyond what memory registers already capture
     }
 }
-

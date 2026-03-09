@@ -10,6 +10,7 @@ import com.github.rodrigotimoteo.kboyemucore.ppu.drawer.DMGPPUDrawer
 import com.github.rodrigotimoteo.kboyemucore.ppu.drawer.IPPUDrawer
 import com.github.rodrigotimoteo.kboyemucore.util.HEIGHT
 import com.github.rodrigotimoteo.kboyemucore.util.Logger
+import com.github.rodrigotimoteo.kboyemucore.util.ONE_SECOND_NS
 import com.github.rodrigotimoteo.kboyemucore.util.WIDTH
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -49,7 +50,7 @@ class PPU(
     private var frameCount = 0
 
     /** Variable used to store the last timestamp when the FPS was calculated */
-    private var lastTimestampMs = System.currentTimeMillis()
+    private var lastTimestampMs = System.nanoTime()
 
     /**
      * Returns the window map address based on the current PPURegisters configuration
@@ -126,10 +127,10 @@ class PPU(
         )
 
         frameCount++
-        val nowMs = System.currentTimeMillis()
+        val nowMs = System.nanoTime()
         val elapsedMs = nowMs - lastTimestampMs
-        if (elapsedMs >= 1000) {
-            val fps = (frameCount * 1000.0) / elapsedMs
+        if (elapsedMs >= ONE_SECOND_NS) {
+            val fps = (frameCount * ONE_SECOND_NS.toDouble()) / elapsedMs
             logger.d("PPU FPS: %.1f".format(fps))
             frameCount = 0
             lastTimestampMs = nowMs

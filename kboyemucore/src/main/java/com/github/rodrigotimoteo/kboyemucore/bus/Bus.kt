@@ -17,17 +17,28 @@ import com.github.rodrigotimoteo.kboyemucore.spu.AudioRingBuffer
 import com.github.rodrigotimoteo.kboyemucore.spu.SPU
 import com.github.rodrigotimoteo.kboyemucore.util.FILTER_LOWER_BITS
 import com.github.rodrigotimoteo.kboyemucore.util.FILTER_TOP_BITS
-import com.github.rodrigotimoteo.kboyemucore.util.FRAME_DURATION_MS_60FPS
+import com.github.rodrigotimoteo.kboyemucore.util.FRAME_DURATION_NS_60FPS
 import com.github.rodrigotimoteo.kboyemucore.util.Logger
 import com.github.rodrigotimoteo.kboyemucore.util.MutableUByte
+import com.github.rodrigotimoteo.kboyemucore.util.ONE_SECOND_NS
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlin.system.exitProcess
 
+/**
+ * The Bus class is the central hub of the emulator, connecting the CPU, PPU, SPU, memory, and
+ * controller. It implements the necessary memory operations for both the CPU and PPU, and manages
+ * the main emulation loop that ticks the CPU and PPU in sync with real time.
+ *
+ * @param rom the game ROM to load into memory
+ * @param isCGB whether the loaded
+ *
+ * @author rodrigotimoteo
+ */
 @Suppress("TooManyFunctions")
 @OptIn(ExperimentalUnsignedTypes::class)
 class Bus(
@@ -36,8 +47,10 @@ class Bus(
     private val logger: Logger,
 ) : CpuMemoryOperations, PpuMemoryOperations {
 
+    /** Backing property for the currently running emulation [Job] */
     private var _runningJob: Job? = null
 
+    /** Public getter for the currently running emulation job, if any */
     val runningJob: Job?
         get() = _runningJob
 
@@ -49,32 +62,32 @@ class Bus(
     var speedMultiplier: Int = 1
 
     /**
-     * Memory Manager reference
+     * [MemoryManager] reference
      */
     private val memoryManager = MemoryManager(this, logger, rom)
 
     /**
-     * CPU reference
+     * [CPU] reference
      */
     private val cpu = CPU(this, logger)
 
     /**
-     * PPU reference
+     * [PPU] reference
      */
     private val ppu = PPU(this, logger)
 
     /**
-     * Controller reference
+     * [Controller] reference
      */
-    private val controller = Controller(this, logger)
+    private val controller = Controller(this)
 
     /**
-     * SPU (Sound Processing Unit) reference
+     * [SPU] (Sound Processing Unit) reference
      */
     internal val spu = SPU(logger)
 
     /**
-     * Audio ring buffer — read from the Android audio thread
+     * [AudioRingBuffer] — read from the Android audio thread
      */
     val audioRingBuffer: AudioRingBuffer = spu.ringBuffer
 
@@ -83,6 +96,7 @@ class Bus(
      */
     val frameBuffer = ppu.painting
 
+    /** Current mode of the PPU, used for timing and mode-specific behavior in the CPU and SPU */
     internal val ppuMode: PPUModes
         get() = ppu.ppuRegisters.mode
 
@@ -95,57 +109,55 @@ class Bus(
      * order and timing
      */
     fun run() {
-        if (_runningJob?.isActive == true) {
-            logger.i("Emulator job is already active quitting run()")
-            return
+        val oldJob = _runningJob
+        if (oldJob?.isActive == true) {
+            oldJob.cancel()
         }
         _runningJob = CoroutineScope(Dispatchers.Default).launch {
+            // Wait for the previous coroutine to finish before starting a new loop
+            oldJob?.join()
             logger.i("Starting emulator job")
 
             cpu.tick()
             ppu.tick()
 
-            var lastRtcMs = System.currentTimeMillis()
-            var frameStartMs = lastRtcMs
+            var lastRtcNs = System.nanoTime()
+            var frameStartNs = lastRtcNs
 
             while (true) {
-                try {
-                    val cpuCounter: Int = cpu.getCounter()
-                    if (!ppu.lcdOn) {
-                        cpu.tick()
-                        ppu.checkLCDStatus()
-                        spu.tick((cpu.getCounter() - cpuCounter) * 4)
-                    } else {
-                        cpu.tick()
-                        val elapsed = cpu.getCounter() - cpuCounter
-                        repeat(elapsed) {
-                            ppu.tick()
-                        }
-                        spu.tick(elapsed * 4)
+                ensureActive()
+
+                val cpuCounter: Int = cpu.getCounter()
+                if (!ppu.lcdOn) {
+                    cpu.tick()
+                    ppu.checkLCDStatus()
+                    spu.tick((cpu.getCounter() - cpuCounter) * 4)
+                } else {
+                    cpu.tick()
+                    val elapsed = cpu.getCounter() - cpuCounter
+                    repeat(elapsed) {
+                        ppu.tick()
                     }
+                    spu.tick(elapsed * 4)
+                }
 
+                if (ppu.isVBlankStart()) {
+                    val now = System.nanoTime()
 
-                    val now = System.currentTimeMillis()
-
-                    if (now - lastRtcMs >= 1000) {
+                    if (now - lastRtcNs >= ONE_SECOND_NS) {
                         memoryManager.tickRtc()
-                        lastRtcMs = now
+                        lastRtcNs = now
                     }
 
                     // Sleep at the end of each VBlank to cap frame rate
-                    if (ppu.isVBlankStart()) {
-                        val speed = speedMultiplier
-                        if (speed > 0) {
-                            val targetMs = FRAME_DURATION_MS_60FPS / speed
-                            val elapsed = System.currentTimeMillis() - frameStartMs
-                            val sleepMs = targetMs - elapsed
-                            if (sleepMs > 0) delay(sleepMs)
-                        }
-                        frameStartMs = System.currentTimeMillis()
+                    val speed = speedMultiplier
+                    if (speed > 0) {
+                        val targetNs = FRAME_DURATION_NS_60FPS / speed
+                        val elapsedNs = now - frameStartNs
+                        val sleepNs = targetNs - elapsedNs
+                        if (sleepNs > 0) delay(sleepNs / 1_000_000L)
                     }
-                } catch (e: InterruptedException) {
-                    logger.e("Emulator job crashed, exiting", e)
-                    exitProcess(-1)
+                    frameStartNs = System.nanoTime()
                 }
             }
         }
