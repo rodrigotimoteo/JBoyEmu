@@ -17,17 +17,28 @@ import com.github.rodrigotimoteo.kboyemucore.spu.AudioRingBuffer
 import com.github.rodrigotimoteo.kboyemucore.spu.SPU
 import com.github.rodrigotimoteo.kboyemucore.util.FILTER_LOWER_BITS
 import com.github.rodrigotimoteo.kboyemucore.util.FILTER_TOP_BITS
-import com.github.rodrigotimoteo.kboyemucore.util.FRAME_DURATION_MS_60FPS
+import com.github.rodrigotimoteo.kboyemucore.util.FRAME_DURATION_NS_60FPS
 import com.github.rodrigotimoteo.kboyemucore.util.Logger
 import com.github.rodrigotimoteo.kboyemucore.util.MutableUByte
+import com.github.rodrigotimoteo.kboyemucore.util.ONE_SECOND_NS
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlin.system.exitProcess
 
+/**
+ * The Bus class is the central hub of the emulator, connecting the CPU, PPU, SPU, memory, and
+ * controller. It implements the necessary memory operations for both the CPU and PPU, and manages
+ * the main emulation loop that ticks the CPU and PPU in sync with real time.
+ *
+ * @param rom the game ROM to load into memory
+ * @param isCGB whether the loaded
+ *
+ * @author rodrigotimoteo
+ */
 @Suppress("TooManyFunctions")
 @OptIn(ExperimentalUnsignedTypes::class)
 class Bus(
@@ -36,38 +47,47 @@ class Bus(
     private val logger: Logger,
 ) : CpuMemoryOperations, PpuMemoryOperations {
 
+    /** Backing property for the currently running emulation [Job] */
     private var _runningJob: Job? = null
 
+    /** Public getter for the currently running emulation job, if any */
     val runningJob: Job?
         get() = _runningJob
 
     /**
-     * Memory Manager reference
+     * Speed multiplier for frame pacing. 1 = normal (60 fps), 2 = 200%, etc.
+     * A value of 0 means unlimited (no sleep between frames).
+     */
+    @Volatile
+    var speedMultiplier: Int = 1
+
+    /**
+     * [MemoryManager] reference
      */
     private val memoryManager = MemoryManager(this, logger, rom)
 
     /**
-     * CPU reference
+     * [CPU] reference
      */
     private val cpu = CPU(this, logger)
 
     /**
-     * PPU reference
+     * [PPU] reference
      */
     private val ppu = PPU(this, logger)
 
     /**
-     * Controller reference
+     * [Controller] reference
      */
-    private val controller = Controller(this, logger)
+    private val controller = Controller(this)
 
     /**
-     * SPU (Sound Processing Unit) reference
+     * [SPU] (Sound Processing Unit) reference
      */
     internal val spu = SPU(logger)
 
     /**
-     * Audio ring buffer — read from the Android audio thread
+     * [AudioRingBuffer] — read from the Android audio thread
      */
     val audioRingBuffer: AudioRingBuffer = spu.ringBuffer
 
@@ -76,6 +96,7 @@ class Bus(
      */
     val frameBuffer = ppu.painting
 
+    /** Current mode of the PPU, used for timing and mode-specific behavior in the CPU and SPU */
     internal val ppuMode: PPUModes
         get() = ppu.ppuRegisters.mode
 
@@ -88,115 +109,55 @@ class Bus(
      * order and timing
      */
     fun run() {
-        if (_runningJob?.isActive == true) {
-            logger.i("Emulator job is already active quitting run()")
-            return
+        val oldJob = _runningJob
+        if (oldJob?.isActive == true) {
+            oldJob.cancel()
         }
         _runningJob = CoroutineScope(Dispatchers.Default).launch {
+            // Wait for the previous coroutine to finish before starting a new loop
+            oldJob?.join()
             logger.i("Starting emulator job")
 
             cpu.tick()
             ppu.tick()
 
-            var lastRtcMs = System.currentTimeMillis()
-            var frameStartMs = lastRtcMs
-
-            // ── Debug: detect hangs ──────────────────────────────────────────
-            var debugLastLogMs = System.currentTimeMillis()
-            var debugLastPC = -1
-            var debugSamePcCount = 0
-            var debugHaltTicks = 0L
-            var debugStopTicks = 0L
-            var debugInstrCount = 0L
-            // ─────────────────────────────────────────────────────────────────
+            var lastRtcNs = System.nanoTime()
+            var frameStartNs = lastRtcNs
 
             while (true) {
-                try {
-                    val cpuCounter: Int = cpu.getCounter()
-                    if (!ppu.lcdOn) {
-                        cpu.tick()
-                        ppu.checkLCDStatus()
-                        spu.tick((cpu.getCounter() - cpuCounter) * 4)
-                    } else {
-                        cpu.tick()
-                        val elapsed = cpu.getCounter() - cpuCounter
-                        repeat(elapsed) {
-                            ppu.tick()
-                        }
-                        spu.tick(elapsed * 4)
+                ensureActive()
+
+                val cpuCounter: Int = cpu.getCounter()
+                if (!ppu.lcdOn) {
+                    cpu.tick()
+                    ppu.checkLCDStatus()
+                    spu.tick((cpu.getCounter() - cpuCounter) * 4)
+                } else {
+                    cpu.tick()
+                    val elapsed = cpu.getCounter() - cpuCounter
+                    repeat(elapsed) {
+                        ppu.tick()
                     }
+                    spu.tick(elapsed * 4)
+                }
 
-                    // ── Debug tracking ───────────────────────────────────────
-                    debugInstrCount++
-                    if (cpu.isHalted()) debugHaltTicks++
-                    if (cpu.isStopped()) debugStopTicks++
+                if (ppu.isVBlankStart()) {
+                    val now = System.nanoTime()
 
-                    val currentPC = cpu.cpuRegisters.getProgramCounter()
-                    if (currentPC == debugLastPC) {
-                        debugSamePcCount++
-                    } else {
-                        debugSamePcCount = 0
-                        debugLastPC = currentPC
-                    }
-
-                    val debugNow = System.currentTimeMillis()
-                    if (debugNow - debugLastLogMs >= 2000) {
-                        val ie = memoryManager.getValue(0xFFFF).toInt()
-                        val iff = memoryManager.getValue(0xFF0F).toInt()
-                        val lcdc = memoryManager.getValue(0xFF40).toInt()
-                        val stat = memoryManager.getValue(0xFF41).toInt()
-                        val ly = memoryManager.getValue(0xFF44).toInt()
-                        val opcode = memoryManager.getValue(currentPC).toInt()
-
-                        logger.d(
-                            "DBG: PC=%04X op=%02X halted=%b stopped=%b IME=%b IE=%02X IF=%02X LCDC=%02X STAT=%02X LY=%d samePc=%d haltT=%d stopT=%d instr=%d".format(
-                                currentPC, opcode,
-                                cpu.isHalted(), cpu.isStopped(),
-                                cpu.interrupts.isImeEnabled,
-                                ie, iff, lcdc, stat, ly,
-                                debugSamePcCount, debugHaltTicks, debugStopTicks, debugInstrCount
-                            )
-                        )
-                        debugHaltTicks = 0
-                        debugStopTicks = 0
-                        debugInstrCount = 0
-                        debugLastLogMs = debugNow
-                    }
-
-                    if (debugSamePcCount > 500_000) {
-                        val ie = memoryManager.getValue(0xFFFF).toInt()
-                        val iff = memoryManager.getValue(0xFF0F).toInt()
-                        val opcode = memoryManager.getValue(currentPC).toInt()
-                        logger.e(
-                            "HANG DETECTED: PC=%04X op=%02X halted=%b stopped=%b IME=%b IE=%02X IF=%02X".format(
-                                currentPC, opcode,
-                                cpu.isHalted(), cpu.isStopped(),
-                                cpu.interrupts.isImeEnabled,
-                                ie, iff
-                            ),
-                            null
-                        )
-                        debugSamePcCount = 0
-                    }
-                    // ─────────────────────────────────────────────────────────
-
-                    val now = System.currentTimeMillis()
-
-                    if (now - lastRtcMs >= 1000) {
+                    if (now - lastRtcNs >= ONE_SECOND_NS) {
                         memoryManager.tickRtc()
-                        lastRtcMs = now
+                        lastRtcNs = now
                     }
 
-                    // Sleep at the end of each VBlank to cap at 60fps
-                    if (ppu.isVBlankStart()) {
-                        val elapsed = System.currentTimeMillis() - frameStartMs
-                        val sleepMs = FRAME_DURATION_MS_60FPS - elapsed
-                        if (sleepMs > 0) delay(sleepMs)
-                        frameStartMs = System.currentTimeMillis()
+                    // Sleep at the end of each VBlank to cap frame rate
+                    val speed = speedMultiplier
+                    if (speed > 0) {
+                        val targetNs = FRAME_DURATION_NS_60FPS / speed
+                        val elapsedNs = now - frameStartNs
+                        val sleepNs = targetNs - elapsedNs
+                        if (sleepNs > 0) delay(sleepNs / 1_000_000L)
                     }
-                } catch (e: InterruptedException) {
-                    logger.e("Emulator job crashed, exiting", e)
-                    exitProcess(-1)
+                    frameStartNs = System.nanoTime()
                 }
             }
         }
@@ -388,4 +349,18 @@ class Bus(
         ppu.loadState(state.ppu)
         spu.loadState(state.spu)
     }
+
+    /**
+     * Dumps all ERAM banks as a flat byte array for battery-backed save games
+     *
+     * @return raw ERAM bytes, or null if the cartridge has no external RAM
+     */
+    fun dumpEram(): ByteArray? = memoryManager.dumpEram()
+
+    /**
+     * Restores ERAM from a previously dumped byte array
+     *
+     * @param data flat ERAM dump previously obtained from [dumpEram]
+     */
+    fun loadEram(data: ByteArray) = memoryManager.loadEram(data)
 }

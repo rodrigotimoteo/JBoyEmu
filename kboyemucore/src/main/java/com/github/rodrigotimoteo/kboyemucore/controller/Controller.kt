@@ -3,7 +3,6 @@ package com.github.rodrigotimoteo.kboyemucore.controller
 import com.github.rodrigotimoteo.kboyemucore.api.Button
 import com.github.rodrigotimoteo.kboyemucore.bus.Bus
 import com.github.rodrigotimoteo.kboyemucore.cpu.interrupts.InterruptNames
-import com.github.rodrigotimoteo.kboyemucore.util.Logger
 
 /**
  * This class is responsible for handling the joypad input and updating the joypad value accordingly.
@@ -12,7 +11,6 @@ import com.github.rodrigotimoteo.kboyemucore.util.Logger
  */
 class Controller(
     private val bus: Bus,
-    private val logger: Logger,
 ) {
     /**
      * Stores the current value of the joypad, which is updated when buttons are pressed and released

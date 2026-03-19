@@ -1,102 +1,147 @@
 package com.github.rodrigotimoteo.kboyemu.presentation.emulator
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import android.content.res.Configuration
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
-import com.github.rodrigotimoteo.kboyemu.presentation.emulator.uistate.EmulatorUiState
-import com.github.rodrigotimoteo.kboyemu.presentation.emulator.viewmodel.KBoyEmulatorViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import com.github.rodrigotimoteo.kboyemu.presentation.emulator.controls.EmulatorControls
+import com.github.rodrigotimoteo.kboyemu.presentation.emulator.viewmodel.EmulatorViewModel
 import org.koin.androidx.compose.koinViewModel
 
+private const val LANDSCAPE_CONTROLS_ALPHA = 0.35f
+private const val GAME_ASPECT_RATIO = 160f / 144f
+
+/**
+ * Emulator screen showing the game display and controls. In portrait mode the game screen sits
+ * at the top and the controls are pushed toward the bottom for comfortable grip. In landscape
+ * mode the game fills the screen and semi-transparent controls overlay on top.
+ *
+ * @param onNavigateToSettings callback invoked when the user taps the settings gear icon
+ * @param modifier modifier applied to the root layout
+ *
+ * @author rodrigotimoteo
+ */
 @Composable
 fun EmulatorScreen(
+    onNavigateToSettings: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: KBoyEmulatorViewModel = koinViewModel(),
-) {
-    val state by viewModel.state.collectAsState()
-
-    when (state) {
-        EmulatorUiState.WaitingForRom -> RomPickerScreen(
-            modifier = modifier,
-            onRomSelected = { uri -> viewModel.loadRom(uri) }
-        )
-
-        EmulatorUiState.Running -> RunningEmulatorScreen(
-            modifier = modifier,
-            viewModel = viewModel
-        )
-    }
-}
-
-@Composable
-private fun RomPickerScreen(
-    modifier: Modifier = Modifier,
-    onRomSelected: (android.net.Uri) -> Unit,
-) {
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri -> uri?.let(onRomSelected) }
-
-    Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "KBoy Emulator",
-                style = MaterialTheme.typography.headlineMedium
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Select a Game Boy ROM to play",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(32.dp))
-            Button(
-                onClick = { launcher.launch(arrayOf("*/*")) }
-            ) {
-                Text("Select ROM")
-            }
-        }
-    }
-}
-
-@Composable
-private fun RunningEmulatorScreen(
-    modifier: Modifier = Modifier,
-    viewModel: KBoyEmulatorViewModel,
+    viewModel: EmulatorViewModel = koinViewModel(),
 ) {
     val image by viewModel.frameBitmap.collectAsState()
+    val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    Column(modifier = modifier) {
-        Image(
-            bitmap = image,
-            contentDescription = null,
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(160f / 144f)
-        )
+    LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) {
+        viewModel.pauseEmulation()
+    }
 
-        EmulatorControls(viewModel = viewModel)
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        viewModel.resumeEmulation()
+    }
+
+    if (isLandscape) {
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .background(Color.Black),
+        ) {
+            Image(
+                bitmap = image,
+                contentDescription = "Game screen",
+                filterQuality = FilterQuality.None,
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .aspectRatio(GAME_ASPECT_RATIO)
+                    .align(Alignment.Center),
+            )
+
+            EmulatorControls(
+                onPress = viewModel::press,
+                onRelease = viewModel::release,
+                alpha = LANDSCAPE_CONTROLS_ALPHA,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .align(Alignment.BottomCenter),
+            )
+
+            IconButton(
+                onClick = onNavigateToSettings,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(4.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Settings,
+                    contentDescription = "Settings",
+                    tint = Color.White.copy(alpha = 0.6f),
+                )
+            }
+        }
+    } else {
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
+            verticalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.Black),
+            ) {
+                Image(
+                    bitmap = image,
+                    contentDescription = "Game screen",
+                    filterQuality = FilterQuality.None,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(GAME_ASPECT_RATIO),
+                )
+
+                IconButton(
+                    onClick = onNavigateToSettings,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(4.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Settings,
+                        contentDescription = "Settings",
+                        tint = Color.White.copy(alpha = 0.6f),
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            EmulatorControls(
+                onPress = viewModel::press,
+                onRelease = viewModel::release,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
+        }
     }
 }

@@ -68,6 +68,26 @@ class RomReader(
     }
 
     /**
+     * Reads the game title from the ROM header (0x0134–0x0142). Trims trailing null bytes
+     * and non-printable characters.
+     *
+     * @return game title string, or "Unknown" if the ROM is not loaded
+     */
+    fun getTitle(): String {
+        if (romContent.isEmpty()) return "Unknown"
+
+        val start = ReservedAddresses.TITLE_START.memoryAddress
+        val end = ReservedAddresses.TITLE_END.memoryAddress
+
+        return romContent.sliceArray(start..end)
+            .map { it.toByte().toInt().toChar() }
+            .filter { it.code in 0x20..0x7E }
+            .joinToString("")
+            .trim()
+            .ifEmpty { "Unknown" }
+    }
+
+    /**
      * Build and return a new MemoryModule for the given rom
      */
     fun getRomModule(): MemoryModule =
@@ -116,4 +136,16 @@ class RomReader(
      */
     private fun hasRtc(): Boolean =
         romContent[ReservedAddresses.CARTRIDGE_TYPE.memoryAddress].toInt() in setOf(0x0F, 0x10)
+
+    /**
+     * Returns whether the cartridge has battery-backed SRAM that should persist across sessions.
+     * Cartridge types: 0x03 (MBC1+RAM+BATT), 0x06 (MBC2+BATT), 0x09 (ROM+RAM+BATT),
+     * 0x0F/0x10 (MBC3+TIMER+BATT), 0x13 (MBC3+RAM+BATT), 0x1B/0x1E (MBC5+RAM+BATT).
+     */
+    fun hasBattery(): Boolean {
+        val index = ReservedAddresses.CARTRIDGE_TYPE.memoryAddress
+        val cartridgeType = romContent.getOrNull(index)?.toInt() ?: return false
+
+        return cartridgeType in setOf(0x03, 0x06, 0x09, 0x0F, 0x10, 0x13, 0x1B, 0x1E)
+    }
 }

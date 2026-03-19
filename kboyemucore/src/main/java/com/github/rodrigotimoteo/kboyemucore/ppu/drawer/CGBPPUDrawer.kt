@@ -100,8 +100,14 @@ class CGBPPUDrawer(
     )
 
     override fun loadState(state: PpuDrawerState) {
-        state.bgPaletteRam?.copyInto(bgPaletteRam, endIndex = minOf(state.bgPaletteRam.size, bgPaletteRam.size))
-        state.objPaletteRam?.copyInto(objPaletteRam, endIndex = minOf(state.objPaletteRam.size, objPaletteRam.size))
+        state.bgPaletteRam?.copyInto(
+            bgPaletteRam,
+            endIndex = minOf(state.bgPaletteRam.size, bgPaletteRam.size)
+        )
+        state.objPaletteRam?.copyInto(
+            objPaletteRam,
+            endIndex = minOf(state.objPaletteRam.size, objPaletteRam.size)
+        )
     }
 
     /**
@@ -134,8 +140,8 @@ class CGBPPUDrawer(
         return when {
             luminance >= 24 -> 0
             luminance >= 16 -> 1
-            luminance >= 8  -> 2
-            else            -> 3
+            luminance >= 8 -> 2
+            else -> 3
         }.toByte()
     }
 
@@ -317,8 +323,10 @@ class CGBPPUDrawer(
 
                     val bitPos = if (xFlipped) pixelPrinted else 7 - pixelPrinted
                     val colorIdx =
-                        ((bus.getValueFromPPUBank(pixelDataAddress, vramBank).toInt() shr bitPos) and 1) +
-                                (((bus.getValueFromPPUBank(pixelDataAddress + 1, vramBank).toInt() shr bitPos) and 1) shl 1)
+                        ((bus.getValueFromPPUBank(pixelDataAddress, vramBank)
+                            .toInt() shr bitPos) and 1) +
+                                (((bus.getValueFromPPUBank(pixelDataAddress + 1, vramBank)
+                                    .toInt() shr bitPos) and 1) shl 1)
 
                     if (colorIdx != 0) {
                         colorBuffer[pixelPos] = getColor(objPaletteRam, objPaletteNum, colorIdx)

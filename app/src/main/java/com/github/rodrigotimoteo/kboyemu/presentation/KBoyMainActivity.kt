@@ -9,21 +9,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.github.rodrigotimoteo.kboyemu.presentation.emulator.EmulatorScreen
+import androidx.navigation.compose.rememberNavController
+import com.github.rodrigotimoteo.kboyemu.presentation.navigation.KBoyNavHost
 import com.github.rodrigotimoteo.kboyemu.presentation.theme.KBoyEmuTheme
 
 /**
- * Main activity for the KBoy emulator app
+ * Main activity for the KBoy emulator app. Hosts the navigation graph and applies the theme.
  *
  * @author rodrigotimoteo
  */
 class KBoyMainActivity : ComponentActivity() {
 
     /**
-     * Called when the activity is created. Sets up the content view and enables edge-to-edge display.
+     * Called when the activity is created. Sets up edge-to-edge display and the Compose content.
      *
-     * @param savedInstanceState The saved instance state bundle
+     * @param savedInstanceState the saved instance state bundle
      */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,30 +33,22 @@ class KBoyMainActivity : ComponentActivity() {
         }
     }
 
-    override fun onPause() {
-        super.onPause()
-    }
-
     /**
-     * Composable function that sets up the main content of the activity
+     * Root composable that wires up the theme, scaffold, and navigation host
      */
     @Composable
-    fun Content() {
+    private fun Content() {
         KBoyEmuTheme {
+            val navController = rememberNavController()
+
             Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                EmulatorScreen(
+                KBoyNavHost(
+                    navController = navController,
                     modifier = Modifier
                         .padding(innerPadding)
-                        .fillMaxSize()
+                        .fillMaxSize(),
                 )
             }
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    KBoyEmuTheme {
     }
 }
