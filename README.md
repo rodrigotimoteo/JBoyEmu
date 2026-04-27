@@ -1,4 +1,4 @@
-# JBoyEmu - A Game Boy Emulator
+# KBoyEmu - A Game Boy Emulator
 
 A fully-featured Game Boy emulator written in Kotlin, featuring cycle-accurate CPU and PPU emulation, support for most cartridge types, and a modern Android UI built with Jetpack Compose.
 
@@ -10,9 +10,9 @@ A fully-featured Game Boy emulator written in Kotlin, featuring cycle-accurate C
 - ✅ **Cycle-Accurate Emulation** - Accurate CPU and PPU timing for proper game behavior
 - ✅ **Full DMG Support** - Complete Game Boy (original) compatibility
 - ✅ **Multiple Cartridge Types** - MBC0, MBC1, MBC2, MBC3, MBC5 support
-- ✅ **Audio** - Full sound channel emulation (APU)
+- ✅ **Audio (APU)** - Mostly complete sound channel emulation
 - ✅ **Save States** - Save and load game progress
-- ⏳ **Game Boy Color Support** - Partial CGB mode implementation
+- ✅ **Game Boy Color Support** - Mostly complete CGB mode implementation
 - 🎮 **Touch Controls** - On-screen button controls for Android
 - 📊 **Performance Profiling** - Built-in FPS monitoring and cycle tracking
 
@@ -20,31 +20,38 @@ A fully-featured Game Boy emulator written in Kotlin, featuring cycle-accurate C
 
 ```
 JBoyEmu/
-├── app/                          # Android application (Jetpack Compose UI)
+├── app/                          # Android app (Jetpack Compose UI)
 │   ├── src/main/
 │   │   ├── java/com/github/rodrigotimoteo/kboyemu/
+│   │   │   ├── KBoyEmulatorApplication.kt
+│   │   │   ├── data/             # Data layer
 │   │   │   ├── di/               # Koin DI configuration
-│   │   │   ├── presentation/     # Compose UI components
-│   │   │   └── util/             # Android-specific utilities
-│   │   └── assets/               # ROM files for testing
+│   │   │   ├── domain/           # Domain layer
+│   │   │   ├── presentation/     # Compose UI
+│   │   │   └── util/             # Android utilities
+│   │   └── assets/               # ROM/test fixtures
 │   └── build.gradle.kts
 │
 ├── kboyemucore/                  # Core emulation engine (pure Kotlin)
-│   ├── src/main/java/
-│   │   └── com/github/rodrigotimoteo/kboyemucore/
-│   │       ├── api/              # Public API (KBoyEmulator, Rom, Button, etc.)
-│   │       ├── bus/              # System bus (component coordinator)
-│   │       ├── cpu/              # Z80 CPU implementation
-│   │       ├── ppu/              # Picture Processing Unit (graphics)
-│   │       ├── apu/              # Audio Processing Unit
-│   │       ├── memory/           # Memory management & ROM parsing
-│   │       └── util/             # Core utilities
-│   ├── src/test/java/            # Comprehensive unit tests
+│   ├── src/main/java/com/github/rodrigotimoteo/kboyemucore/
+│   │   ├── KBEmu.kt
+│   │   ├── api/                  # Public API
+│   │   ├── bus/
+│   │   ├── controller/
+│   │   ├── cpu/
+│   │   ├── emulator/
+│   │   ├── ktx/
+│   │   ├── memory/
+│   │   ├── ppu/
+│   │   ├── spu/
+│   │   └── util/
+│   ├── src/test/java/
 │   └── build.gradle.kts
 │
-├── gradle/                       # Gradle wrapper & configuration
-├── config/detekt/                # Code quality configuration
-└── build.gradle.kts             # Root build configuration
+├── roms/                         # ROMs and test assets
+├── config/detekt/                # Detekt configuration
+├── gradle/                       # Gradle wrapper & config
+└── build.gradle.kts
 ```
 
 ## Architecture
@@ -134,12 +141,10 @@ emulator.run()
 - [X] Multiple cartridge type support (MBC0-MBC5)
 - [X] Play games to completion (Pokemon Red verified)
 - [X] Android UI with Jetpack Compose
+- [X] Game Boy Color (CGB) support (mostly complete)
+- [X] Audio/APU output (mostly complete)
 
 ### In Progress
-- [ ] Game Boy Color (CGB) support
-- [ ] Sound/Audio output
-
-### Planned
 - [ ] External joypad support
 - [ ] Save state system
 - [ ] Rewind functionality
